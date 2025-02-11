@@ -266,7 +266,7 @@ fi
 # alias l_dp_plmd='module load anaconda3/2024.2; conda activate dp_plmd' #DELLA; deepmd-kit 2.2.12-dev
 # alias l_dpdev='module load anaconda3/2024.6; conda activate dpdev' #DELLA; deepmd-kit 2.2.12-dev
 
-# git
+# git aliases
 alias git_merge_main="git switch main; git merge dev; git push origin main; git switch dev"
 git_update_dev() {
   date_time=$(date +"%Y-%m-%d %T")
@@ -360,22 +360,24 @@ start_block8=$(date +%s)
 if [ $verbose -eq 1 ]; then
   echo "Creating local copy of useful directories at $(date) ..."
 fi
-# Setting up local copy of BURROWS and JIEDENG directories from projects/
+
+# Setting up local copy of folders and files from {/projects/BURROWS}++ directories
 DIR1="misc_libraries/scripts_Jie"
 DIR2="misc_libraries/Box_Lars"
 DIR3="misc_libraries/vatic-master"
 DIR4="misc_libraries/XDATCAR_toolkit"
-DIR5="run_scripts/MLMD_scripts/mol_systems/MgSiOHN"
-DIR6="run_scripts/MLMD_scripts/TRAIN_MLMD_scripts"
+# DIR5="run_scripts/MLMD_scripts/mol_systems/MgSiOHN"
+DIR6="run_scripts/helpful_scripts"
 DIR7="run_scripts/DPAL__in_use"
 
 FILE1="myshortcuts.sh"
+FILE2=".bashrc"
 
 mkdir -p $LOCAL_AG_BURROWS/$DIR1
 mkdir -p $LOCAL_AG_BURROWS/$DIR2
 mkdir -p $LOCAL_AG_BURROWS/$DIR3
 mkdir -p $LOCAL_AG_BURROWS/$DIR4
-mkdir -p $LOCAL_AG_BURROWS/$DIR5
+# mkdir -p $LOCAL_AG_BURROWS/$DIR5
 mkdir -p $LOCAL_AG_BURROWS/$DIR6
 mkdir -p $LOCAL_AG_BURROWS/$DIR7
 end_block8=$(date +%s)
@@ -398,12 +400,13 @@ rsync -av --update --progress --delete $AG_BURROWS/$DIR1/*  $LOCAL_AG_BURROWS/$D
 rsync -av --update --progress --delete $AG_BURROWS/$DIR2/*  $LOCAL_AG_BURROWS/$DIR2 > /dev/null 2>&1
 rsync -av --update --progress --delete $AG_BURROWS/$DIR3/*  $LOCAL_AG_BURROWS/$DIR3 > /dev/null 2>&1
 rsync -av --update --progress --delete $AG_BURROWS/$DIR4/*  $LOCAL_AG_BURROWS/$DIR4 > /dev/null 2>&1
-rsync -av --update --progress --delete  --exclude='$AG_BURROWS/$DIR5/deepmd_collection_TRAIN' --exclude='$AG_BURROWS/$DIR5/deepmd_collection_TEST' --exclude='deepmd_collection_TRAIN' --exclude='deepmd_collection_TEST' $AG_BURROWS/$DIR5/*  $LOCAL_AG_BURROWS/$DIR5 > /dev/null 2>&1
+# rsync -av --update --progress --delete  --exclude='$AG_BURROWS/$DIR5/deepmd_collection_TRAIN' --exclude='$AG_BURROWS/$DIR5/deepmd_collection_TEST' --exclude='deepmd_collection_TRAIN' --exclude='deepmd_collection_TEST' $AG_BURROWS/$DIR5/*  $LOCAL_AG_BURROWS/$DIR5 > /dev/null 2>&1
 rsync -av --update --progress --delete $AG_BURROWS/$DIR6/*  $LOCAL_AG_BURROWS/$DIR6 > /dev/null 2>&1
-# rsync -av --update --progress --delete --exclude='$AG_BURROWS/$DIR7/iteration_CROSS_CLUSTER' $AG_BURROWS/$DIR7/*  $LOCAL_AG_BURROWS/$DIR7 > /dev/null 2>&1
 rsync -av --update --progress --delete --exclude='iteration_CROSS_CLUSTER' "$AG_BURROWS/$DIR7/" "$LOCAL_AG_BURROWS/$DIR7" > /dev/null 2>&1
 
 rsync -av --update --progress --delete $AG_BURROWS/$FILE1  $LOCAL_AG_BURROWS/$FILE1 > /dev/null 2>&1
+rsync -av --update --progress --delete $AG_BURROWS/$FILE1  $HELP_SCRIPTS/sys/$FILE1 > /dev/null 2>&1
+rsync -av --update --progress --delete $HOME/$FILE2  $HELP_SCRIPTS/sys/${CLUSTER}${FILE2} > /dev/null 2>&1
 # rsync -av --update --progress $AG_BURROWS/VASP_POTPAW/* $SCRATCH/local_copy__projects/BURROWS/VASP_POTPAW
 end_block9=$(date +%s)
 elapsed_block9=$(( end_block9 - start_block9 ))
