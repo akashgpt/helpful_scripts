@@ -1,0 +1,471 @@
+######################
+a bunch of useful resources: 
+1 - https://github.com/PrincetonUniversity/removing_tedium/tree/master/04_navigating_command_line
+2 - https://rosengroup.slite.page/p/JDTEqHMCbiMXQ4/Knowledge-and-Task-Management
+######################
+
+#To mount trashcan in /Academics/Research/VASP/akashgpt_trashcan/
+sudo sshfs -o allow_other,default_permissions akash@169.232.144.6:/Users/akash/akashgpt/ /home/akashgpt/akashgpt/Academics/Research/VASP/akashgpt_trashcan
+
+#For dismounting
+sudo fusermount -uz /home/akashgpt/akashgpt/Academics/Research/VASP/akashgpt_trashcan
+
+#Same for Hoffman2
+sudo sshfs -o allow_other,default_permissions akashgpt@hoffman2.idre.ucla.edu:/u/project/ESS/lstixrud/akashgpt /home/akashgpt/akashgpt/Academics/Research/VASP/akashgpt_Hoffman2
+sudo chmod 775 akashgpt_Hoffman2/
+sudo fusermount -uz /home/akashgpt/akashgpt/Academics/Research/VASP/akashgpt_Hoffman2
+
+
+#If one wants just the base directory/folder name
+basename "$PWD"
+
+#Activating pymc3 environment
+conda activate pymc_env
+conda deactivate
+
+
+Login trashcan
+ssh akash@169.232.144.6
+password: 25274
+
+
+
+rm a0*/CHG
+rm a0*/CHGCAR
+rm a0*/vasprun.xml
+
+
+
+Login hoffman2
+ssh akashgpt@hoffman2.idre.ucla.edu
+cd /u/project/ESS/lstixrud/akashgpt/
+$HOME >> /u/home/a/akashgpt
+password: AkAaSh@97321
+VASP_DIR=/u/project/ESS/lstixrud/lstixrud/vasp/vasp.5.4.4/bin/
+raphaela...
+
+
+qhost -j -q -h n6460 n6461 n6462 n7460 n7461 n7462
+xargs -n 1 cp -v a0282/data_4_analysis.sh<<<"a0201 a0202 a0203 a0204 a0205 a0206 a0206 a0207 a0208 a0209"
+
+???>>conda install deepmd-kit=*=*gpu lammps-dp=*=*gpu -c deepmodeling
+
+
+
+
+#opening VASP run.xlsx file using command line
+sudo libreoffice --writer file.odt
+
+
+
+
+#To copy files over ssh
+Syntax:
+
+scp <source> <destination>
+
+To copy a file from B to A while logged into B:
+
+scp /path/to/file username@a:/path/to/destination
+
+To copy a file from B to A while logged into A:
+
+scp username@b:/path/to/file /path/to/destination
+
+#example (for updating local directory):
+scp -r akash@169.232.144.6:/Users/akash/akashgpt/VASP/sim_data/  /home/akashgpt/akashgpt/Academics/Research/VASP/akashgpt_trashcan_mirror/VASP/
+
+scp -r akashgpt@hoffman2.idre.ucla.edu:/u/project/ESS/lstixrud/akashgpt/VASP/sim_data/a0384  /home/akashgpt/akashgpt/Academics/Research/VASP/akashgpt_Hoffman2_mirror/VASP/sim_data
+scp -r akashgpt@hoffman2.idre.ucla.edu:/u/scratch/a/akashgpt/VASP/sim_data/a0556  /home/akashgpt/akashgpt/Academics/Research/VASP/akashgpt_Hoffman2_mirror/VASP/sim_data
+
+export HOFFMAN_DIR_NAME=a0845j*
+scp -r akashgpt@hoffman2.idre.ucla.edu:/u/scratch/a/akashgpt/VASP/sim_data/$HOFFMAN_DIR_NAME  /home/akashgpt/akashgpt/Academics/Research/VASP/akashgpt_Hoffman2_mirror/VASP/sim_data
+
+
+#updating remote directory/copying a file there from a local directory
+scp /home/akashgpt/akashgpt/Academics/Research/VASP/akashgpt_trashcan_mirror/VASP/sim_data/a0012/POSCAR.cube.vasp   akash@169.232.144.6:/Users/akash/akashgpt/VASP/sim_data/a0012/
+
+scp -r /home/akashgpt/akashgpt/Academics/Research/VASP/akashgpt_Hoffman2_mirror/VASP/sim_data/a0283   akashgpt@hoffman2.idre.ucla.edu:/u/project/ESS/lstixrud/akashgpt/VASP/sim_data
+scp -r /home/akashgpt/akashgpt/Academics/Research/VASP/akashgpt_Hoffman2_mirror/VASP/sim_data/a0283   akashgpt@hoffman2.idre.ucla.edu:/u/scratch/a/akashgpt/VASP/sim_data/
+
+export LOCAL_DIR_NAME=a0845j*
+scp -r /home/akashgpt/akashgpt/Academics/Research/VASP/akashgpt_Hoffman2_mirror/VASP/sim_data/$LOCAL_DIR_NAME   akashgpt@hoffman2.idre.ucla.edu:/u/scratch/a/akashgpt/VASP/sim_data/
+
+#AWK
+grep Total+kin OUTCAR | awk '{print $1,$2}' >> log
+
+#find file with name
+find . -name "output.1716745"
+
+#combining simulations spread across mulitple runs
+TEST_DIR=a07114
+cd ../$TEST_DIR/ && cat ../"${TEST_DIR}a"/OUTCAR ../"${TEST_DIR}b"/OUTCAR  > OUTCAR && cp ../"${TEST_DIR}b"/CONTCAR CONTCAR && ./data_4_analysis.sh &
+
+cd ../$TEST_DIR/ && cat ../"${TEST_DIR}a"/OUTCAR ../"${TEST_DIR}b"/OUTCAR ../"${TEST_DIR}c"/OUTCAR  ../"${TEST_DIR}d"/OUTCAR  ../"${TEST_DIR}e"/OUTCAR  ../"${TEST_DIR}f"/OUTCAR  > OUTCAR && cp ../"${TEST_DIR}f"/CONTCAR CONTCAR && ./data_4_analysis.sh &
+
+#new way using script
+export TEST_DIR=a0869 && source combine_parts_v2ph.sh &
+
+#Identifying and removing null characters in UNIX
+tr < file-with-nulls -d '\000' > file-without-nulls
+
+
+
+
+#DEBUG Fortran
+ifort combine_XDATCARs.f90 -o combine_XDATCARs.out -traceback -check all -ftrapuv -debug all
+
+
+
+
+
+
+#############
+#############
+hoffman2
+VASP_DIR = 
+
+project-lstixrud - universal vasp -> vasp/vasp/bin
+u/scratch/a/akashgpt/
+
+
+
+INCAR
+
+NPAR = 6 <sqrt of the cores used> or NCORE?
+NBANDS = interger of NPAR or cores - overestimate
+
+
+qsub RUN_VASP.sh 
+qdel <job number>
+myjobs
+qstat |grep lstix   
+
+6 nodes X 36 cores
+
+myquota
+
+
+
+
+#colors used for postdoc application MD snapshots
+f9bcbe
+B2CBD7
+F9BCBE
+FCEDF0  
+
+
+
+
+
+
+run_dir=a08813
+mkdir -p $run_dir && cp run_scripts/RUN_VASP_MASTER.sh $run_dir/ && cd $run_dir && source RUN_VASP_MASTER.sh &
+mkdir -p $run_dir && cp $AG_BURROWS/run_scripts/RUN_VASP_MASTER_extended.sh $run_dir/ && cd $run_dir && source RUN_VASP_MASTER_extended.sh &
+
+
+
+
+# For replacing strings using SED command
+sed -i 's/old-text/new-text/g' input.txt
+
+
+
+#####################################
+#####################################
+#####################################
+### DeepMD + DPdata relevant commands
+
+# to extract data from OUTCAR ~ set.000 is used for training, others used for testing/validation
+python $mldp/extract_deepmd.py
+
+# to plot loss function evolution >> energy should go below 1e-3; evolution should have plateaued
+python $mldp/util/plots_mod.py
+
+# to submit lammps jobs -- in Jie's scripts folder in sub/lmp/ ~~ similarly for training and freezing potential, in sub/dp/
+
+# Script to visualize LAMMPS results
+python $mldp/lmp/log_lmp.py -h
+e.g., python $mldp/lmp/log_lmp.py -y Press TotEng
+
+# After training, energy should be < 1e-3
+
+# To test training dataset
+dp test -m <address to model/trained data> 
+^ this to be done where you have your validation data
+
+# to estimate sel / neighbors in cutoff radius
+dp neighbor-stat -s data -r 6.0 -t Mg Si O H N
+
+#####################################
+#####################################
+#####################################
+Recalculating to higher accuracy using DeePMD/VASP (source: https://github.com/neojie/mldp)
+
+
+### When using VASP data ###
+
+#generating ASAP descriptor using Bingqing Cheng
+asap gen_desc -s 10 --fxyz OUTCAR soap -e -c 6 -n 6 -l 6 -g 0.44
+asap gen_desc -s 2 --fxyz npt.dump soap -e -c 6 -n 4 -l 4 -g 0.44
+
+#in main folder w OUTCAR; selecting 200 frames
+python $mldp/asap/select_frames.py -i ASAP-desc.xyz -n 200
+python $mldp/asap/select_frames.py -i ASAP-desc.xyz -n 100
+
+#in "pre" folder, generating training set
+python $mldp/extract_deepmd.py -f ../OUTCAR -id ../*.index -st
+python $mldp/extract_deepmd.py -f ../npt.dump -fmt dump -id ../*.index -st -t 6000 # >> * this temperature here is the electronic temperature (the one defined via 'kB T') -- if during lmp simulations you are changing ionic temperature, then simply use the average elec temp here that you use there
+
+******
+l_deepmd_gpu && asap gen_desc -s 10 --fxyz OUTCAR soap -e -c 6 -n 6 -l 6 -g 0.44 && python $mldp/asap/select_frames.py -i ASAP-desc.xyz -n 100 && mk pre && python $mldp/extract_deepmd.py -f ../OUTCAR -id ../*.index -st
+l_deepmd_gpu && asap gen_desc --fxyz OUTCAR soap -e -c 6 -n 6 -l 6 -g 0.44 && python $mldp/asap/select_frames.py -i ASAP-desc.xyz -n 200 && mk pre && python $mldp/extract_deepmd.py -f ../OUTCAR -id ../*.index -st
+******
+
+#inside pre (not inside recal -- it gets created using the cmd below) retraining using new INCAR, POTCAR and KPOINTS
+python $mldp/recal_dpdata.py -d deepmd/ -if $VASP_DATA/NH3_MgSiO3/inputs/MgSiOHN/4000K/ -sc sbatch
+python $mldp/recal_dpdata.py -d deepmd/ -if $VASP_DATA/NH3_MgSiO3/inputs/HN/4000K/ -sc sbatch
+python $mldp/recal_dpdata.py -d deepmd/ -if $VASP_DATA/NH3_MgSiO3/inputs/MgSiO/4000K/ -sc sbatch
+
+**********************************************
+****************** USE THIS ******************
+DELLA/VASP: 
+l_deepmd_gpu && asap gen_desc -s 5 --fxyz OUTCAR soap -e -c 6 -n 6 -l 6 -g 0.44 && python $mldp/asap/select_frames.py -i ASAP-desc.xyz -n 100 && mk pre && python $mldp/extract_deepmd.py -f ../OUTCAR -id ../*.index -st && python $mldp/recal_dpdata.py -d deepmd/ -if $VASP_DATA/NH3_MgSiO3/inputs/MgSiOHN/4000K/ -sc sbatch
+l_deepmd_gpu && asap gen_desc -s 5 --fxyz OUTCAR soap -e -c 6 -n 6 -l 6 -g 0.44 && python $mldp/asap/select_frames.py -i ASAP-desc.xyz -n 200 && mk pre && python $mldp/extract_deepmd.py -f ../OUTCAR -id ../*.index -st && python $mldp/recal_dpdata.py -d deepmd/ -if $VASP_DATA/NH3_MgSiO3/inputs/MgSiOHN_shortQ/4000K/ -sc sbatch
+l_deepmd_gpu && asap gen_desc -s 5 --fxyz OUTCAR soap -e -c 6 -n 6 -l 6 -g 0.44 && python $mldp/asap/select_frames.py -i ASAP-desc.xyz -n 200 && mk pre && python $mldp/extract_deepmd.py -f ../OUTCAR -id ../*.index -st && python $mldp/recal_dpdata.py -d deepmd/ -if $VASP_DATA/NH3_MgSiO3/inputs/MgSiOHN_shortQ/2000K/ -sc sbatch
+
+DELLA/LAMMPS/***MgSiOHN***:
+%MgSiOHN
+l_deepmd_gpu && asap gen_desc --fxyz npt.dump soap -e -c 6 -n 4 -l 4 -g 0.44 && python $mldp/asap/select_frames.py -i ASAP-desc.xyz -n 500 && mk pre && python $mldp/extract_deepmd.py -f ../npt.dump -fmt dump -id ../test-frame-select-fps-n-500.index -st -t 4000 && cp $DPAL__main/reference_input_files/VASP_inputs/MgSiOHN/shortQ_TIGER3_RECAL/type_map.raw.template deepmd/type_map.raw && python $mldp/recal_dpdata.py -d deepmd/ -if $DPAL__main/reference_input_files/VASP_inputs/MgSiOHN/vshortQ_TIGER3_RECAL/4000K/ -sc sbatch
+l_deepmd_gpu && asap gen_desc --fxyz npt.dump soap -e -c 6 -n 4 -l 4 -g 0.44 && python $mldp/asap/select_frames.py -i ASAP-desc.xyz -n 500 && mk pre && python $mldp/extract_deepmd.py -f ../npt.dump -fmt dump -id ../test-frame-select-fps-n-500.index -st -t 4000 && cp $DPAL__main/reference_input_files/VASP_inputs/MgSiOHN/shortQ_TIGER3_RECAL/type_map.raw.template deepmd/type_map.raw && python $mldp/recal_dpdata.py -d deepmd/ -if $DPAL__main/reference_input_files/VASP_inputs/MgSiOHN/shortQ_TIGER3_RECAL/4000K/ -sc sbatch
+%MgSiO
+l_deepmd_gpu && asap gen_desc --fxyz npt.dump soap -e -c 6 -n 4 -l 4 -g 0.44 && python $mldp/asap/select_frames.py -i ASAP-desc.xyz -n 500 && mk pre && python $mldp/extract_deepmd.py -f ../npt.dump -fmt dump -id ../test-frame-select-fps-n-500.index -st -t 4000 && cp $DPAL__main/reference_input_files/VASP_inputs/MgSiO/shortQ_TIGER3_RECAL/type_map.raw.template deepmd/type_map.raw && python $mldp/recal_dpdata.py -d deepmd/ -if $DPAL__main/reference_input_files/VASP_inputs/MgSiO/vshortQ_TIGER3_RECAL/4000K/ -sc sbatch
+%HN
+l_deepmd_gpu && asap gen_desc --fxyz npt.dump soap -e -c 6 -n 4 -l 4 -g 0.44 && python $mldp/asap/select_frames.py -i ASAP-desc.xyz -n 500 && mk pre && python $mldp/extract_deepmd.py -f ../npt.dump -fmt dump -id ../test-frame-select-fps-n-500.index -st -t 4000 && cp $DPAL__main/reference_input_files/VASP_inputs/HN/shortQ_TIGER3_RECAL/type_map.raw.template deepmd/type_map.raw && python $mldp/recal_dpdata.py -d deepmd/ -if $DPAL__main/reference_input_files/VASP_inputs/HN/vshortQ_TIGER3_RECAL/4000K/ -sc sbatch
+l_deepmd_gpu && asap gen_desc --fxyz npt.dump soap -e -c 6 -n 4 -l 4 -g 0.44 && python $mldp/asap/select_frames.py -i ASAP-desc.xyz -n 500 && mk pre && python $mldp/extract_deepmd.py -f ../npt.dump -fmt dump -id ../test-frame-select-fps-n-500.index -st -t 4000 && cp $DPAL__main/reference_input_files/VASP_inputs/HN/shortQ_TIGER3_RECAL/type_map.raw.template deepmd/type_map.raw && python $mldp/recal_dpdata.py -d deepmd/ -if $DPAL__main/reference_input_files/VASP_inputs/HN/shortQ_TIGER3_RECAL/4000K/ -sc sbatch
+
+TIGER3/VASP: (23012025)
+4000K examples
+% MgSiOHN
+l_deepmd && asap gen_desc -s 5 --fxyz OUTCAR soap -e -c 6 -n 6 -l 6 -g 0.44 && python $mldp/asap/select_frames.py -i ASAP-desc.xyz -n 500 && mk pre && python $mldp/extract_deepmd.py -f ../OUTCAR -id ../*.index -st && python $mldp/recal_dpdata.py -d deepmd/ -if $DPAL__main/reference_input_files/VASP_inputs/MgSiOHN/shortQ_TIGER3_RECAL/4000K/ -sc sbatch
+l_deepmd && asap gen_desc -s 5 --fxyz OUTCAR soap -e -c 6 -n 6 -l 6 -g 0.44 && python $mldp/asap/select_frames.py -i ASAP-desc.xyz -n 500 && mk pre && python $mldp/extract_deepmd.py -f ../OUTCAR -id ../*.index -st && python $mldp/recal_dpdata.py -d deepmd/ -if $DPAL__main/reference_input_files/VASP_inputs/MgSiOHN/vshortQ_TIGER3_RECAL/4000K/ -sc sbatch
+% MgSiO
+l_deepmd && asap gen_desc -s 5 --fxyz OUTCAR soap -e -c 6 -n 6 -l 6 -g 0.44 && python $mldp/asap/select_frames.py -i ASAP-desc.xyz -n 500 && mk pre && python $mldp/extract_deepmd.py -f ../OUTCAR -id ../*.index -st && python $mldp/recal_dpdata.py -d deepmd/ -if $DPAL__main/reference_input_files/VASP_inputs/MgSiO/shortQ_TIGER3_RECAL/4000K/ -sc sbatch
+l_deepmd && asap gen_desc -s 5 --fxyz OUTCAR soap -e -c 6 -n 6 -l 6 -g 0.44 && python $mldp/asap/select_frames.py -i ASAP-desc.xyz -n 500 && mk pre && python $mldp/extract_deepmd.py -f ../OUTCAR -id ../*.index -st && python $mldp/recal_dpdata.py -d deepmd/ -if $DPAL__main/reference_input_files/VASP_inputs/MgSiO/vshortQ_TIGER3_RECAL/4000K/ -sc sbatch
+% HN
+l_deepmd && asap gen_desc -s 5 --fxyz OUTCAR soap -e -c 6 -n 6 -l 6 -g 0.44 && python $mldp/asap/select_frames.py -i ASAP-desc.xyz -n 500 && mk pre && python $mldp/extract_deepmd.py -f ../OUTCAR -id ../*.index -st && python $mldp/recal_dpdata.py -d deepmd/ -if $DPAL__main/reference_input_files/VASP_inputs/HN/shortQ_TIGER3_RECAL/4000K/ -sc sbatch
+l_deepmd && asap gen_desc -s 5 --fxyz OUTCAR soap -e -c 6 -n 6 -l 6 -g 0.44 && python $mldp/asap/select_frames.py -i ASAP-desc.xyz -n 500 && mk pre && python $mldp/extract_deepmd.py -f ../OUTCAR -id ../*.index -st && python $mldp/recal_dpdata.py -d deepmd/ -if $DPAL__main/reference_input_files/VASP_inputs/HN/vshortQ_TIGER3_RECAL/4000K/ -sc sbatch
+
+
+TIGER3/LAMMPS: (23012025)
+4000K examples
+% MgSiOHN
+l_deepmd && asap gen_desc -s 5 --fxyz OUTCAR soap -e -c 6 -n 6 -l 6 -g 0.44 && python $mldp/asap/select_frames.py -i ASAP-desc.xyz -n 500 && mk pre && python $mldp/extract_deepmd.py -f ../OUTCAR -id ../*.index -st && python $mldp/recal_dpdata.py -d deepmd/ -if $DPAL__main/reference_input_files/VASP_inputs/MgSiOHN/shortQ_TIGER3_RECAL/4000K/ -sc sbatch
+l_deepmd && asap gen_desc -s 5 --fxyz OUTCAR soap -e -c 6 -n 6 -l 6 -g 0.44 && python $mldp/asap/select_frames.py -i ASAP-desc.xyz -n 500 && mk pre && python $mldp/extract_deepmd.py -f ../OUTCAR -id ../*.index -st && python $mldp/recal_dpdata.py -d deepmd/ -if $DPAL__main/reference_input_files/VASP_inputs/MgSiOHN/vshortQ_TIGER3_RECAL/4000K/ -sc sbatch
+% MgSiO
+l_deepmd && asap gen_desc -s 5 --fxyz OUTCAR soap -e -c 6 -n 6 -l 6 -g 0.44 && python $mldp/asap/select_frames.py -i ASAP-desc.xyz -n 500 && mk pre && python $mldp/extract_deepmd.py -f ../OUTCAR -id ../*.index -st && python $mldp/recal_dpdata.py -d deepmd/ -if $DPAL__main/reference_input_files/VASP_inputs/MgSiO/shortQ_TIGER3_RECAL/4000K/ -sc sbatch
+l_deepmd && asap gen_desc -s 5 --fxyz OUTCAR soap -e -c 6 -n 6 -l 6 -g 0.44 && python $mldp/asap/select_frames.py -i ASAP-desc.xyz -n 500 && mk pre && python $mldp/extract_deepmd.py -f ../OUTCAR -id ../*.index -st && python $mldp/recal_dpdata.py -d deepmd/ -if $DPAL__main/reference_input_files/VASP_inputs/MgSiO/vshortQ_TIGER3_RECAL/4000K/ -sc sbatch
+% HN
+l_deepmd && asap gen_desc -s 5 --fxyz OUTCAR soap -e -c 6 -n 6 -l 6 -g 0.44 && python $mldp/asap/select_frames.py -i ASAP-desc.xyz -n 500 && mk pre && python $mldp/extract_deepmd.py -f ../OUTCAR -id ../*.index -st && python $mldp/recal_dpdata.py -d deepmd/ -if $DPAL__main/reference_input_files/VASP_inputs/HN/shortQ_TIGER3_RECAL/4000K/ -sc sbatch
+l_deepmd && asap gen_desc -s 5 --fxyz OUTCAR soap -e -c 6 -n 6 -l 6 -g 0.44 && python $mldp/asap/select_frames.py -i ASAP-desc.xyz -n 500 && mk pre && python $mldp/extract_deepmd.py -f ../OUTCAR -id ../*.index -st && python $mldp/recal_dpdata.py -d deepmd/ -if $DPAL__main/reference_input_files/VASP_inputs/HN/vshortQ_TIGER3_RECAL/4000K/ -sc sbatch
+
+****************** USE THIS ******************
+**********************************************
+
+#inside recal to check if all runs done successfully
+python $mldp/post_recal_v2.py > checks && python $mldp/check_nbands_nelm.py -ip all -v >> check && vi check
+
+**********************************************
+****************** USE THIS ******************
+#inside recal to rerun sims that didn't start or some issue with OUTCAR (didn't finish, converge ...)
+DELLA/VASP:
+l_deepmd_gpu && runID=n0512e && cd $VASP_DATA/NH3_MgSiO3/sim_data/$runID/pre/recal && python $mldp/post_recal_rerun.py -ip all -v -ss $VASP_DATA/NH3_MgSiO3/inputs/MgSiOHN_shortQ/sub_vasp.sh > test && vi test
+
+DELLA/VASP/LAMMPS:
+l_deepmd_gpu && python $mldp/post_recal_rerun.py -ip all -v -ss $VASP_DATA/NH3_MgSiO3/inputs/MgSiOHN_shortQ_LAMMPS/sub_vasp_xtra.sh > log.recal_test && vi log.recal_test
+python $mldp/post_recal_rerun.py -ip all -v -ss $VASP_DATA/NH3_MgSiO3/inputs/MgSiOHN_medQ/sub_vasp_xtra.sh > log.recal_test
+python $mldp/post_recal_rerun.py -ip all -v -ss $VASP_DATA/NH3_MgSiO3/inputs/MgSiOHN/shortQ_DELLA/sub_vasp_xtra.sh > log.recal_test && vi log.recal_test
+
+ANY CLUSTER:
+$MY_MLMD_SCRIPTS/reference_input_files/VASP_inputs/MgSiOHN/shortQ_DELLA_RECAL/sub_vasp_xtra.sh
+
+TIGER3:
+python $mldp/post_recal_rerun.py -ip all -v -ss $DPAL__main/reference_input_files/VASP_inputs/MgSiOHN/shortQ_TIGER3_RECAL/4000K/sub_vasp_xtra.sh > log.recal_test && vi log.recal_test
+python $mldp/post_recal_rerun.py -ip all -v -ss $DPAL__main/reference_input_files/VASP_inputs/MgSiOHN/vshortQ_TIGER3_RECAL/4000K/sub_vasp_xtra.sh > log.recal_test && vi log.recal_test
+python $mldp/post_recal_rerun.py -ip all -v -ss $VASP_DATA/NH3_MgSiO3/sim_data_ML/setup_MLMD/ZONES_input_files/ZONE_1/sub_vasp_xtra.sh  > log.recal_test && vi log.recal_test
+****************** USE THIS ******************
+**********************************************
+
+#inside recal merge OUTCARs -- first removes previous files, the second one doesn't
+python $mldp/merge_out.py -o OUTCAR -r y
+python $mldp/merge_out.py -o OUTCAR
+
+#inside recal to create new deepmd files
+python $mldp/extract_deepmd.py -d deepmd -ttr 10000
+
+**********************************************
+****************** USE THIS ******************
+VASP/LAMMPS:
+python $mldp/merge_out.py -o OUTCAR && python $mldp/extract_deepmd.py -d deepmd -ttr 10000
+****************** USE THIS ******************
+**********************************************
+
+
+**********************************************
+****************** USE THIS ******************
+# for testing how good or bad the training potential is wrt recalculated frames
+
+runID=n0512a && DPID=v1_i0.1 && cd $VASP_DATA/NH3_MgSiO3/sim_data/$runID/pre/recal && dp test -m $MDNN/$DPID/train/model-compression/pv.pb -d dp_test -n 200 > dp_test.log 2>&1 && python $mldp/model_dev/analysis.py -tf . -mp dp_test -rf . -euc 1 -fuc 10 -flc 0.4 -elc 0.02 && code vasp*
+
+dp test -m $MDNN/v5_i0.1/train/model-compression/pv_comp.pb -d dp_test -n 200 > log.dp_test 2>&1 && python $mldp/model_dev/analysis.py -tf . -mp dp_test -rf . -euc 10 -fuc 10 -flc 0.4 -elc 0.02 && code vasp*
+dp test -m $MDNN/v5_i3/train/model-compression/pv_comp.pb -d dp_test -n 200 > log.dp_test 2>&1 && python $mldp/model_dev/analysis.py -tf . -mp dp_test -rf . -euc 10 -fuc 10 -flc 0.4 -elc 0.02 && code vasp*
+dp test -m $MDNN/v5_i3/train/model-compression/pv_comp.pb -d dp_test -n 200 > log.dp_test 2>&1 && python $mldp/model_dev/analysis.py -tf . -mp dp_test -rf . -euc 10 -fuc 10 -flc 0.4 -elc 0.02 && code vasp*
+dp test -m ../../../../../train/model-compression/pv_comp.pb -d dp_test -n 200 > log.dp_test 2>&1 && python $mldp/model_dev/analysis.py -tf . -mp dp_test -rf . -euc 10 -fuc 10 -flc 0.4 -elc 0.02 && code vasp*
+dp test -m /scratch/gpfs/ag5805/qmd_data/NH3_MgSiO3/sim_data_ML/v5_i28/train/model-compression/pv_comp.pb -d dp_test -n 200 > log.dp_test 2>&1 && python $mldp/model_dev/analysis.py -tf . -mp dp_test -rf . -euc 10 -fuc 10 -flc 0.4 -elc 0.02 && code vasp*
+
+# DELLA/Potentially all clusters | 2025:
+rm -rf OUTCAR deepmd && python $mldp/merge_out.py -o OUTCAR && python $mldp/extract_deepmd.py -d deepmd -ttr 10000 && apptainer exec $APPTAINER_REPO/deepmd-kit_latest.sif dp test -m /scratch/gpfs/ag5805/qmd_data/NH3_MgSiO3/sim_data_ML/setup_MLMD/latest_trained_potential/pv_comp.pb -d dp_test -n 0 > log.dp_test 2>&1 && python $mldp/model_dev/analysis.py -tf . -mp dp_test -rf . -euc 10 -fuc 100 -flc 0.5 -elc 0.01 && code vasp*
+%% v2 %%: 
+rm -rf OUTCAR deepmd && python $mldp/merge_out.py -o OUTCAR && python $mldp/extract_deepmd.py -d deepmd -ttr 10000 && apptainer exec $APPTAINER_REPO/deepmd-kit_latest.sif dp test -m /scratch/gpfs/ag5805/qmd_data/NH3_MgSiO3/sim_data_ML_v2/setup_MLMD/latest_trained_potential/pv_comp.pb -d dp_test -n 0 > log.dp_test 2>&1 && python $mldp/model_dev/analysis.py -tf . -mp dp_test -rf . -euc 10 -fuc 100 -flc 0.8 -elc 0.02 && code vasp*
+%% v2: refines deepmd too based on cut-offs %%: 
+rm -rf OUTCAR deepmd && python $mldp/merge_out.py -o OUTCAR && python $mldp/extract_deepmd.py -d deepmd -ttr 10000 && apptainer exec $APPTAINER_REPO/deepmd-kit_latest.sif dp test -m /scratch/gpfs/ag5805/qmd_data/NH3_MgSiO3/sim_data_ML_v2/setup_MLMD/latest_trained_potential/pv_comp.pb -d dp_test -n 0 > log.dp_test 2>&1 && python $mldp/model_dev/analysis.py -tf . -mp dp_test -rf . -euc 10 -fuc 100 -flc 0.8 -elc 0.02 && code vasp* && rm -rf deepmd && python $mldp/extract_deepmd.py -f OUTCAR -d deepmd -id dp_test_id_e_and_f
+rm -rf OUTCAR deepmd && python $mldp/merge_out.py -o OUTCAR && python $mldp/extract_deepmd.py -d deepmd -ttr 10000 && apptainer exec $APPTAINER_REPO/deepmd-kit_latest.sif dp test -m /scratch/gpfs/ag5805/qmd_data/NH3_MgSiO3/sim_data_ML_v2/setup_MLMD/latest_trained_potential/pv_comp.pb -d dp_test -n 0 > log.dp_test 2>&1 && python $mldp/model_dev/analysis.py -tf . -mp dp_test -rf . -euc 10 -fuc 100 -flc 0.8 -elc 0.02 && rm -rf deepmd && python $mldp/extract_deepmd.py -f OUTCAR -d deepmd -id dp_test_id_e_and_f
+
+TIGER3:
+rm -r OUTCAR deepmd && python $mldp/merge_out.py -o OUTCAR && python $mldp/extract_deepmd.py -d deepmd -ttr 10000 && apptainer exec $APPTAINER_REPO/deepmd-kit_latest.sif dp test -m /scratch/gpfs/BURROWS/akashgpt/qmd_data/MgSiOHN/setup_MLMD/latest_trained_potential/pv_comp.pb -d dp_test -n 0 > log.dp_test 2>&1 && python $mldp/model_dev/analysis.py -tf . -mp dp_test -rf . -euc 10 -fuc 100 -flc 0.5 -elc 0.01 && code vasp*
+**********************************************
+**********************************************
+
+
+############################## Using stat_model.py ###
+python $mldp/stat_model.py -ip testdata.myinput.json -m /scratch/gpfs/ag5805/qmd_data/NH3_MgSiO3/sim_data_ML/v5_i39/train/model-compression/pv_comp.pb -d dpmd_stat_model_v
+python $mldp/post_stat_model.py -ip testdata.myinput.json -d dpmd_stat_model
+
+
+python $mldp/post_stat_model.py -ip testdata_only_new_dataset.myinput.json -d dpmd_stat_model_v2
+python $mldp/post_stat_model.py -ip testdata_only_new_mixture_dataset.myinput.json -d dpmd_stat_model_v3
+python $mldp/post_stat_model.py -ip testdata_only_Jie_dataset.myinput.json -d dpmd_stat_model_v4
+
+
+#to +1 all numbers in a data file (s: chatgpt)
+awk '{ for (i=1; i<=NF; i++) $i = $i + 1 } 1' input_file > output_file
+
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+*************************************
+#####################################
+For DeePMD based LAMMPS simulations, remember that all elements 
+need to be mentioned in the conf.lmp file and they have to be 
+in the same order too in which they were always trained!
+#####################################
+*************************************
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+#####################################
+#####################################
+
+
+
+
+
+
+
+myfind 1061560[2-3] == myfind 10615602 && myfind 10615603
+
+
+#conda search package
+conda list -n <env in which to search> | grep <package name>
+
+
+
+
+#using bash command to copy a file to all sub-directories of a folder
+find <eventhing_copied_to_this_directory's_sub_folders> -type d | xargs -I {} cp <file_to_be_copied> {}
+e.g., to copy INCAR in the current dir to all subfolders of curr dir: find . -type d | xargs -I {} cp INCAR {}
+e.g., to copy KPOINTS in the current dir to all subfolders of curr dir: find . -type d | xargs -I {} cp ../../../KPOINTS {}
+
+
+
+# This will list each log.dp_test file with its last modification date in a human-readable format.
+find . -type f -name "log.dp_test" -exec ls -lh --time-style=long-iso {} \;
+
+
+##########
+#### Sequence of commands to check if recal calculations done successfully and if so, to create deepmd files
+##########
+
+runid=n0533c
+cd ../../../$runid/pre/recal && ls 200/
+python $mldp/post_recal_rerun.py -ip all -v -ss $VASP_DATA/NH3_MgSiO3/inputs/MgSiOHN_shortQ/sub_vasp_xtra.sh > test && vi test
+python $mldp/merge_out.py -o OUTCAR && python $mldp/extract_deepmd.py -d deepmd -ttr 10000
+
+##########
+##########
+##########
+
+
+
+# n_X(Z)
+# n_H2O = n_O
+# n_H = 2*(n_H2) + 2*(n_H2O)
+# n_H2 = 0.5*n_H - n_H2O
+# X_H2 = n_H2 / (n_H2 + n_H2O) = (0.5*n_H - n_O)/ (0.5*n_H) = (n_H - 2*n_O)/n_H = 1 - 2*(n_O/n_H)
+#dX_H2 = -2*( (dn_O/n_H) - (n_O*dn_H/(n_H**2)) ) = 2*( - n_H*dn_O + n_O*dn_H )/(n_H**2)
+
+
+
+
+# to get all dependecies (w details) of a library
+pipdeptree --reverse --packages <library_name>
+
+
+
+## setting up Git/github
+ls ~/.ssh/id_rsa.pub
+cat ~/.ssh/id_rsa.pub
+ssh-keygen -t rsa -b 4096 -C "ag5805@princeton.edu"
+ssh-keygen -t rsa -b 4096 -C "akashgpt.princeton@gmail.com"
+git config --global user.name "Akash Gupta"
+git config --global user.email "akashgpt.princeton@gmail.com"
+ssh -T git@github.com
+
+
+
+
+# hacks
+~ adding environment and package locations for conda in .condarc
+
+
+
+
+
+
+
+
+Processing /scratch/gpfs/BURROWS/akashgpt/qmd_data/MgSiOHN/deepmd_collection_TEST/u.pro.E.l.j.metad.pvh.5th.x.p3oh.liq.pre.recal
+salloc: error: Node failure on tiger-g03c2n4
+                                            srun: error: Aborting, io error and missing step on node 0
+salloc: Job allocation 21941 has been revoked.
+                                              srun: error: Node failure on tiger-g03c2n4
+srun: Job step aborted: Waiting up to 47 seconds for job step to finish.
+
+
+# APPTAINER test command
+apptainer exec --bind /scratch/gpfs/ag5805/qmd_data/NH3_MgSiO3/sim_data_ML_test__DELLAxTIGER3/v5_i6/md/ZONE_1/10MgSiO3_50NH3/pre/recal:$APPTAINER_REPO --nv $APPTAINER_REPO/deepmd-kit_devel_cu11.sif dp test -m /scratch/gpfs/ag5805/qmd_data/NH3_MgSiO3/sim_data_ML_test__DELLAxTIGER3/v5_i6/train/model-compression/pv_comp.pb -d dp_test -n 5 > log.dp_test 2>&1
+
+
+
+#####################################
+# How many frames should be trained test?
+
+# select 20 frames randomly from all numberered folders in current directory
+echo "# shortlisting following frames:" > dp_test.select && ls -d [0-9]* | shuf -n 20 >> dp_test.select
+
+# create new deepmd using dp_test.select
+module purge && l_deepmd_cpu && rm -rf OUTCAR deepmd && python $mldp/merge_out.py -o OUTCAR && python $mldp/extract_deepmd.py -f OUTCAR -d deepmd -ttr 100000
+cp -r ../recal/train . && cd train && sb train_1h.apptr.sh
+apptainer exec $APPTAINER_REPO/deepmd-kit_latest.sif dp test -m ../train/model-compression/pv_comp.pb -d dp_test -n 0 > log.dp_test 2>&1 && python $mldp/model_dev/analysis.py -tf . -mp dp_test -rf . -euc 10 -fuc 100 -flc 0.8 -elc 0.02 && code vasp* &
+
+# to start with a new ttr
+ttr=0.35 && cp -r recal recal_ttr_$ttr && cd recal_ttr_$ttr && source ../recal/setup_frame_convergence.sh $ttr
+ttr=0.35 && cp -r recal recal_ttr_$ttr && cd recal_ttr_$ttr && source ../setup_frame_convergence.sh $ttr
