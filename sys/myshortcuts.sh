@@ -25,7 +25,7 @@
 
 verbose=${1:-0}
 
-printf "Setting up myshortcuts.sh with verbose=$verbose\n"
+# printf "Setting up myshortcuts.sh with verbose=$verbose\n"
 
 # echo location of this file that is being sourced
 # echo "Sourced from: ${BASH_SOURCE[0]}"
@@ -278,11 +278,6 @@ git_update_dev() {
   git commit -m "$message_commit"
   git push origin dev
 }
-end_block6=$(date +%s)
-elapsed_block6=$(( end_block6 - start_block6 ))
-if [ $elapsed_block6 -gt 10 ]; then
-  echo "WARNING: environment/conda aliases block took $elapsed_block6 seconds!"
-fi
 
 git_update_main() {
   date_time=$(date +"%Y-%m-%d %T")
@@ -294,6 +289,13 @@ git_update_main() {
   git commit -m "$message_commit"
   git push origin main
 }
+
+end_block6=$(date +%s)
+elapsed_block6=$(( end_block6 - start_block6 ))
+if [ $elapsed_block6 -gt 10 ]; then
+  echo "WARNING: environment/conda aliases block took $elapsed_block6 seconds!"
+fi
+
 
 
 ##########################################
@@ -308,6 +310,7 @@ export AG_BURROWS="/projects/BURROWS/akashgpt"
 export LOCAL_AG_BURROWS="$SCRATCH/local_copy__projects/BURROWS/akashgpt"
 export AG_JIEDENG="/projects/JIEDENG/akashgpt"
 export AG_TIGERDATA="/tigerdata/burrows/planet_evo/akashgpt"
+export AG_TIGERDATA_2="/tigerdata/jiedeng/exoplanet/akashgpt"
 export BACKUP_DIR="$SCRATCH/akashgpt_ucla_desktop_backup_20231231"
 export VASP_ANALYSIS="$AG_BACKUP/Academics/Research/VASP/analysis_codes"
 export VASP_DATA="$SCRATCH/qmd_data"

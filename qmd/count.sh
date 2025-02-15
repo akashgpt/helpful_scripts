@@ -11,7 +11,7 @@
 #     whose names start with a digit.
 #
 # It then calculates:
-#   - The average frames per simulation,
+#   - The average_frame_selected frames per simulation,
 #   - The standard deviation of selected frames across simulations,
 #   - The average frame count per simulation.
 #
@@ -68,28 +68,33 @@ process_files() {
 
     # Calculate average using bc for floating-point division
     if [ "$file_count" -gt 0 ]; then
-        average=$(echo "scale=2; $total_lines / $file_count" | bc)
+        average_frame_selected=$(echo "scale=2; $total_lines / $file_count" | bc)
 
         # Calculate standard deviation
-        variance=$(echo "scale=2; ($total_lines_squared - $total_lines * $average) / $file_count" | bc)
+        variance=$(echo "scale=2; ($total_lines_squared - $total_lines * $average_frame_selected) / $file_count" | bc)
         standard_deviation=$(echo "scale=2; sqrt($variance)" | bc)
 
         average_frame_count=$(echo "scale=2; $total_frame_count / $file_count" | bc)
 
+        fraction_frame_selected=$(echo "scale=2; $total_lines / $total_frame_count" | bc)
+        std_fraction_frame_selected=$(echo "scale=2; $standard_deviation*$file_count / $total_frame_count" | bc)
+
     else
-        average=0
+        average_frame_selected=0
         standard_deviation=0
         average_frame_count=0
+        fraction_frame_selected=0
+        std_fraction_frame_selected=0
     fi
 
     echo ""
     echo "### \"$pattern\" ###"
-    echo "Total instances: $file_count"
+    echo "Total sims: $file_count"
     echo "Total frame count: $total_frame_count"
-    echo "Average frame count: $average_frame_count"
     echo "Total selected frames: $total_lines"
-    echo "Average frames per sim: $average"
-    echo "Standard deviation across sims: $standard_deviation"
+    echo "Average frame count per sim: $average_frame_count"
+    echo "Average frames per sim: $average_frame_selected +/- $standard_deviation"
+    echo "Fraction of frames selected: $fraction_frame_selected +/- $std_fraction_frame_selected"
     echo "Maximum number of selected frames: $max_lines"
     echo "Minimum number of selected frames: $min_lines"
     echo "Sim with maximum selected frames: $max_lines_file"
