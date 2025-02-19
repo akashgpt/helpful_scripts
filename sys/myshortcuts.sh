@@ -91,7 +91,7 @@ start_block3=$(date +%s)
 # enable color support of ls and also add handy aliases
 if [ -x /usr/bin/dircolors ]; then
     test -r ~/.dircolors && eval "$(dircolors -b ~/.dircolors)" || eval "$(dircolors -b)"
-    alias ls='ls --color=auto'
+    alias ls='ls --color=auto -v'
     #alias dir='dir --color=auto'
     #alias vdir='vdir --color=auto'
 
@@ -100,15 +100,15 @@ if [ -x /usr/bin/dircolors ]; then
     alias egrep='egrep --color=auto'
 fi
 
-alias ll='ls -clF -h'
-alias la='ls -A'
-alias l='ls -CF'
-alias ls='ls --color=auto'
+alias ll='ls -clF -h -v'
+alias la='ls -A -v'
+alias l='ls -CF -v'
+alias ls='ls --color=auto -v'
 alias lsf='ls --color=auto -p | grep -v /' # only files + sort by time
-alias llt='ls --color=auto -hlctur' # sort by time
+alias llt='ls --color=auto -hlctur -v' # sort by time
 alias llf='ls --color=auto -hlctur -p | grep -v /' # only files + sort by time
-alias lls='ls --color=auto -lhcS' # sort by size
-alias ll='ls --color=auto -lhc'
+alias lls='ls --color=auto -lhcS -v' # sort by size
+alias ll='ls --color=auto -lhc -v'
 alias du='du -csh'
 alias cq='checkquota'
 

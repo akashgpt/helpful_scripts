@@ -63,8 +63,8 @@ if train_test_ratios and train_energy_rmse_values and test_energy_rmse_values:
     log_x_axis = False
     train_test_ratios_second_axis = [0.1, 0.3, 0.5, 0.7, 1]#,2]
     # train_test_ratios_second_axis = [0.1, 0.3, 0.5, 0.7, 1.0,2]
-    x_axis_min = min(train_test_ratios)*0.9
-    x_axis_max = np.min([max(train_test_ratios), max(train_test_ratios_second_axis)])*1.1
+    x_axis_min = 0.025*0.9 #min(train_test_ratios)*0.9
+    x_axis_max = 1*1.1#np.min([max(train_test_ratios), max(train_test_ratios_second_axis)])*1.1
 
     # Compute n_set_train for each train_test_ratio
     n_set_train_values = np.array([n_set_total / (1 + 1 / ttr) if ttr != 0 else 0 for ttr in train_test_ratios_second_axis])
