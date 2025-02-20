@@ -317,24 +317,24 @@ python $mldp/merge_out.py -o OUTCAR && python $mldp/extract_deepmd.py -d deepmd 
 ****************** USE THIS ******************
 # for testing how good or bad the training potential is wrt recalculated frames
 
-runID=n0512a && DPID=v1_i0.1 && cd $VASP_DATA/NH3_MgSiO3/sim_data/$runID/pre/recal && dp test -m $MDNN/$DPID/train/model-compression/pv.pb -d dp_test -n 200 > dp_test.log 2>&1 && python $mldp/model_dev/analysis_v3.py.py -tf . -mp dp_test -rf . -euc 1 -fuc 10 -flc 0.4 -elc 0.02 && code vasp*
+runID=n0512a && DPID=v1_i0.1 && cd $VASP_DATA/NH3_MgSiO3/sim_data/$runID/pre/recal && dp test -m $MDNN/$DPID/train/model-compression/pv.pb -d dp_test -n 200 > dp_test.log 2>&1 && python $mldp/model_dev/analysis_v3.py -tf . -mp dp_test -rf . -euc 1 -fuc 10 -flc 0.4 -elc 0.02 && code vasp*
 
-dp test -m $MDNN/v5_i0.1/train/model-compression/pv_comp.pb -d dp_test -n 200 > log.dp_test 2>&1 && python $mldp/model_dev/analysis_v3.py.py -tf . -mp dp_test -rf . -euc 10 -fuc 10 -flc 0.4 -elc 0.02 && code vasp*
-dp test -m $MDNN/v5_i3/train/model-compression/pv_comp.pb -d dp_test -n 200 > log.dp_test 2>&1 && python $mldp/model_dev/analysis_v3.py.py -tf . -mp dp_test -rf . -euc 10 -fuc 10 -flc 0.4 -elc 0.02 && code vasp*
-dp test -m $MDNN/v5_i3/train/model-compression/pv_comp.pb -d dp_test -n 200 > log.dp_test 2>&1 && python $mldp/model_dev/analysis_v3.py.py -tf . -mp dp_test -rf . -euc 10 -fuc 10 -flc 0.4 -elc 0.02 && code vasp*
-dp test -m ../../../../../train/model-compression/pv_comp.pb -d dp_test -n 200 > log.dp_test 2>&1 && python $mldp/model_dev/analysis_v3.py.py -tf . -mp dp_test -rf . -euc 10 -fuc 10 -flc 0.4 -elc 0.02 && code vasp*
-dp test -m /scratch/gpfs/ag5805/qmd_data/NH3_MgSiO3/sim_data_ML/v5_i28/train/model-compression/pv_comp.pb -d dp_test -n 200 > log.dp_test 2>&1 && python $mldp/model_dev/analysis_v3.py.py -tf . -mp dp_test -rf . -euc 10 -fuc 10 -flc 0.4 -elc 0.02 && code vasp*
+dp test -m $MDNN/v5_i0.1/train/model-compression/pv_comp.pb -d dp_test -n 200 > log.dp_test 2>&1 && python $mldp/model_dev/analysis_v3.py -tf . -mp dp_test -rf . -euc 10 -fuc 10 -flc 0.4 -elc 0.02 && code vasp*
+dp test -m $MDNN/v5_i3/train/model-compression/pv_comp.pb -d dp_test -n 200 > log.dp_test 2>&1 && python $mldp/model_dev/analysis_v3.py -tf . -mp dp_test -rf . -euc 10 -fuc 10 -flc 0.4 -elc 0.02 && code vasp*
+dp test -m $MDNN/v5_i3/train/model-compression/pv_comp.pb -d dp_test -n 200 > log.dp_test 2>&1 && python $mldp/model_dev/analysis_v3.py -tf . -mp dp_test -rf . -euc 10 -fuc 10 -flc 0.4 -elc 0.02 && code vasp*
+dp test -m ../../../../../train/model-compression/pv_comp.pb -d dp_test -n 200 > log.dp_test 2>&1 && python $mldp/model_dev/analysis_v3.py -tf . -mp dp_test -rf . -euc 10 -fuc 10 -flc 0.4 -elc 0.02 && code vasp*
+dp test -m /scratch/gpfs/ag5805/qmd_data/NH3_MgSiO3/sim_data_ML/v5_i28/train/model-compression/pv_comp.pb -d dp_test -n 200 > log.dp_test 2>&1 && python $mldp/model_dev/analysis_v3.py -tf . -mp dp_test -rf . -euc 10 -fuc 10 -flc 0.4 -elc 0.02 && code vasp*
 
 # DELLA/Potentially all clusters | 2025:
-rm -rf OUTCAR deepmd && python $mldp/merge_out.py -o OUTCAR && python $mldp/extract_deepmd.py -d deepmd -ttr 10000 && apptainer exec $APPTAINER_REPO/deepmd-kit_latest.sif dp test -m /scratch/gpfs/ag5805/qmd_data/NH3_MgSiO3/sim_data_ML/setup_MLMD/latest_trained_potential/pv_comp.pb -d dp_test -n 0 > log.dp_test 2>&1 && python $mldp/model_dev/analysis_v3.py.py -tf . -mp dp_test -rf . -euc 10 -fuc 100 -flc 0.5 -elc 0.01 && code vasp*
+rm -rf OUTCAR deepmd && python $mldp/merge_out.py -o OUTCAR && python $mldp/extract_deepmd.py -d deepmd -ttr 10000 && apptainer exec $APPTAINER_REPO/deepmd-kit_latest.sif dp test -m /scratch/gpfs/ag5805/qmd_data/NH3_MgSiO3/sim_data_ML/setup_MLMD/latest_trained_potential/pv_comp.pb -d dp_test -n 0 > log.dp_test 2>&1 && python $mldp/model_dev/analysis_v3.py -tf . -mp dp_test -rf . -euc 10 -fuc 100 -flc 0.5 -elc 0.01 && code vasp*
 %% v2 %%: 
-rm -rf OUTCAR deepmd && python $mldp/merge_out.py -o OUTCAR && python $mldp/extract_deepmd.py -d deepmd -ttr 10000 && apptainer exec $APPTAINER_REPO/deepmd-kit_latest.sif dp test -m /scratch/gpfs/ag5805/qmd_data/NH3_MgSiO3/sim_data_ML_v2/setup_MLMD/latest_trained_potential/pv_comp.pb -d dp_test -n 0 > log.dp_test 2>&1 && python $mldp/model_dev/analysis_v3.py.py -tf . -mp dp_test -rf . -euc 10 -fuc 100 -flc 0.3 -elc 0.01 && code vasp*
+rm -rf OUTCAR deepmd && python $mldp/merge_out.py -o OUTCAR && python $mldp/extract_deepmd.py -d deepmd -ttr 10000 && apptainer exec $APPTAINER_REPO/deepmd-kit_latest.sif dp test -m /scratch/gpfs/ag5805/qmd_data/NH3_MgSiO3/sim_data_ML_v2/setup_MLMD/latest_trained_potential/pv_comp.pb -d dp_test -n 0 > log.dp_test 2>&1 && python $mldp/model_dev/analysis_v3.py -tf . -mp dp_test -rf . -euc 10 -fuc 100 -flc 0.15 -elc 0.005 && code vasp*
 %% v2: refines deepmd too based on cut-offs %%: 
-rm -rf OUTCAR deepmd && python $mldp/merge_out.py -o OUTCAR && python $mldp/extract_deepmd.py -d deepmd -ttr 10000 && apptainer exec $APPTAINER_REPO/deepmd-kit_latest.sif dp test -m /scratch/gpfs/ag5805/qmd_data/NH3_MgSiO3/sim_data_ML_v2/setup_MLMD/latest_trained_potential/pv_comp.pb -d dp_test -n 0 > log.dp_test 2>&1 && python $mldp/model_dev/analysis_v3.py.py -tf . -mp dp_test -rf . -euc 10 -fuc 100 -flc 0.8 -elc 0.02 && code vasp* && rm -rf deepmd && python $mldp/extract_deepmd.py -f OUTCAR -d deepmd -id dp_test_id_e_and_f
-rm -rf OUTCAR deepmd && python $mldp/merge_out.py -o OUTCAR && python $mldp/extract_deepmd.py -d deepmd -ttr 10000 && apptainer exec $APPTAINER_REPO/deepmd-kit_latest.sif dp test -m /scratch/gpfs/ag5805/qmd_data/NH3_MgSiO3/sim_data_ML_v2/setup_MLMD/latest_trained_potential/pv_comp.pb -d dp_test -n 0 > log.dp_test 2>&1 && python $mldp/model_dev/analysis_v3.py.py -tf . -mp dp_test -rf . -euc 10 -fuc 100 -flc 0.8 -elc 0.02 && rm -rf deepmd && python $mldp/extract_deepmd.py -f OUTCAR -d deepmd -id dp_test_id_e_and_f
+rm -rf OUTCAR deepmd && python $mldp/merge_out.py -o OUTCAR && python $mldp/extract_deepmd.py -d deepmd -ttr 10000 && apptainer exec $APPTAINER_REPO/deepmd-kit_latest.sif dp test -m /scratch/gpfs/ag5805/qmd_data/NH3_MgSiO3/sim_data_ML_v2/setup_MLMD/latest_trained_potential/pv_comp.pb -d dp_test -n 0 > log.dp_test 2>&1 && python $mldp/model_dev/analysis_v3.py -tf . -mp dp_test -rf . -euc 10 -fuc 100 -flc 0.8 -elc 0.02 && code vasp* && rm -rf deepmd && python $mldp/extract_deepmd.py -f OUTCAR -d deepmd -id dp_test_id_e_and_f
+rm -rf OUTCAR deepmd && python $mldp/merge_out.py -o OUTCAR && python $mldp/extract_deepmd.py -d deepmd -ttr 10000 && apptainer exec $APPTAINER_REPO/deepmd-kit_latest.sif dp test -m /scratch/gpfs/ag5805/qmd_data/NH3_MgSiO3/sim_data_ML_v2/setup_MLMD/latest_trained_potential/pv_comp.pb -d dp_test -n 0 > log.dp_test 2>&1 && python $mldp/model_dev/analysis_v3.py -tf . -mp dp_test -rf . -euc 10 -fuc 100 -flc 0.8 -elc 0.02 && rm -rf deepmd && python $mldp/extract_deepmd.py -f OUTCAR -d deepmd -id dp_test_id_e_and_f
 
 TIGER3:
-rm -r OUTCAR deepmd && python $mldp/merge_out.py -o OUTCAR && python $mldp/extract_deepmd.py -d deepmd -ttr 10000 && apptainer exec $APPTAINER_REPO/deepmd-kit_latest.sif dp test -m /scratch/gpfs/BURROWS/akashgpt/qmd_data/MgSiOHN/setup_MLMD/latest_trained_potential/pv_comp.pb -d dp_test -n 0 > log.dp_test 2>&1 && python $mldp/model_dev/analysis_v3.py.py -tf . -mp dp_test -rf . -euc 10 -fuc 100 -flc 0.5 -elc 0.01 && code vasp*
+rm -r OUTCAR deepmd && python $mldp/merge_out.py -o OUTCAR && python $mldp/extract_deepmd.py -d deepmd -ttr 10000 && apptainer exec $APPTAINER_REPO/deepmd-kit_latest.sif dp test -m /scratch/gpfs/BURROWS/akashgpt/qmd_data/MgSiOHN/setup_MLMD/latest_trained_potential/pv_comp.pb -d dp_test -n 0 > log.dp_test 2>&1 && python $mldp/model_dev/analysis_v3.py -tf . -mp dp_test -rf . -euc 10 -fuc 100 -flc 0.5 -elc 0.01 && code vasp*
 **********************************************
 **********************************************
 
@@ -466,7 +466,7 @@ echo "# shortlisting following frames:" > dp_test.select && ls -d [0-9]* | shuf 
 # create new deepmd using dp_test.select
 module purge && l_deepmd_cpu && rm -rf OUTCAR deepmd && python $mldp/merge_out.py -o OUTCAR && python $mldp/extract_deepmd.py -f OUTCAR -d deepmd -ttr 100000
 cp -r ../recal/train . && cd train && sb train_1h.apptr.sh
-apptainer exec $APPTAINER_REPO/deepmd-kit_latest.sif dp test -m ../train/model-compression/pv_comp.pb -d dp_test -n 0 > log.dp_test 2>&1 && python $mldp/model_dev/analysis_v3.py.py -tf . -mp dp_test -rf . -euc 10 -fuc 100 -flc 0.8 -elc 0.02 && code vasp* &
+apptainer exec $APPTAINER_REPO/deepmd-kit_latest.sif dp test -m ../train/model-compression/pv_comp.pb -d dp_test -n 0 > log.dp_test 2>&1 && python $mldp/model_dev/analysis_v3.py -tf . -mp dp_test -rf . -euc 10 -fuc 100 -flc 0.8 -elc 0.02 && code vasp* &
 
 # to start with a new ttr
 ttr=0.35 && cp -r recal recal_ttr_$ttr && cd recal_ttr_$ttr && source ../recal/setup_frame_convergence.sh $ttr
