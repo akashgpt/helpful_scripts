@@ -100,14 +100,14 @@ if [ -x /usr/bin/dircolors ]; then
     alias egrep='egrep --color=auto'
 fi
 
-alias ll='ls -clF -h -v'
-alias la='ls -A -v'
-alias l='ls -CF -v'
+alias ll='ls -vclF -h'
+alias la='ls -vA'
+alias l='ls -vCF'
 alias ls='ls --color=auto -v'
-alias lsf='ls --color=auto -p | grep -v /' # only files + sort by time
-alias llt='ls --color=auto -hlctur -v' # sort by time
-alias llf='ls --color=auto -hlctur -p | grep -v /' # only files + sort by time
-alias lls='ls --color=auto -lhcS -v' # sort by size
+alias lsf='ls --color=auto -p -v' # only files + sort by time
+alias llt='ls --color=auto -vhlctur' # sort by time
+alias llf='ls --color=auto -hlctur -p -v' # only files + sort by time
+alias lls='ls --color=auto -vlhcS' # sort by size
 alias ll='ls --color=auto -lhc -v'
 alias du='du -csh'
 alias cq='checkquota'

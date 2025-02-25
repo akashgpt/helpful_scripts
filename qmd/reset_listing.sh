@@ -26,7 +26,7 @@
 
 echo ""
 echo "==============================="
-echo "Resetting folder listing..."
+echo "Checking+Resetting folder listing..."
 echo "Current folder: $(pwd)"
 
 # Step 1: Get a sorted list of directories that start with a digit

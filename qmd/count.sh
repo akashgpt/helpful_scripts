@@ -102,8 +102,124 @@ process_files() {
     echo ""
 }
 
+process_files_v2() {
+    local pattern=$1
+    local frame_count
+    local energy_rmse_per_atom
+    local force_rmse
+    local virial_rmse_per_atom
+    local total_frame_count=0
+
+    # Variables to accumulate weighted sums.
+    local sum_energy=0
+    local sum_force=0
+    local sum_virial=0
+
+    # First pass: compute weighted sums and total frame count.
+    while IFS= read -r -d '' file; do
+        # Get the frame count from the line containing "number of test data" (3rd field)
+        frame_count=$(grep -m 1 "number of test data" "$file" | awk '{print $9}')
+        energy_rmse_per_atom=$(grep -m 1 "Energy RMSE/Natoms" "$file" | awk '{print $6}') # eV
+        force_rmse=$(grep -m 1 "Force  RMSE" "$file" | awk '{print $6}') # eV/Angstrom
+        virial_rmse_per_atom=$(grep -m 1 "Virial RMSE/Natoms" "$file" | awk '{print $6}') # eV
+
+        energy_rmse_per_atom=$(printf "%.10f" "$energy_rmse_per_atom")
+        force_rmse=$(printf "%.10f" "$force_rmse")
+        virial_rmse_per_atom=$(printf "%.10f" "$virial_rmse_per_atom")
+
+        # Accumulate weighted sums.
+        total_frame_count=$(( total_frame_count + frame_count ))
+        sum_energy=$(echo "scale=8; $sum_energy + ($frame_count * $energy_rmse_per_atom)" | bc)
+        sum_force=$(echo "scale=8; $sum_force + ($frame_count * $force_rmse)" | bc)
+        sum_virial=$(echo "scale=8; $sum_virial + ($frame_count * $virial_rmse_per_atom)" | bc)
+    done < <(find . -type f -name "$pattern" -print0)
+
+    # echo ""
+    # echo "### \"$pattern\" ###"
+    # echo "frame_count: $frame_count"
+    # echo "energy_rmse_per_atom: $energy_rmse_per_atom"
+    # echo "force_rmse: $force_rmse"
+    # echo "virial_rmse_per_atom: $virial_rmse_per_atom"
+    # echo "total_frame_count: $total_frame_count"
+    # echo "sum_energy: $sum_energy"
+    # echo "sum_force: $sum_force"
+    # echo "sum_virial: $sum_virial"
+
+    # Calculate weighted averages.
+    local energy_rmse_per_atom_avg
+    local force_rmse_avg
+    local virial_rmse_per_atom_avg
+    energy_rmse_per_atom_avg=$(echo "scale=8; $sum_energy / $total_frame_count" | bc -l)
+    force_rmse_avg=$(echo "scale=8; $sum_force / $total_frame_count" | bc -l)
+    virial_rmse_per_atom_avg=$(echo "scale=8; $sum_virial / $total_frame_count" | bc -l)
+
+    # echo "energy_rmse_per_atom_avg: $energy_rmse_per_atom_avg"
+    # echo "force_rmse_avg: $force_rmse_avg"
+    # echo "virial_rmse_per_atom_avg: $virial_rmse_per_atom_avg"
+
+    # Initialize variables for variance accumulation.
+    local energy_variance_sum=0
+    local force_variance_sum=0
+    local virial_variance_sum=0
+
+    # Second pass: compute weighted squared differences.
+    while IFS= read -r -d '' file; do
+        frame_count=$(grep -m 1 "number of test data" "$file" | awk '{print $9}')
+        energy_rmse_per_atom=$(grep -m 1 "Energy RMSE/Natoms" "$file" | awk '{print $6}')
+        force_rmse=$(grep -m 1 "Force  RMSE" "$file" | awk '{print $6}')
+        virial_rmse_per_atom=$(grep -m 1 "Virial RMSE/Natoms" "$file" | awk '{print $6}')
+
+        energy_rmse_per_atom=$(printf "%.10f" "$energy_rmse_per_atom")
+        force_rmse=$(printf "%.10f" "$force_rmse")
+        virial_rmse_per_atom=$(printf "%.10f" "$virial_rmse_per_atom")
+
+        # Compute differences
+        local diff_energy diff_force diff_virial
+        diff_energy=$(echo "scale=8; $energy_rmse_per_atom - $energy_rmse_per_atom_avg" | bc -l)
+        diff_force=$(echo "scale=8; $force_rmse - $force_rmse_avg" | bc -l)
+        diff_virial=$(echo "scale=8; $virial_rmse_per_atom - $virial_rmse_per_atom_avg" | bc -l)
+
+        # Accumulate weighted squared differences.
+        energy_variance_sum=$(echo "scale=8; $energy_variance_sum + $frame_count * ($diff_energy * $diff_energy)" | bc -l)
+        force_variance_sum=$(echo "scale=8; $force_variance_sum + $frame_count * ($diff_force * $diff_force)" | bc -l)
+        virial_variance_sum=$(echo "scale=8; $virial_variance_sum + $frame_count * ($diff_virial * $diff_virial)" | bc -l)
+    done < <(find . -type f -name "$pattern" -print0)
+
+    # echo "energy_variance_sum: $energy_variance_sum"
+    # echo "force_variance_sum: $force_variance_sum"
+    # echo "virial_variance_sum: $virial_variance_sum"
+
+    # Compute weighted standard deviations.
+    local energy_rmse_per_atom_std
+    local force_rmse_std
+    local virial_rmse_per_atom_std
+    energy_rmse_per_atom_std=$(echo "scale=8; sqrt($energy_variance_sum / $total_frame_count)" | bc -l)
+    force_rmse_std=$(echo "scale=8; sqrt($force_variance_sum / $total_frame_count)" | bc -l)
+    virial_rmse_per_atom_std=$(echo "scale=8; sqrt($virial_variance_sum / $total_frame_count)" | bc -l)
+
+    # multiple by 1000 to convert to meV
+    energy_rmse_per_atom_avg=$(echo "scale=8; $energy_rmse_per_atom_avg * 1000" | bc -l)
+    energy_rmse_per_atom_std=$(echo "scale=8; $energy_rmse_per_atom_std * 1000" | bc -l)
+
+    # Output results.
+    echo ""
+    echo "### \"$pattern\" ###"
+    echo "Total number of test data frames: $total_frame_count"
+    # echo "Average Energy RMSE/Natoms: $energy_rmse_per_atom_avg +/- $energy_rmse_per_atom_std eV"
+    # echo "Average Force RMSE: $force_rmse_avg +/- $force_rmse_std eV/A"
+    # echo "Average Virial RMSE/Natoms: $virial_rmse_per_atom_avg +/- $virial_rmse_per_atom_std eV"
+    # # print only 2 decimal places
+    echo "Average Energy RMSE/Natoms: $(printf "%.4f" $energy_rmse_per_atom_avg) +/- $(printf "%.4f" $energy_rmse_per_atom_std) meV"
+    echo "Average Force RMSE: $(printf "%.4f" $force_rmse_avg) +/- $(printf "%.4f" $force_rmse_std) eV/A"
+    echo "Average Virial RMSE/Natoms: $(printf "%.4f" $virial_rmse_per_atom_avg) +/- $(printf "%.4f" $virial_rmse_per_atom_std) eV"
+    echo ""
+}
+
+
 # Process both file patterns
 process_files "dp_test_id_e_and_f"
 process_files "dp_test_id_e_or_f"
 process_files "dp_test_id_e_and_f_optimum_range"
 process_files "dp_test_id_e_or_f_optimum_range"
+
+process_files_v2 "log.dp_test"

@@ -61,6 +61,23 @@ for dir in "${dirs[@]}"; do
             echo "$label $ffsel" >> "$parent_dir/log.track_progress"
         done
 
+        # Extract Average Energy RMSE/Natoms, Average Force RMSE, and Average Virial RMSE/Natoms from log.count. All elements after fourth one in corresponding lines
+        # for i in {1..3}; do
+            # case $i in
+            #     1) label="Average Energy RMSE/Natoms:" ;;
+            #     2) label="Average Force RMSE:" ;;
+            #     3) label="Average Virial RMSE/Natoms:" ;;
+            # esac
+        avg=$(grep "Average Energy RMSE/Natoms:" log.count | awk '{for(j=4;j<=NF;j++) printf "%s ", $j; print ""}')
+        echo "Average Energy RMSE/Natoms: $avg" >> "$parent_dir/log.track_progress"
+
+        avg=$(grep "Average Force RMSE:" log.count | awk '{for(j=4;j<=NF;j++) printf "%s ", $j; print ""}')
+        echo "Average Force RMSE: $avg" >> "$parent_dir/log.track_progress"
+
+        avg=$(grep "Average Virial RMSE/Natoms:" log.count | awk '{for(j=4;j<=NF;j++) printf "%s ", $j; print ""}')
+        echo "Average Virial RMSE/Natoms: $avg" >> "$parent_dir/log.track_progress"
+        # done
+
         echo "" >> "$parent_dir/log.track_progress"
 
         cd "$parent_dir" || exit
