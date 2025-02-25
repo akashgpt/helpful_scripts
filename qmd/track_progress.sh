@@ -68,14 +68,14 @@ for dir in "${dirs[@]}"; do
             #     2) label="Average Force RMSE:" ;;
             #     3) label="Average Virial RMSE/Natoms:" ;;
             # esac
-        avg=$(grep "Average Energy RMSE/Natoms:" log.count | awk '{for(j=4;j<=NF;j++) printf "%s ", $j; print ""}')
-        echo "Average Energy RMSE/Natoms: $avg" >> "$parent_dir/log.track_progress"
+        avg_e=$(grep "Average Energy RMSE/Natoms:" log.count | awk '{for(j=4;j<=NF;j++) printf "%s ", $j; print ""}')
+        echo "Average Energy RMSE/Natoms: $avg_e" >> "$parent_dir/log.track_progress"
 
-        avg=$(grep "Average Force RMSE:" log.count | awk '{for(j=4;j<=NF;j++) printf "%s ", $j; print ""}')
-        echo "Average Force RMSE: $avg" >> "$parent_dir/log.track_progress"
+        avg_f=$(grep "Average Force RMSE:" log.count | awk '{for(j=4;j<=NF;j++) printf "%s ", $j; print ""}')
+        echo "Average Force RMSE: $avg_f" >> "$parent_dir/log.track_progress"
 
-        avg=$(grep "Average Virial RMSE/Natoms:" log.count | awk '{for(j=4;j<=NF;j++) printf "%s ", $j; print ""}')
-        echo "Average Virial RMSE/Natoms: $avg" >> "$parent_dir/log.track_progress"
+        avg_v=$(grep "Average Virial RMSE/Natoms:" log.count | awk '{for(j=4;j<=NF;j++) printf "%s ", $j; print ""}')
+        echo "Average Virial RMSE/Natoms: $avg_v" >> "$parent_dir/log.track_progress"
         # done
 
         echo "" >> "$parent_dir/log.track_progress"
