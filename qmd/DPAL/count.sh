@@ -28,6 +28,7 @@
 # Author: akashgpt
 ####################################################################################################
 
+
 process_files() {
     local pattern=$1
     local total_lines=0
@@ -109,6 +110,7 @@ process_files_v2() {
     local force_rmse
     local virial_rmse_per_atom
     local total_frame_count=0
+    local change_search_mode=0
 
     # Variables to accumulate weighted sums.
     local sum_energy=0
@@ -119,9 +121,42 @@ process_files_v2() {
     while IFS= read -r -d '' file; do
         # Get the frame count from the line containing "number of test data" (3rd field)
         frame_count=$(grep -m 1 "number of test data" "$file" | awk '{print $9}')
-        energy_rmse_per_atom=$(grep -m 1 "Energy RMSE/Natoms" "$file" | awk '{print $6}') # eV
-        force_rmse=$(grep -m 1 "Force  RMSE" "$file" | awk '{print $6}') # eV/Angstrom
-        virial_rmse_per_atom=$(grep -m 1 "Virial RMSE/Natoms" "$file" | awk '{print $6}') # eV
+
+        # Check if the frame count is a number or not, and change search mode if not
+        change_search_mode=0
+        if [ $change_search_mode -eq 0 ]; then
+            if ! [[ "$frame_count" =~ ^[0-9]+$ ]]; then
+                change_search_mode=1
+                # echo "Error: frame_count is not a number in file $file. Changing the search string #"
+            fi
+        fi
+
+        if [ $change_search_mode -eq 0 ]; then
+            frame_count=$(grep -m 1 "number of test data" "$file" | awk '{print $9}')
+            energy_rmse_per_atom=$(grep -m 1 "Energy RMSE/Natoms" "$file" | awk '{print $6}') # eV
+            force_rmse=$(grep -m 1 "Force  RMSE" "$file" | awk '{print $6}') # eV/Angstrom
+            virial_rmse_per_atom=$(grep -m 1 "Virial RMSE/Natoms" "$file" | awk '{print $6}') # eV
+        else
+            frame_count=$(grep -m 1 "number of test data" "$file" | awk '{print $11}')
+            energy_rmse_per_atom=$(grep -m 1 "Energy RMSE/Natoms" "$file" | awk '{print $8}') # eV
+            force_rmse=$(grep -m 1 "Force  RMSE" "$file" | awk '{print $8}') # eV/Angstrom
+            virial_rmse_per_atom=$(grep -m 1 "Virial RMSE/Natoms" "$file" | awk '{print $8}') # eV
+            # continue
+        fi
+
+
+        # echo "file: $file"
+        # echo "$(grep -m 1 "number of test data" "$file"  | awk '{print $9}')"
+        # echo "$(grep -m 1 "number of test data" "$file"  | awk '{print $11}')"
+        # echo "$(grep -m 1 "Energy RMSE/Natoms" "$file")"
+        # echo "$(grep -m 1 "Force  RMSE" "$file")"
+        # echo "$(grep -m 1 "Virial RMSE/Natoms" "$file")"
+        # echo "frame_count: $frame_count"
+        # echo "energy_rmse_per_atom: $energy_rmse_per_atom"
+        # echo "force_rmse: $force_rmse"
+        # echo "virial_rmse_per_atom: $virial_rmse_per_atom"
+        # echo ""
+        # continue
 
         energy_rmse_per_atom=$(printf "%.10f" "$energy_rmse_per_atom")
         force_rmse=$(printf "%.10f" "$force_rmse")
@@ -162,12 +197,41 @@ process_files_v2() {
     local force_variance_sum=0
     local virial_variance_sum=0
 
+    # echo "##############################################################"
+    # echo "Second pass:"
+    # echo "##############################################################"
     # Second pass: compute weighted squared differences.
     while IFS= read -r -d '' file; do
+        # Get the frame count from the line containing "number of test data" (3rd field)
         frame_count=$(grep -m 1 "number of test data" "$file" | awk '{print $9}')
-        energy_rmse_per_atom=$(grep -m 1 "Energy RMSE/Natoms" "$file" | awk '{print $6}')
-        force_rmse=$(grep -m 1 "Force  RMSE" "$file" | awk '{print $6}')
-        virial_rmse_per_atom=$(grep -m 1 "Virial RMSE/Natoms" "$file" | awk '{print $6}')
+        # Check if the frame count is a number or not, and change search mode if not
+        change_search_mode=0
+        if [ $change_search_mode -eq 0 ]; then
+            if ! [[ "$frame_count" =~ ^[0-9]+$ ]]; then
+                change_search_mode=1
+                # echo "Error: frame_count is not a number in file $file. Changing the search string #"
+            fi
+        fi
+
+        # if change_search_mode=0, else
+        if [ $change_search_mode -eq 0 ]; then
+            frame_count=$(grep -m 1 "number of test data" "$file" | awk '{print $9}')
+            energy_rmse_per_atom=$(grep -m 1 "Energy RMSE/Natoms" "$file" | awk '{print $6}')
+            force_rmse=$(grep -m 1 "Force  RMSE" "$file" | awk '{print $6}')
+            virial_rmse_per_atom=$(grep -m 1 "Virial RMSE/Natoms" "$file" | awk '{print $6}')
+        else # change_search_mode=1
+            frame_count=$(grep -m 1 "number of test data" "$file" | awk '{print $11}')
+            energy_rmse_per_atom=$(grep -m 1 "Energy RMSE/Natoms" "$file" | awk '{print $8}')
+            force_rmse=$(grep -m 1 "Force  RMSE" "$file" | awk '{print $8}')
+            virial_rmse_per_atom=$(grep -m 1 "Virial RMSE/Natoms" "$file" | awk '{print $8}')
+        fi
+
+        # echo "file: $file"
+        # echo "frame_count: $frame_count"
+        # echo "energy_rmse_per_atom: $energy_rmse_per_atom"
+        # echo "force_rmse: $force_rmse"
+        # echo "virial_rmse_per_atom: $virial_rmse_per_atom"
+        # echo ""
 
         energy_rmse_per_atom=$(printf "%.10f" "$energy_rmse_per_atom")
         force_rmse=$(printf "%.10f" "$force_rmse")

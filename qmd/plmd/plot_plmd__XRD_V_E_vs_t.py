@@ -33,9 +33,18 @@ axes[1].plot(df['time'], df['vol'], marker='', linestyle='-',alpha=0.5)
 axes[1].set_ylabel('Volume (A$^3$)')
 
 # Plot energy vs time
-axes[2].plot(df['time'], df['energy']/96.485, marker='', linestyle='-',alpha=0.5)
-axes[2].set_ylabel('Energy (eV)')#(kJ/mol)')
+axes[2].plot(df['time'], df['energy'], marker='', linestyle='-', alpha=0.5)
+axes[2].set_ylabel('Energy (kJ/mol)')
 axes[2].set_xlabel('Time (ps)')
+
+# Create second y-axis for kJ/mol
+ax2 = axes[2].twinx()
+ax2.set_ylabel('Energy (eV)')
+
+# Set limits for both axes
+axes[2].set_ylim(df['energy'].min(), df['energy'].max())  # kJ/mol scale
+ax2.set_ylim(df['energy'].min() / 96.485, df['energy'].max() / 96.485)  # eV scale
+
 
 # grid for each subplot
 for ax in axes:

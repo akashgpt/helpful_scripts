@@ -11,7 +11,7 @@ rm setting_env.sh
 
 
 echo "################################"
-echo "Starting to work on $parent_dir_name"
+echo "Running data_4_analysis.sh for $parent_dir_name"
 # echo "Runtime: $runtime seconds"
 echo "################################"
 
@@ -68,9 +68,11 @@ grep "TITEL" $parent_dir/POTCAR | awk '{print $4}' >> analysis/peavg_summary.out
 # run_mins=$((runtime / 60))
 
 echo "################################"
-echo "Done working on $parent_dir_name"
+echo "Done with data_4_analysis.sh for $parent_dir_name"
 # echo "Runtime: $runtime seconds"
 echo "################################"
 echo
+
+module purge
 
 #exit

@@ -33,29 +33,29 @@ if [ -f $SCRATCH/local_copy__projects/BURROWS/akashgpt/myshortcuts.sh ]; then
 fi
 
 #adding VASP to path
-export VASP_EXEC="$HOME/softwares/vasp.6.3.2/bin/"
-export PATH=$PATH:$VASP_EXEC
+# export VASP_EXEC="$HOME/softwares/vasp.6.3.2/bin/"
+# export PATH=$PATH:$VASP_EXEC
 
 # to edit terminal header look
 # PS1='[\u@\h:\W]\$ '
 
 
 # plumed installation -- for conda environment dp_plmd
-export PATH="/scratch/gpfs/ag5805/softwares/conda_envs_dir_secondary/envs/dp_plmd/bin:$PATH"
-export C_INCLUDE_PATH="/scratch/gpfs/ag5805/softwares/conda_envs_dir_secondary/envs/dp_plmd/include:$C_INCLUDE_PATH"
-export CPLUS_INCLUDE_PATH="/scratch/gpfs/ag5805/softwares/conda_envs_dir_secondary/envs/dp_plmd/include:$CPLUS_INCLUDE_PATH"
-export LD_LIBRARY_PATH="/scratch/gpfs/ag5805/softwares/conda_envs_dir_secondary/envs/dp_plmd/lib:$LD_LIBRARY_PATH"
-export PKG_CONFIG_PATH="/scratch/gpfs/ag5805/softwares/conda_envs_dir_secondary/envs/dp_plmd/lib/pkgconfig:$PKG_CONFIG_PATH"
-export PLUMED_KERNEL=/scratch/gpfs/ag5805/softwares/conda_envs_dir_secondary/envs/dp_plmd/lib/libplumedKernel.so
+# export PATH="/scratch/gpfs/ag5805/softwares/conda_envs_dir_secondary/envs/dp_plmd/bin:$PATH"
+# export C_INCLUDE_PATH="/scratch/gpfs/ag5805/softwares/conda_envs_dir_secondary/envs/dp_plmd/include:$C_INCLUDE_PATH"
+# export CPLUS_INCLUDE_PATH="/scratch/gpfs/ag5805/softwares/conda_envs_dir_secondary/envs/dp_plmd/include:$CPLUS_INCLUDE_PATH"
+# export LD_LIBRARY_PATH="/scratch/gpfs/ag5805/softwares/conda_envs_dir_secondary/envs/dp_plmd/lib:$LD_LIBRARY_PATH"
+# export PKG_CONFIG_PATH="/scratch/gpfs/ag5805/softwares/conda_envs_dir_secondary/envs/dp_plmd/lib/pkgconfig:$PKG_CONFIG_PATH"
+# export PLUMED_KERNEL=/scratch/gpfs/ag5805/softwares/conda_envs_dir_secondary/envs/dp_plmd/lib/libplumedKernel.so
 
 
 # plumed installation -- for conda environment dpdev
-export PATH="/scratch/gpfs/ag5805/softwares/conda_envs_dir_secondary/envs/dpdev/bin:$PATH"
-export C_INCLUDE_PATH="/scratch/gpfs/ag5805/softwares/conda_envs_dir_secondary/envs/dpdev/include:$C_INCLUDE_PATH"
-export CPLUS_INCLUDE_PATH="/scratch/gpfs/ag5805/softwares/conda_envs_dir_secondary/envs/dpdev/include:$CPLUS_INCLUDE_PATH"
-export LD_LIBRARY_PATH="/scratch/gpfs/ag5805/softwares/conda_envs_dir_secondary/envs/dpdev/lib:$LD_LIBRARY_PATH"
-export PKG_CONFIG_PATH="/scratch/gpfs/ag5805/softwares/conda_envs_dir_secondary/envs/dpdev/lib/pkgconfig:$PKG_CONFIG_PATH"
-export PLUMED_KERNEL=/scratch/gpfs/ag5805/softwares/conda_envs_dir_secondary/envs/dpdev/lib/libplumedKernel.so
+# export PATH="/scratch/gpfs/ag5805/softwares/conda_envs_dir_secondary/envs/dpdev/bin:$PATH"
+# export C_INCLUDE_PATH="/scratch/gpfs/ag5805/softwares/conda_envs_dir_secondary/envs/dpdev/include:$C_INCLUDE_PATH"
+# export CPLUS_INCLUDE_PATH="/scratch/gpfs/ag5805/softwares/conda_envs_dir_secondary/envs/dpdev/include:$CPLUS_INCLUDE_PATH"
+# export LD_LIBRARY_PATH="/scratch/gpfs/ag5805/softwares/conda_envs_dir_secondary/envs/dpdev/lib:$LD_LIBRARY_PATH"
+# export PKG_CONFIG_PATH="/scratch/gpfs/ag5805/softwares/conda_envs_dir_secondary/envs/dpdev/lib/pkgconfig:$PKG_CONFIG_PATH"
+# export PLUMED_KERNEL=/scratch/gpfs/ag5805/softwares/conda_envs_dir_secondary/envs/dpdev/lib/libplumedKernel.so
 # To create a tcl module that sets all the variables above, use this one as a starting point:
 # /scratch/gpfs/ag5805/softwares/conda_envs_dir_secondary/envs/dpdev/lib/plumed/modulefile
 # A vim plugin can be found here: /scratch/gpfs/ag5805/softwares/conda_envs_dir_secondary/envs/dpdev/lib/plumed/vim/

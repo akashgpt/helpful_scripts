@@ -2,7 +2,6 @@
 
 # ========================================================================================
 # Script: Find and Reset Listings in "recal" Folders
-# Author: [Your Name] (Optional)
 #
 # Summary:
 # - Finds all folders named "recal" at any level within the current directory.
@@ -17,6 +16,9 @@
 # - `find` ensures all "recal" folders are processed.
 # - `source` runs the script in the current shell (ensure it's executable).
 # - If no "recal" folders exist, a message is displayed and the script exits.
+#
+# Author: Akash Gupta
+#
 # ========================================================================================
 
 echo "Searching for all 'recal' folders and sourcing reset_listing.sh..."

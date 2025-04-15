@@ -7,6 +7,7 @@
 # 3. Freeze the model
 # 4. Evaluate the model on the train and test sets
 # 5. Write the results to log.dp_test.master and log.dp_test.csv
+# NOTE: Make sure the recal folder has a train folder with the relevant pv_comp.pb file
 #
 # Usage: setup_frame_convergence.sh <train_test_ratio>
 # Example: setup_frame_convergence.sh 0.2
@@ -14,10 +15,14 @@
 # Another example: ttr=0.3 && cp -r recal recal_ttr_${ttr} && cd recal_ttr_${ttr} && source $HELP_SCRIPTS/qmd/setup_frame_convergence.sh $ttr
 #
 # use plot_ttr_convergence.py to plot the convergence of the model with respect to the number of frames used for training
+#
+# Author: akashgpt
 
 # use for ttr, i.e. train-test-ratio
 train_test_ratio=$1 # e.g., setup_frame_convergence.sh 0.2, where 0.2 is the train-test-ratio
 echo "Train-test ratio: $train_test_ratio"
+
+parent_dir=$(pwd)
 
 # error if no train_test_ratio
 if [ -z "$train_test_ratio" ]; then
@@ -69,7 +74,7 @@ echo ""
 cd ..
 rm -rf train
 # cp -r ../recal/train .
-cp -r /scratch/gpfs/ag5805/qmd_data/NH3_MgSiO3/testing_potential/scaling_analsis_2025/v5_i27__md__ZONE_1__20MgSiO3_40NH3/pre/recal/train . # first directory here is the location of the train folder with relevant run file and myinput.json
+cp -r ${parent_dir}/recal/train . # first directory here is the location of the train folder with relevant pv_comp.pb file
 cd train
 rm -f slurm*
 sb train_1h.apptr.sh

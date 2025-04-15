@@ -255,6 +255,7 @@ elif [[ $CLUSTER == "STELLAR" ]]; then
 fi
 
 # alias l_dp2='module load anaconda3/2021.5; conda activate dp2.2.7; export PLUMED_KERNEL=$CONDA_PREFIX/lib/libplumedKernel.so; LAMMPS_PLUGIN_PATH=$CONDA_PREFIX/lib/deepmd_lmp; patchelf --add-rpath $CONDA_PREFIX/lib dpplugin.so'
+alias l_dp_plmd='module load anaconda3/2024.6; conda activate dp_plmd_09' #STELLAR | DELLA
 alias l_mda='module load anaconda3/2024.6; conda activate mda_env' #TIGER3 | STELLAR | DELLA
 alias l_asap='module load anaconda3/2024.6; conda activate asap'
 
@@ -265,6 +266,8 @@ elif [[ $CLUSTER == "DELLA" ]]; then
 fi 
 # alias l_dp_plmd='module load anaconda3/2024.2; conda activate dp_plmd' #DELLA; deepmd-kit 2.2.12-dev
 # alias l_dpdev='module load anaconda3/2024.6; conda activate dpdev' #DELLA; deepmd-kit 2.2.12-dev
+
+alias l_ase='module load anaconda3/2024.6; conda activate ase_env'
 
 # git aliases
 alias git_merge_main="git switch main; git merge dev; git push origin main; git switch dev"
@@ -322,7 +325,17 @@ export MY_MLMD_SCRIPTS="$AG_BURROWS/run_scripts/MLMD_scripts"
 export APPTAINER_REPO="$SCRATCH/softwares/APPTAINER_REPO"
 export DPAL__dev="$AG_BURROWS/run_scripts/DPAL__dev"
 export DPAL__main="$AG_BURROWS/run_scripts/DPAL__in_use"
+export CONDA_SECONDARY_DIR="$SCRATCH/softwares/conda_envs_dir_secondary"
+
 export HELP_SCRIPTS="$AG_BURROWS/run_scripts/helpful_scripts"
+export HELP_SCRIPTS_qmd="$AG_BURROWS/run_scripts/helpful_scripts/qmd"
+export HELP_SCRIPTS_vasp="$AG_BURROWS/run_scripts/helpful_scripts/qmd/vasp"
+export HELP_SCRIPTS_plmd="$AG_BURROWS/run_scripts/helpful_scripts/qmd/plmd"
+export HELP_SCRIPTS_TI="$AG_BURROWS/run_scripts/helpful_scripts/qmd/TI"
+export HELP_SCRIPTS_DPAL="$AG_BURROWS/run_scripts/helpful_scripts/qmd/DPAL"
+
+
+
 # export MDNN="/scratch/gpfs/ag5805/qmd_data/NH3_MgSiO3/sim_data_ML"
 
 ##########
@@ -332,6 +345,8 @@ export PATH=$PATH:$AG_BURROWS/misc_libraries/
 export PATH=$PATH:$LARS_SCRIPTS_DIR
 export PATH=$PATH:$JIE_SCRIPTS_DIR
 export PATH=$PATH:$mldp
+export PATH=$HOME/local/bin:$PATH # for patchelf
+
 
 export PYTHONPATH=$PYTHONPATH:$AG_BURROWS/misc_libraries/
 # export PATH=$PATH:$LARS_SCRIPTS_DIR
@@ -353,6 +368,11 @@ elapsed_block7=$(( end_block7 - start_block7 ))
 if [ $elapsed_block7 -gt 10 ]; then
   echo "WARNING: Exporting folder paths block took $elapsed_block7 seconds!"
 fi
+
+
+
+
+
 
 
 
@@ -393,6 +413,11 @@ fi
 ##########################################
 # BLOCK 9: rsync operations
 ##########################################
+# if DELLA, don't run
+# if [[ $CLUSTER == "DELLA" ]]; then
+#   echo "DELLA cluster detected. Skipping rsync operations."
+#   return
+# fi
 start_block9=$(date +%s)
 if [ $verbose -eq 1 ]; then
   echo "Running rsync operations at $(date) ..."

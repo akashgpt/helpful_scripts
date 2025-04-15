@@ -7,7 +7,7 @@
 # Summary:
 # - Iterates through directories starting with a given prefix (default: "v8").
 # - Processes only those directories that contain "done_iteration" file.
-# - Runs $HELP_SCRIPTS/qmd/count.sh in each directory.
+# - Runs $HELP_SCRIPTS_DPAL/count.sh in each directory.
 # - Logs output to `log.count` and extracts relevant details into `log.track_progress`.
 # - Ensures directories are sorted in **true numerical order**.
 #
@@ -17,6 +17,9 @@
 # ========================================================================================
 
 PREFIX=${1:-v8}
+
+# ADDRESS = $HELP_SCRIPTS_DPAL/count.sh
+ADDRESS_COUNT_FILE=${2:-"${HELP_SCRIPTS_DPAL}/count.sh"}
 
 # Get the current directory
 parent_dir=$(pwd)
@@ -47,7 +50,8 @@ for dir in "${dirs[@]}"; do
         echo "====================" >> "$parent_dir/log.track_progress"
 
         # Execute count.sh and append output to log.count
-        source "$HELP_SCRIPTS/qmd/count.sh" >> log.count
+        # source "$HELP_SCRIPTS_DPAL/count.sh" >> log.count
+        source $ADDRESS_COUNT_FILE >> log.count
 
         # Extract "Fraction of frames selected" from log.count and append to log.track_progress
         for i in {1..4}; do

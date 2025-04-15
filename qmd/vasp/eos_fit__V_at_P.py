@@ -4,12 +4,18 @@
 # the Birch-Murnaghan equation of state is given by:
 # f = 0.5*( ((V0/V_data)**(2/3)) - 1);    P_est = ( 3*K0*f*((1+ 2*f)**2.5)*(1 + (1.5*(K0p - 4)*f)) ) where P_est has to be close to P_target.
 # Then, estimate the volume at the target pressure using the Birch-Murnaghan equation of state.
-
+#
+# Usage: python eos_fit__V_at_P.py -p <target_P> -e <epsilon_fP> -m <mode>
+# Example: python eos_fit__V_at_P.py -p 10.0 -e 0.1 -m 0
+# This script is designed to be run in a conda environment with ASE installed.
 
 #!/usr/bin/env python3
 
+# ase environment needed
+
 # print info on conda environment
 import os, sys
+print(f"Running eos_fit__V_at_P.py in {os.getcwd()}")
 print("Python version:", sys.version)
 print(f"Conda environment: {os.environ.get('CONDA_DEFAULT_ENV', 'Not in a conda environment')}")
 
@@ -26,7 +32,7 @@ from ase.io import read, write
 # Inputs:
 parser = argparse.ArgumentParser(description="Estimate volume at target pressure using Birch-Murnaghan EOS.")
 parser.add_argument("-p", "--target_P", type=float, required=True, help="Target pressure in GPa.")
-parser.add_argument("-e", "--epsilon_fP", type=float, default=0.1, help="Fractional olerance for pressure matching (default: 0.10 GPa).")
+parser.add_argument("-e", "--epsilon_fP", type=float, default=0.2, help="Fractional olerance for pressure matching (default: 0.10 GPa).")
 parser.add_argument("-m", "--mode", type=int, default=0, help="Mode: 0 for trajectory based, 1 for relaxation calculation based.")
 args = parser.parse_args()
 target_P = args.target_P  # Target pressure in GPa
@@ -208,8 +214,8 @@ from scipy.optimize import least_squares
 def residual(V):
     return BM_pressure(V, V0_fit, K0_fit, K0p_fit) - target_P
 V0_guess = V_filtered.mean()  # Initial guess for V0
-V_lower = V_filtered.min()
-V_upper = V_filtered.max()
+V_lower = V_filtered.min()/1.20
+V_upper = V_filtered.max()*1.20
 res = least_squares(residual, V0_guess, bounds=(V_lower, V_upper), xtol=1e-6)
 V_est = res.x[0]
 cell_size_est = V_est ** (1/3)  # Calculate cubic cell size
@@ -278,25 +284,33 @@ with open(log_file, 'w') as f:
 # images = read('XDATCAR', index=':')
 
 # create folder in home_dir called hp_calculations
-os.makedirs(os.path.join(home_dir, "hp_calculations"), exist_ok=True)
-hp_dir = os.path.join(home_dir, "hp_calculations")
+if mode == 0:
+    os.makedirs(os.path.join(home_dir, "hp_calculations"), exist_ok=True)
+    hp_dir = os.path.join(home_dir, "hp_calculations")
 
-# Loop over the selected timesteps, create folders, and write POSCAR files.
-counter=0
-for step in time_steps_selected:
-    counter += 1
-    # print(f"Processing step {step}...")
-    image = read('XDATCAR', index=step)  # Read the specific frame
-    folder_name = f"{counter}"
-    folder_name = os.path.join(hp_dir, folder_name)  # Create a folder for each step
-    os.makedirs(folder_name, exist_ok=True)  # Create folder if it doesn't exist
-    # image = images[step]                    # Grab the corresponding image
-    image.wrap()  # Wrap atoms to unit cell
-    write(os.path.join(folder_name, "POSCAR"), image, format='vasp', direct=True)
+    # Loop over the selected timesteps, create folders, and write POSCAR files.
+    counter=0
+    for step in time_steps_selected:
+        counter += 1
+        # print(f"Processing step {step}...")
+        image = read('XDATCAR', index=step)  # Read the specific frame
+        folder_name = f"{counter}"
+        folder_name = os.path.join(hp_dir, folder_name)  # Create a folder for each step
+        os.makedirs(folder_name, exist_ok=True)  # Create folder if it doesn't exist
+        # image = images[step]                    # Grab the corresponding image
 
-    # add POTCAR from home_dir in all these folders
+        # make the image cubic given its volume
+        cell_size_cubic = image.get_volume() ** (1/3)
+        image.set_cell([cell_size_cubic, cell_size_cubic, cell_size_cubic], scale_atoms=True)
+        image.set_pbc(True)
 
-print("Done! Created a folder and POSCAR for each requested timestep.")
+        image.wrap()  # Wrap atoms to unit cell
+
+        write(os.path.join(folder_name, "POSCAR"), image, format='vasp', direct=True)
+
+        # add POTCAR from home_dir in all these folders
+
+    print("Done! Created a folder and POSCAR for each requested timestep.")
 ######################################################################
 ######################################################################
 ######################################################################

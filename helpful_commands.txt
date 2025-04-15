@@ -475,3 +475,13 @@ ttr=0.35 && cp -r recal recal_ttr_$ttr && cd recal_ttr_$ttr && source ../setup_f
 
 # create done_lmp ... files in all XXMgSiO3_YYNH3 folders
 find . -type d -name '*MgSiO3_*' -exec sh -c 'cd "$0" && touch done_lmp done_recal done_lmp_recal' {} \;
+
+
+# rename all folders starting with v6_ to vHN1_. Leaving the rest of the folder name the same
+for dir in v6_*; do mv "$dir" "${dir/v6_/vHN1_}"; done
+
+
+
+# 
+N_jump=5 && runID=35
+mk md && mv ../../v5_i$runID/md/* . && runID_next=$((runID+1)) && mv ../../v5_i$runID_next/md . && for folder in md/ZONE_*; do [[ $folder =~ ZONE_([0-9]+) ]] && mv "$folder" "md/ZONE_$((BASH_REMATCH[1] + N_jump))"; done && mv md/* . && rm -r md && cd .. && mkdir train && touch NOTES && echo "v5_${runID}-${runID_next}; ${N_jump} ZONES each" >> NOTES
