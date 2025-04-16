@@ -3,15 +3,15 @@
 # Summary:
 # This script creates directories for different SCALEE values and copies the necessary files for VASP simulations.
 # Before that, it estimates an accurate cell size based on KPOINTS 111 and KPOINTS 222 simulations.
-# Usage: source setup_TI/calculate_GFE.sh 1 1 > log.calculate_GFE 2>&1
+# Usage: source setup_TI/calculate_GFE.sh 1 1 > log.calculate_GFE 2>&1 &
 
 
 # =======================================================================================
 # =======================================================================================
 # =======================================================================================
 run_switch=${1:-1} # 0: create directories, 1: create directories and run VASP simulations
-mode=${2:-1} # 0: run in normal mode (KP1+KP2+...), 1: run in high precision mode (KP1+hp_calculations)
-# mode 1 is where you do high precision calculations for a select number of frames from KP1 sim as in the DPAL recal calculations
+mode=${2:-1} # 0: run in normal mode (KP1+KP2+...), 1: run in high accuracy mode (KP1+hp_calculations)
+# mode 1 is where you do high accuracy calculations for a select number of frames from KP1 sim as in the DPAL recal calculations
 # mode 0 is where you first figure out V_est (low accuracy) and then do a high accuracy given this better V_est and CONTCAR from KP1 sim
 # Input parameters
 SCALEE=(1.0 0.71792289 0.3192687 0.08082001 0.00965853 0.00035461 0.00000108469)
@@ -23,6 +23,7 @@ POTIM_CHOSEN=0.5
 NPAR_CHOSEN=14 # choose based on CLUSTER || the number of cores per node and the number of nodes; Preferred values: TIGER3: 14, STELLAR: 16
 KPAR_CHOSEN_111=1 # for KPOINTS 111
 KPAR_CHOSEN_222=4 # for KPOINTS 222
+WAIT_TIME_VLONG=600
 WAIT_TIME_LONG=60
 WAIT_TIME_SHORT=10
 MLDP_SCRIPTS="/projects/BURROWS/akashgpt/misc_libraries/scripts_Jie/mldp"
@@ -71,6 +72,18 @@ SIGMA_CHOSEN=$(echo "$kB * $TEMP_CHOSEN" | bc -l)
 CLUSTER_NAME=$(scontrol show config | grep ClusterName | awk '{print $3}')
 
 # STEP 1: KPOINTS 111 sim
+echo "=========================="
+echo "PROCESS ID: $$"
+if [ $run_switch -eq 1 ]; then
+    echo "run_switch: ${run_switch} (running simulations)"
+else
+    echo "run_switch: ${run_switch} (only creating directories)"
+fi
+if [ $mode -eq 1 ]; then
+    echo "mode: ${mode} (KP1+KP2)"
+else
+    echo "mode: ${mode} (KP1+hp_calculations)"
+fi
 echo "TEMP_CHOSEN: ${TEMP_CHOSEN}"
 echo "PSTRESS_CHOSEN: ${PSTRESS_CHOSEN}"
 echo "POTIM_CHOSEN: ${POTIM_CHOSEN}"
@@ -81,6 +94,7 @@ echo "CLUSTER_NAME: ${CLUSTER_NAME}"
 echo "CONFIG_dir: ${CONFIG_dir}"
 echo "SETUP_dir: ${SETUP_dir}"
 echo "SCALEE array has ${#SCALEE[@]} elements"
+echo "=========================="
 echo ""
 
 
@@ -89,6 +103,9 @@ mkdir -p "V_est"
 cd "V_est" || exit 1
 V_est_dir=$(pwd)
 echo "V_est_dir: ${V_est_dir}"
+
+KP1_dir=$V_est_dir/KP1
+KP2_dir=$V_est_dir/KP2
 
 # if done_estimating_V doesn't exist in $V_est, then run
 if [ ! -f "done_estimating_V" ]; then
@@ -264,6 +281,8 @@ if [ ! -f "done_estimating_V" ]; then
             exit 1
         else
             cd hp_calculations
+            hp_calculations_dir=$(pwd)
+            echo "hp_calculations_dir: ${hp_calculations_dir}"
         fi
 
         if [ ! -f "done_hp_calculations" ]; then
@@ -292,6 +311,7 @@ if [ ! -f "done_estimating_V" ]; then
             job_id_2=$(squeue --user=$USER --sort=i --format=%i | tail -n 2 | head -n 1 | awk '{print $1}') #second last job
 
             echo "Running sbatch RUN_VASP.sh in all folders in hp_calculations directory. $(date)"
+            echo "Keeping track of the last two jobs submitted in hp_calculations directory: ${job_id} and ${job_id_2}"
 
             # after submission, now wait as the last of the recal jobs gets finished
             while  squeue --user=$USER --sort=i --format=%i | grep -q $job_id; do
@@ -302,7 +322,7 @@ if [ ! -f "done_estimating_V" ]; then
             while  squeue --user=$USER --sort=i --format=%i | grep -q $job_id_2; do
                 sleep ${WAIT_TIME_LONG}
             done
-            sleep ${WAIT_TIME_SHORT}
+            sleep ${WAIT_TIME_VLONG}
 
             echo "Jobs for hp_calculations (${job_id}) done at $(date)"
 
@@ -317,15 +337,17 @@ if [ ! -f "done_estimating_V" ]; then
             else
                 echo "All frames passed in the hp_calculations."
                 touch done_hp_calculations
-            
-                # grep pressure (external pressure == total pressure in relaxation) from OUTCAR and save it in a file called pressure.txt
-                mkdir -p analysis
-                grep "pressure" */OUTCAR | awk '{print $5}' > analysis/pressure.dat
-                # grep vol
-                grep -m 1 "volume" */OUTCAR | awk '{print $6}' > analysis/volume.dat
             fi
 
+        else
+            echo "hp_calculations already done. Skipping..."
         fi
+
+        # grep pressure (external pressure == total pressure in relaxation) from OUTCAR and save it in a file called pressure.txt
+        mkdir -p $hp_calculations_dir/analysis
+        grep "pressure" */OUTCAR | awk '{print $5}' > analysis/pressure.dat
+        # grep vol
+        grep -m 1 "volume" */OUTCAR | awk '{print $6}' > analysis/volume.dat
 
         module purge
         module load anaconda3/2024.6; conda activate ase_env
@@ -382,7 +404,7 @@ echo "Now creating SCALEE simulation directories..."
 # if mode is 0
 if [ $mode -eq 0 ]; then
 
-    KP2_dir=$CONFIG_dir/KP2
+    KP2_dir=$V_est_dir/KP2
     echo "KP2_dir: ${KP2_dir}"
 
     # prep POSCAR for SCALEE
@@ -465,36 +487,51 @@ echo "Done submitting jobs for SCALEE simulations."
 ########################################################################
 ########################################################################
 # start the final hp run (NPT)
+cd $V_est_dir
 mkdir -p "SCALEE_1__hp"
 cd "SCALEE_1__hp" || exit 1
 SCALEE_hp_dir=$(pwd)
-cp "$CONFIG_dir/SCALEE_1"/* .
-rm -f slurm*
-cp $SETUP_dir/RUN_VASP_SCALEE_hp.sh RUN_VASP.sh
-cp $SETUP_dir/KPOINTS_222 KPOINTS # KPOINTS 222 for SCALEE hp
-cp $HELP_SCRIPTS/qmd/vasp/data_4_analysis.sh .
+echo "SCALEE_hp_dir: ${SCALEE_hp_dir}"
 
-sbatch RUN_VASP.sh
+if [ ! -f "done_SCALEE_hp" ]; then
+    if [ ! -f "running_SCALEE_hp" ]; then
 
-job_id=$(squeue --user=$USER --sort=i --format=%i | tail -n 1 | awk '{print $1}')
-echo ""
-echo "------------------------"
-echo "Job for SCALEE=1.0 - High Precision | KPOINT 222 (${job_id}) submitted at $(date)"
+        echo "Now creating SCALEE=1.0 - High accuracy simulation directory..."
+        cp "$CONFIG_dir/SCALEE_1"/* .
+        rm -f slurm*
+        cp $SETUP_dir/RUN_VASP_SCALEE_hp.sh RUN_VASP.sh
+        cp $SETUP_dir/KPOINTS_222 KPOINTS # KPOINTS 222 for SCALEE hp
+        cp $HELP_SCRIPTS/qmd/vasp/data_4_analysis.sh .
 
-#after submission, now wait as the job gets finished
-while  squeue --user=$USER --sort=i --format=%i | grep -q $job_id
-do 
-    # echo "Job ${master_id}${letter} (${job_id}; ${counter}) under work"
-    sleep ${WAIT_TIME_LONG}
-done
+        sbatch RUN_VASP.sh
+        touch running_SCALEE_hp
 
-echo "Job for SCALEE=1.0 - High Precision | KPOINT 222 (${job_id}) done at $(date)"
+        job_id=$(squeue --user=$USER --sort=i --format=%i | tail -n 1 | awk '{print $1}')
+        echo ""
+        echo "------------------------"
+        echo "Job for SCALEE=1.0 - High accuracy | KPOINT 222 (${job_id}) submitted at $(date)"
+
+        #after submission, now wait as the job gets finished
+        while  squeue --user=$USER --sort=i --format=%i | grep -q $job_id
+        do 
+            # echo "Job ${master_id}${letter} (${job_id}; ${counter}) under work"
+            sleep ${WAIT_TIME_LONG}
+        done
+
+        echo "Job for SCALEE=1.0 - High accuracy | KPOINT 222 (${job_id}) done at $(date)"
 
 
-# update and source data_4_analysis.sh
-source data_4_analysis.sh
-
-touch done_SCALEE_hp
+        # update and source data_4_analysis.sh
+        source data_4_analysis.sh
+        rm running_SCALEE_hp
+        touch done_SCALEE_hp
+    else
+        echo "SCALEE=1.0 - High accuracy simulation already running. Exiting."
+        exit 1
+    fi
+else
+    echo "SCALEE=1.0 - High accuracy simulation already done. Skipping."
+fi
 
 ########################################################################
 ########################################################################

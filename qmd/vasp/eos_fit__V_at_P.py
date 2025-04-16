@@ -34,10 +34,12 @@ parser = argparse.ArgumentParser(description="Estimate volume at target pressure
 parser.add_argument("-p", "--target_P", type=float, required=True, help="Target pressure in GPa.")
 parser.add_argument("-e", "--epsilon_fP", type=float, default=0.2, help="Fractional olerance for pressure matching (default: 0.10 GPa).")
 parser.add_argument("-m", "--mode", type=int, default=0, help="Mode: 0 for trajectory based, 1 for relaxation calculation based.")
+parser.add_argument("-nt", "--num_time_steps_selected", type=int, default=100, help="Number of time steps selected for hp recal (default: 100).")
 args = parser.parse_args()
 target_P = args.target_P  # Target pressure in GPa
 epsilon_fP = args.epsilon_fP  # Tolerance for pressure matching in GPa
 mode = args.mode  # Mode: 0 for trajectory based, 1 for relaxation calculation based
+num_time_steps_selected = args.num_time_steps_selected  # Number of time steps selected for hp recal
 
 print(f"Target pressure: {target_P} GPa")
 print(f"Tolerance for pressure matching: {epsilon_fP*target_P} GPa")
@@ -65,8 +67,8 @@ P_data = np.loadtxt(pressure_file)  # total pressure data array
 V_data = np.loadtxt(volume_file)    # cell volume data array
 
 # only consider the second half of the data
-# P_data = P_data[int(P_data.size/2):]
-# V_data = V_data[int(V_data.size/2):]
+P_data = P_data[int(P_data.size/5):]
+V_data = V_data[int(V_data.size/5):]
 
 # Conver P_data from kBar to GPa
 P_data = P_data / 10.0  # Convert from kBar to GPa
@@ -81,22 +83,24 @@ V_filtered = V_data[mask]
 Cell_size_filtered = V_filtered ** (1/3)  # Convert volume to cell size
 
 print(f"mask = {mask}")
+
+# For recalculations
 # time_steps corresponding to mask
 time_steps = np.arange(len(P_data))
 time_steps_filtered = time_steps[mask]
 # only keep time steps that are > 0.5 * len(P_data)
 time_steps_filtered = time_steps_filtered[time_steps_filtered > 0.5 * len(P_data)]
-# randomly chose 100 time steps
-if time_steps_filtered.size > 100:
+# randomly chose num_time_steps_selected time steps
+if time_steps_filtered.size > num_time_steps_selected:
     np.random.seed(0)  # For reproducibility
-    indices = np.random.choice(time_steps_filtered.size, 100, replace=False)
+    indices = np.random.choice(time_steps_filtered.size, num_time_steps_selected, replace=False)
     time_steps_selected = time_steps_filtered[indices]
-    print(f"Using 100 random time steps.")
+    print(f"Using {num_time_steps_selected} random time steps.")
 else:
     np.random.seed(0)  # For reproducibility
-    indices = np.random.choice(time_steps_filtered.size, 100, replace=True)
+    indices = np.random.choice(time_steps_filtered.size, num_time_steps_selected, replace=True)
     time_steps_selected = time_steps_filtered[indices]
-    print(f"Warning: Less than 100 time steps available. Using all available time steps.")
+    print(f"Warning: Less than {num_time_steps_selected} time steps available. Using all available time steps.")
 print(f"Selected time steps: {time_steps_selected}")
 # print to file
 filtered_file = os.path.join(analysis_dir, "selected_time_steps.txt")
