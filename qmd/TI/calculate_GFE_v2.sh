@@ -13,6 +13,12 @@ run_switch=${1:-1} # 0: create directories, 1: create directories and run VASP s
 mode=${2:-1} # 0: run in normal mode (KP1+KP2+...), 1: run in high accuracy mode (KP1+hp_calculations)
 # mode 0 is where you first figure out V_est (low accuracy; KP1) and then do a high accuracy KP2 given this better V_est and CONTCAR from KP1 sim
 # mode 1 is where you do high accuracy calculations for a select number of frames from KP1 sim as in the DPAL recal calculations
+# mode 2 is where you first do a low accuracy KP1 sim (~1 hour) > estimate V_est_1a, V_est_1b, V_est_1c and V_est_1d such that the corresponding pressures are P_STRESS_CHOSEN_GPa * [1.0250,1.0125,0.9875,0.975].
+# Then do corresponding KP1a, KP1b, KP1c and KP1d simulations (~5 hour) with these volumes. Once done, do hp_calculcations for these four simulations by choosing "N_FRAMES_hp_calculations" frames from each, with KPOINTS 222.
+# Finally, extract "external pressure" from OUTCAR
+
+
+#
 # Input parameters
 SCALEE=(1.0 0.71792289 0.3192687 0.08082001 0.00965853 0.00035461 0.00000108469)
 MLDP_SCRIPTS="/projects/BURROWS/akashgpt/misc_libraries/scripts_Jie/mldp"
@@ -58,6 +64,7 @@ if [ -f "$PARAMETER_FILE" ]; then
             WAIT_TIME_VLONG) WAIT_TIME_VLONG="$value" ;;
             WAIT_TIME_LONG) WAIT_TIME_LONG="$value" ;;
             WAIT_TIME_SHORT) WAIT_TIME_SHORT="$value" ;;
+            N_FRAMES_hp_calculations) N_FRAMES_hp_calculations="$value" ;;
         esac
     done < "$PARAMETER_FILE"
 else

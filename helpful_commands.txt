@@ -485,3 +485,12 @@ for dir in v6_*; do mv "$dir" "${dir/v6_/vHN1_}"; done
 # 
 N_jump=5 && runID=35
 mk md && mv ../../v5_i$runID/md/* . && runID_next=$((runID+1)) && mv ../../v5_i$runID_next/md . && for folder in md/ZONE_*; do [[ $folder =~ ZONE_([0-9]+) ]] && mv "$folder" "md/ZONE_$((BASH_REMATCH[1] + N_jump))"; done && mv md/* . && rm -r md && cd .. && mkdir train && touch NOTES && echo "v5_${runID}-${runID_next}; ${N_jump} ZONES each" >> NOTES
+
+
+
+### for all POSCAR_NPT files in the current folders and sub-folders, replace the second line by "7.845"
+find . -type f -name 'POSCAR_NPT' -exec sed -i '2s/.*/7.845/' {} +
+
+
+# replace one string with another in all files of a certain name
+sed -i 's/05:00:00/24:00:00/g' */RUN_VASP.sh

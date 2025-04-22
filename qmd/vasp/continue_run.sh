@@ -23,7 +23,8 @@ run_dir=${1:-0}
 
 num_jobs=${2:-5}  # Default to 5 jobs if not specified
 
-RUN_VASP_TIME=${3:-24} # time of simulations, default of 24; options: 0.1, 0.5, 1, 4, 8, 12, 24, 48, 72, 96
+RUN_VASP_TIME=${3:-24}  # time of simulations, default of 24; options: 0.1, 0.5, 1, 4, 8, 12, 24, 48, 72, 96
+                        # if 0 -- retains OG RUN_VASP.sh file
 
 CLUSTER_NAME=$(scontrol show config | grep ClusterName | awk '{print $3}')
 if [ "$CLUSTER_NAME" == "tiger2" ]; then

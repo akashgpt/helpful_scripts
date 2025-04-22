@@ -3,7 +3,9 @@
 # Summary:
 # This script sources the data_4_analysis.sh script in each directory in the current directory.
 
-update_data_4_analysis_script=${1:-1} # 0: do not update the script, 1: update the script
+source_sequentially=${1:-0} # 0: source in parallel, 1: source sequentially
+update_data_4_analysis_script=${2:-1} # 0: do not update the script, 1: update the script
+
 
 for dir in */; do 
 
@@ -27,7 +29,14 @@ for dir in */; do
         cp $HELP_SCRIPTS/qmd/vasp/data_4_analysis.sh .
     fi
 
-    source data_4_analysis.sh &
+    if [ $source_sequentially -eq 1 ]; then
+        echo "Sourcing data_4_analysis.sh sequentially"
+        source data_4_analysis.sh
+    else
+        echo "Sourcing data_4_analysis.sh in parallel"
+        source data_4_analysis.sh &
+    fi
+
     echo ""
     cd ..
     
