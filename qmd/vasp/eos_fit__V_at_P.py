@@ -33,14 +33,14 @@ from ase.io import read, write
 parser = argparse.ArgumentParser(description="Estimate volume at target pressure using Birch-Murnaghan EOS.")
 parser.add_argument("-p", "--target_P", type=float, required=True, help="Target pressure in GPa.")
 parser.add_argument("-e", "--epsilon_fP", type=float, default=0.01, help="Fractional olerance for pressure matching (default: 0.10 GPa).")
-parser.add_argument("-m", "--mode", type=int, default=0, help="Mode: 0 for trajectory based, 1 for relaxation calculation based.")
+parser.add_argument("-m", "--data_mode", type=int, default=0, help="data_mode: 0 for trajectory based, 1 for relaxation calculation based, 2: for the final phase of KP1+KP1X+hp_calculations calculation.")
 parser.add_argument("-nt", "--num_time_steps_selected", type=int, default=20, help="Number of time steps selected for hp recal (default: 100).")
 parser.add_argument("-r", "--ratio", type=int, default=2, help="fraction of later timesteps to the total timesteps to analyze; just as in peavg.out (default: 2).")
 parser.add_argument("-hp","--hp_mode", type=int, default=0, help="hp_mode: 1 for creating hp_calculations directories, 0: do nothing, just EOS, -1: mode to make KP1a, KP1b, KP1c, KP1d (default: 0).")
 args = parser.parse_args()
 target_P = args.target_P  # Target pressure in GPa
 epsilon_fP = args.epsilon_fP  # Tolerance for pressure matching in GPa
-mode = args.mode  # Mode: 0 for trajectory based, 1 for relaxation calculation based
+data_mode = args.data_mode  # Mode: 0 for trajectory based, 1 for relaxation calculation based
 num_time_steps_selected = args.num_time_steps_selected  # Number of time steps selected for hp recal
 ratio = args.ratio  # Ratio = fraction of later timesteps to the total timesteps to analyze; just as in peavg.out
 hp_mode = args.hp_mode  # hp_mode: 1 for creating hp_calculations directories
@@ -55,13 +55,18 @@ current_dir = os.getcwd()
 home_dir = current_dir
 analysis_dir = os.path.join(home_dir, "analysis")
 
-pressure_file = os.path.join(analysis_dir, "evo_total_pressure.dat")
-volume_file   = os.path.join(analysis_dir, "evo_cell_volume.dat")
+
 # summary_file  = os.path.join(analysis_dir, "peavg_summary.out")
 
-if mode == 1:
+if data_mode == 1:
     pressure_file = os.path.join(analysis_dir, "pressure.dat")
     volume_file   = os.path.join(analysis_dir, "volume.dat")
+elif data_mode == 2:
+    pressure_file = os.path.join(analysis_dir, "corrected_pressure.dat")
+    volume_file   = os.path.join(analysis_dir, "corrected_volume.dat")
+elif data_mode == 0:   
+    pressure_file = os.path.join(analysis_dir, "evo_total_pressure.dat")
+    volume_file   = os.path.join(analysis_dir, "evo_cell_volume.dat")
 
 # ---------------------------
 # 2. Read Data
@@ -72,6 +77,9 @@ V_data = np.loadtxt(volume_file)    # cell volume data array
 
 # minimum_time_step
 minimum_time_step = int(P_data.size/ratio)
+
+if data_mode == 2:
+    minimum_time_step = 0 # for data_mode 2, we want to use all the data as only 4 data points -- KP1a, KP1b, KP1c, KP1d are used for the EOS fitting
 
 # only consider the second half of the data
 P_data = P_data[minimum_time_step:]
@@ -90,6 +98,8 @@ V_filtered = V_data[mask]
 Cell_size_filtered = V_filtered ** (1/3)  # Convert volume to cell size
 
 # print(f"mask = {mask}") 
+# print(f"P_data = {P_data}")
+# print(f"V_data = {V_data}")
 
 # For recalculations
 # time_step_indices corresponding to mask
@@ -98,27 +108,28 @@ time_step_indices_filtered = time_step_indices[mask]
 # only keep time steps that are > 0.5 * len(P_data)
 time_step_indices_filtered = time_step_indices_filtered[time_step_indices_filtered > 0.5 * len(P_data)]
 # randomly chose num_time_steps_selected time steps
-if time_step_indices_filtered.size > num_time_steps_selected:
-    np.random.seed(0)  # For reproducibility
-    indices = np.random.choice(time_step_indices_filtered.size, num_time_steps_selected, replace=False)
-    time_step_indices_selected = time_step_indices_filtered[indices]
-    print(f"Using {num_time_steps_selected} random time steps.")
-else:
-    np.random.seed(0)  # For reproducibility
-    indices = np.random.choice(time_step_indices_filtered.size, num_time_steps_selected, replace=True)
-    time_step_indices_selected = time_step_indices_filtered[indices]
-    print(f"Warning: Less than {num_time_steps_selected} time steps available. Using all available time steps.")
+if data_mode != 2:
+    if time_step_indices_filtered.size > num_time_steps_selected:
+        np.random.seed(0)  # For reproducibility
+        indices = np.random.choice(time_step_indices_filtered.size, num_time_steps_selected, replace=False)
+        time_step_indices_selected = time_step_indices_filtered[indices]
+        print(f"Using {num_time_steps_selected} random time steps.")
+    else:
+        np.random.seed(0)  # For reproducibility
+        indices = np.random.choice(time_step_indices_filtered.size, num_time_steps_selected, replace=True)
+        time_step_indices_selected = time_step_indices_filtered[indices]
+        print(f"Warning: Less than {num_time_steps_selected} time steps available. Using all available time steps.")
 
-# sorting the time steps
-time_step_indices_selected = np.sort(time_step_indices_selected)
-time_steps_selected = time_step_indices_selected + minimum_time_step
-# print the selected time steps
-print(f"Selected time steps: {time_steps_selected}")
-# print to file
-filtered_file = os.path.join(analysis_dir, "selected_time_step_indices.txt")
-with open(filtered_file, 'w') as f:
-    for step in time_steps_selected:
-        f.write(f"{step}\n")
+    # sorting the time steps
+    time_step_indices_selected = np.sort(time_step_indices_selected)
+    time_steps_selected = time_step_indices_selected + minimum_time_step
+    # print the selected time steps
+    print(f"Selected time steps: {time_steps_selected}")
+    # print to file
+    filtered_file = os.path.join(analysis_dir, "selected_time_step_indices.txt")
+    with open(filtered_file, 'w') as f:
+        for step in time_steps_selected:
+            f.write(f"{step}\n")
 
 
 
@@ -272,11 +283,13 @@ plt.ylim(0.99*P_filtered.min(), 1.01*P_filtered.max())
 # plt.xlim(cell_size.min(), cell_size.max())
 plt.legend()
 plt.grid()
-plt.savefig(os.path.join(analysis_dir, 'BM_EOS_fit.png'))
+plt.savefig(os.path.join(analysis_dir, f'BM_EOS_fit__data_mode_{data_mode}.png'))
 
 
 # create a log file log.eos_fit and save fitted parameters and estimated volume; write values and texts in different lines
 log_file = os.path.join(analysis_dir, 'log.eos_fit')
+if data_mode == 2:
+    log_file = os.path.join(analysis_dir, 'log.eos_fit_data_mode_2')
 with open(log_file, 'w') as f:
     f.write(f"Fitted EOS parameters:\n")
     f.write(f"V0 = {V0_fit}\n")

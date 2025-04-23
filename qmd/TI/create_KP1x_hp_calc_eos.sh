@@ -134,12 +134,14 @@ while IFS= read -r -d '' parent; do
     KP1_dir=$(pwd)
     analysis_KP1_dir=$KP1_dir/analysis
     corrected_pressure_file="${analysis_KP1_dir}/corrected_pressure.dat"
+    pressure_correction_file="${analysis_KP1_dir}/pressure_correction.dat"
     corrected_volume_file="${analysis_KP1_dir}/corrected_volume.dat"
     # create corrected_pressure.dat and corrected_volume.dat files and add the header: "# after KP1, KP1X, hp_calculations"
     mkdir -p "${analysis_KP1_dir}"
-    rm -f "${corrected_pressure_file}" "${corrected_volume_file}"
+    rm -f "${corrected_pressure_file}" "${corrected_volume_file}" "${pressure_correction_file}"
     echo "# after KP1, KP1X, hp_calculations" > "${corrected_pressure_file}"
     echo "# after KP1, KP1X, hp_calculations" > "${corrected_volume_file}"
+    echo "# after KP1, KP1X, hp_calculations" > "${pressure_correction_file}"
     cd "${PT_dir}" || exit
 
     # Iterate over immediate subdirectories beginning with 'KP1'
@@ -216,22 +218,41 @@ while IFS= read -r -d '' parent; do
             # and save the result in a file called diff_external_pressure.dat. Skip the first line of each file.
             # paste -d ' ' analysis/external_pressure_KP1.dat analysis/external_pressure_KP2.dat | awk '{print $1-$2}' > analysis/diff_external_pressure.dat
             paste \
-                <(tail -n +2 analysis/external_pressure_KP1.dat) \
-                <(tail -n +2 analysis/external_pressure_KP2.dat) \
+                <(tail -n +2 $hp_calculations_dir/analysis/external_pressure_KP1.dat) \
+                <(tail -n +2 $hp_calculations_dir/analysis/external_pressure_KP2.dat) \
                 | awk '{ print $2 - $1 }' \
-                > analysis/diff_external_pressure.dat
+                > $hp_calculations_dir/analysis/diff_external_pressure.dat
 
             # average values in diff_external_pressure.dat and save it to avg_diff_external_pressure.dat
-            awk '{ sum += $1 } END { if (NR > 0) print sum / NR }' analysis/diff_external_pressure.dat > analysis/avg_diff_external_pressure.dat
+            awk '{ sum += $1 } END { if (NR > 0) print sum / NR }' $hp_calculations_dir/analysis/diff_external_pressure.dat > $hp_calculations_dir/analysis/avg_diff_external_pressure.dat
 
             total_pressure_KP1=$(awk 'NR==15 {print $3}' ${KP1x_dir}/analysis/peavg.out)
+            cell_volume=$(awk 'NR==21 {print $5}' ${KP1x_dir}/analysis/peavg.out)
             # corrected_pressure = total_pressure_KP1 + avg_diff_external_pressure
-
+            avg_diff_external_pressure=$(awk 'NR==1 {print $1}' $hp_calculations_dir/analysis/avg_diff_external_pressure.dat)
+            corrected_pressure=$(echo "$total_pressure_KP1 + $avg_diff_external_pressure" | bc -l)
+            corrected_pressure_kBar=$(echo "$corrected_pressure / $kBar_to_GPa " | bc -l)
+            echo $corrected_pressure_kBar >> $corrected_pressure_file # pressure required in kBar there
+            echo $cell_volume >> $corrected_volume_file
+            echo $avg_diff_external_pressure >> $pressure_correction_file
             # echo "Started hp_calculations in ${child}"
             # Return to the original driver directory
             cd ${PT_dir} || exit
         fi
     done
+
+    cd "${KP1_dir}" || exit
+    echo ""
+    echo ""
+    echo "----------------------------------------"
+    echo "Estimating final EoS parameters for ${KP1_dir}"
+    echo "----------------------------------------"
+    python $HELP_SCRIPTS_vasp/eos_fit__V_at_P.py -p $PSTRESS_CHOSEN_GPa -m 2 -e 0.2 -hp 0
+    echo ""
+    echo ""
+    cd "${PT_dir}" || exit
+
+
 done < <(find . -type d -name KP1 -print0)
 
 # Final confirmation message
@@ -241,7 +262,7 @@ echo ""
 echo "################################"
 echo "################################"
 echo "################################"
-echo "All VASP jobs started in all KP1/*/hp_calculations directories under ${PT_dir}."
+echo "All EoS data "corrected" in all KP1/*/hp_calculations directories under ${PT_dir}."
 echo "################################"
 echo "################################"
 echo "################################"
