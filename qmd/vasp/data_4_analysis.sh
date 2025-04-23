@@ -14,10 +14,12 @@ parent_dir=$(pwd)
 parent_dir_name=$(basename "$parent_dir")
 
 
-module purge
-echo $ENV_for_MSD > setting_env.sh #for mda analysis and the "bc" command required for peavg.sh
-source setting_env.sh
-rm setting_env.sh
+# module purge
+# echo $ENV_for_MSD > setting_env.sh #for mda analysis and the "bc" command required for peavg.sh
+# source setting_env.sh
+# rm setting_env.sh
+# MSD_python_file="${SCRATCH}/qmd_data/H2O_H2/sim_data_convergence/crystalline_or_not/run_scripts/msd_calc_v2.py"
+# ENV_for_MSD="module load anaconda3/2024.6; conda activate mda_env"
 
 
 echo "################################"
@@ -29,8 +31,7 @@ echo "################################"
 # start=$(date +%s)  # Start time in seconds
 
 
-MSD_python_file="${SCRATCH}/qmd_data/H2O_H2/sim_data_convergence/crystalline_or_not/run_scripts/msd_calc_v2.py"
-ENV_for_MSD="module load anaconda3/2024.6; conda activate mda_env"
+
 
 
 echo "Updating data for 'analysis/' ..."
@@ -52,7 +53,7 @@ grep "energy  without entropy" OUTCAR | awk '{print $4}' > analysis/evo_internal
 grep "(temperature" OUTCAR | sed -E 's/.*temperature[[:space:]]*([0-9]+\.[0-9]+).*/\1/' > analysis/evo_mean_temp.dat
 
 
-
+echo "Sourcing peavg.sh"
 source peavg.sh OUTCAR
 
 

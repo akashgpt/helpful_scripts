@@ -358,10 +358,14 @@ if hp_mode == 1:
         else:
             eos_data_array = np.vstack((eos_data_array, eos_data))
 
-    eos_data_file = os.path.join(hp_dir, "eos_hp_calculations_KP1.dat")
+    # make "analysis" directory inside hp_dir if it doesn't exist
+    os.makedirs(os.path.join(hp_dir, "analysis"), exist_ok=True)
+    eos_data_file = os.path.join(hp_dir, "analysis", "eos_data_KP1.dat")
     # write the data to eos_data_file
     np.savetxt(eos_data_file, eos_data_array, header="time-step total_pressure(GPa) external_pressure(GPa) kinetic_pressure(GPa) cell_volume(A^3)", fmt='%d %.6f %.6f %.6f %.6f')
-
+    #save another file named external_pressure_KP1.dat with the external pressure values
+    external_pressure_file = os.path.join(hp_dir, "analysis", "external_pressure_KP1.dat")
+    np.savetxt(external_pressure_file, eos_data_array[:, 2], header="external_pressure(GPa)", fmt='%.6f')
 
 
 

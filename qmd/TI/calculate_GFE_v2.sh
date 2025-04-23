@@ -44,8 +44,8 @@ MLDP_SCRIPTS="/projects/BURROWS/akashgpt/misc_libraries/scripts_Jie/mldp"
 # KPOINTS_CHOSEN_222="2 2 2" # for KPOINTS 222
 
 CONFIG_dir=$(pwd)
-TP_dir=$(dirname "$CONFIG_dir")
-SETUP_dir=$TP_dir/master_setup_TI
+PT_dir=$(dirname "$CONFIG_dir")
+SETUP_dir=$PT_dir/master_setup_TI
 LOCAL_SETUP_dir=$CONFIG_dir/setup_TI
 
 
@@ -399,9 +399,9 @@ if [ ! -f "done_estimating_V" ]; then
 
         # grep pressure (external pressure == total pressure in relaxation) from OUTCAR and save it in a file called pressure.txt
         mkdir -p $hp_calculations_dir/analysis
-        grep "pressure" */OUTCAR | awk '{print $5}' > analysis/pressure.dat
+        grep "pressure" */OUTCAR | awk '{print $4}' > analysis/pressure.dat
         # grep vol
-        grep -m 1 "volume" */OUTCAR | awk '{print $6}' > analysis/volume.dat
+        grep -m 1 "volume" */OUTCAR | awk '{print $4}' > analysis/volume.dat
 
         module purge
         module load anaconda3/2024.6; conda activate ase_env
