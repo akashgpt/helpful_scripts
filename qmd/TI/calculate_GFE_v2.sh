@@ -3,7 +3,8 @@
 # Summary:
 # This script creates directories for different SCALEE values and copies the necessary files for VASP simulations.
 # Before that, it estimates an accurate cell size based on KPOINTS 111 and KPOINTS 222 simulations.
-# Usage: source setup_TI/calculate_GFE_v2.sh 1 1 > log.calculate_GFE 2>&1 &
+# Usage: source $HELP_SCRIPTS_TI/calculate_GFE_v2.sh 1 1 > log.calculate_GFE 2>&1 &
+# Usage: source $HELP_SCRIPTS_TI/calculate_GFE_v2.sh 1 2 > log.calculate_GFE 2>&1 &
 
 
 # =======================================================================================
@@ -45,8 +46,20 @@ MLDP_SCRIPTS="/projects/BURROWS/akashgpt/misc_libraries/scripts_Jie/mldp"
 
 CONFIG_dir=$(pwd)
 PT_dir=$(dirname "$CONFIG_dir")
+PT_dir_name=$(basename "$PT_dir")
 SETUP_dir=$PT_dir/master_setup_TI
 LOCAL_SETUP_dir=$CONFIG_dir/setup_TI
+
+
+echo "=========================================="
+echo "Current time: $(date)"
+echo "Current directory: $CONFIG_dir"
+echo "PT_dir: $PT_dir"
+echo "==========================================="
+echo ""
+echo ""
+echo ""
+
 
 
 # read all the above from input.calculate_GFE file where each line is a key-value pair, e.g. TEMP_CHOSEN=13000
@@ -72,6 +85,15 @@ else
     exit 1
 fi
 
+
+
+# Check if the folder name contains both TEMP_CHOSEN and PSTRESS_CHOSEN_GPa
+if [[ "$PT_dir_name" == *"${TEMP_CHOSEN}"* && "$PT_dir_name" == *"${PSTRESS_CHOSEN_GPa}"* ]]; then
+    echo "Folder name contains TEMP_CHOSEN (${TEMP_CHOSEN}) and PSTRESS_CHOSEN_GPa (${PSTRESS_CHOSEN_GPa})"
+else
+    echo "Folder name does NOT contain both TEMP_CHOSEN (${TEMP_CHOSEN}) and PSTRESS_CHOSEN_GPa (${PSTRESS_CHOSEN_GPa})"
+    exit 1
+fi
 
 
 # Constants
@@ -470,7 +492,8 @@ if [ $mode -eq 0 ]; then
 
     echo "Created POSCAR for SCALEE"
 
-else
+elif [ $mode -eq 1 ]; then
+    # if mode is 1, then use KP1_dir for SCALEE
 
     KP2_dir=$KP1_dir # when mode == 1 
     echo "KP2_dir: ${KP2_dir}"
@@ -483,6 +506,23 @@ else
     sed -i "5s/.*/0.0000000000000000 0.0000000000000000 1.0000000000000000/" $LOCAL_SETUP_dir/POSCAR_SCALEE
 
     echo "Created POSCAR for SCALEE"
+elif [ $mode -eq 2 ]; then
+    # if mode is 2, then use KP1b_dir for SCALEE
+
+    KP2_dir=$KP1_dir/KP1b # when mode == 2
+    echo "KP2_dir (effective; the KP1/KP1b directory): ${KP2_dir}"
+
+    # prep POSCAR for SCALEE
+    cp $KP2_dir/CONTCAR $LOCAL_SETUP_dir/POSCAR_SCALEE
+    sed -i "2s/.*/$cell_size_KP2/" $LOCAL_SETUP_dir/POSCAR_SCALEE
+    sed -i "3s/.*/1.0000000000000000 0.0000000000000000 0.0000000000000000/" $LOCAL_SETUP_dir/POSCAR_SCALEE
+    sed -i "4s/.*/0.0000000000000000 1.0000000000000000 0.0000000000000000/" $LOCAL_SETUP_dir/POSCAR_SCALEE
+    sed -i "5s/.*/0.0000000000000000 0.0000000000000000 1.0000000000000000/" $LOCAL_SETUP_dir/POSCAR_SCALEE
+
+    echo "Created POSCAR for SCALEE"
+else
+    echo "Error: Invalid mode. Please choose either 0, 1 or 2."
+    exit 1
 fi
 
 
@@ -503,11 +543,12 @@ for SCALEE_CHOSEN in "${SCALEE[@]}"; do
     cp $LOCAL_SETUP_dir/POSCAR_SCALEE "SCALEE_${counter}/POSCAR"
     cp $SETUP_dir/POTCAR "SCALEE_${counter}/POTCAR"
     cp $SETUP_dir/KPOINTS_111 "SCALEE_${counter}/KPOINTS" # KPOINTS 111 for SCALEE
-    cp $SETUP_dir/INCAR_SCALEE "SCALEE_${counter}/INCAR"
+    cp $SETUP_dir/INCAR_SCALEE "SCALEE_${counter}/INCAR" || echo "Error: INCAR_SCALEE not found in $SETUP_dir"
     cp $SETUP_dir/RUN_VASP_SCALEE.sh "SCALEE_${counter}/RUN_VASP.sh"
     cp $HELP_SCRIPTS/qmd/vasp/data_4_analysis.sh "SCALEE_${counter}/data_4_analysis.sh"
     cd "SCALEE_${counter}" || exit 1
     rm -f slurm*
+    cd ..
 
     # Replace __SCALEE_CHOSEN__ with the SCALEE_CHOSEN
     sed -i "s/__SCALEE_CHOSEN__/${SCALEE_CHOSEN}/" "SCALEE_${counter}/INCAR"
@@ -525,7 +566,9 @@ for SCALEE_CHOSEN in "${SCALEE[@]}"; do
     sed -i "s/__NBANDS_CHOSEN__/${NBANDS_CHOSEN}/" "SCALEE_${counter}/INCAR"
 
     if [ $run_switch -eq 1 ]; then
+        cd "SCALEE_${counter}" || exit 1
         sbatch RUN_VASP.sh
+        cd ..
     fi
 
     cd $CONFIG_dir || exit 1
@@ -544,64 +587,72 @@ echo "Done submitting jobs for SCALEE simulations."
 ########################################################################
 ########################################################################
 # start the final hp run (NPT)
-cd $V_est_dir
-mkdir -p "SCALEE_1__hp"
-cd "SCALEE_1__hp" || exit 1
-SCALEE_hp_dir=$(pwd)
-echo "SCALEE_hp_dir: ${SCALEE_hp_dir}"
+# if not mode 2
 
-if [ ! -f "done_SCALEE_hp" ]; then
-    if [ ! -f "running_SCALEE_hp" ]; then
-
-        echo "Now creating SCALEE=1.0 - High accuracy simulation directory..."
-        cp "$CONFIG_dir/SCALEE_1"/* $SCALEE_hp_dir/
-        rm -f slurm*
-        cp $SETUP_dir/RUN_VASP_SCALEE_hp.sh $SCALEE_hp_dir/RUN_VASP.sh
-        cp $SETUP_dir/KPOINTS_222 $SCALEE_hp_dir/KPOINTS # KPOINTS 222 for SCALEE hp
-        cp $HELP_SCRIPTS/qmd/vasp/data_4_analysis.sh $SCALEE_hp_dir/
-
-        cp $SETUP_dir/INCAR_SCALEE INCAR
-        # Replace __SCALEE_CHOSEN__ with the SCALEE_CHOSEN
-        sed -i "s/__SCALEE_CHOSEN__/${SCALEE_CHOSEN}/" $SCALEE_hp_dir/INCAR
-        # Replace __TEMP_CHOSEN__ and __SIGMA_CHOSEN__ based on the chosen temperature
-        sed -i "s/__TEMP_CHOSEN__/${TEMP_CHOSEN}/" $SCALEE_hp_dir/INCAR
-        sed -i "s/__SIGMA_CHOSEN__/${SIGMA_CHOSEN}/" $SCALEE_hp_dir/INCAR
-        sed -i "s/__POTIM_CHOSEN__/${POTIM_CHOSEN}/" $SCALEE_hp_dir/INCAR
-        # Replace __NPAR_CHOSEN__ with the chosen NPAR
-        sed -i "s/__NPAR_CHOSEN__/${NPAR_CHOSEN}/" $SCALEE_hp_dir/INCAR
-        sed -i "s/__KPAR_CHOSEN__/${KPAR_CHOSEN_222}/" $SCALEE_hp_dir/INCAR
-        # Replace __NBANDS_CHOSEN__ with the chosen NBANDS
-        sed -i "s/__NBANDS_CHOSEN__/${NBANDS_CHOSEN}/" $SCALEE_hp_dir/INCAR
-
-
-        sbatch RUN_VASP.sh
-        touch $SCALEE_hp_dir/running_SCALEE_hp
-
-        job_id=$(squeue --user=$USER --sort=i --format=%i | tail -n 1 | awk '{print $1}')
-        echo ""
-        echo "------------------------"
-        echo "Job for SCALEE=1.0 - High accuracy | KPOINT 222 (${job_id}) submitted at $(date)"
-
-        #after submission, now wait as the job gets finished
-        while  squeue --user=$USER --sort=i --format=%i | grep -q $job_id
-        do 
-            # echo "Job ${master_id}${letter} (${job_id}; ${counter}) under work"
-            sleep ${WAIT_TIME_LONG}
-        done
-
-        echo "Job for SCALEE=1.0 - High accuracy | KPOINT 222 (${job_id}) done at $(date)"
-
-
-        # update and source data_4_analysis.sh
-        source data_4_analysis.sh
-        rm $SCALEE_hp_dir/running_SCALEE_hp
-        touch done_SCALEE_hp
-    else
-        echo "SCALEE=1.0 - High accuracy simulation already running. Exiting."
-        exit 1
-    fi
+if [ $mode -eq 2 ]; then
+    echo "Mode 2: Skipping SCALEE_1__hp simulation in this mode."
 else
-    echo "SCALEE=1.0 - High accuracy simulation already done. Skipping."
+    echo "Mode 0 or 1: Now creating SCALEE=1.0 - High accuracy simulation directory..."
+
+    cd $V_est_dir
+    mkdir -p "SCALEE_1__hp"
+    cd "SCALEE_1__hp" || exit 1
+    SCALEE_hp_dir=$(pwd)
+    echo "SCALEE_hp_dir: ${SCALEE_hp_dir}"
+
+    if [ ! -f "done_SCALEE_hp" ]; then
+        if [ ! -f "running_SCALEE_hp" ]; then
+
+            echo "Now creating SCALEE=1.0 - High accuracy simulation directory..."
+            cp "$CONFIG_dir/SCALEE_1"/* $SCALEE_hp_dir/
+            rm -f slurm*
+            cp $SETUP_dir/RUN_VASP_SCALEE_hp.sh $SCALEE_hp_dir/RUN_VASP.sh
+            cp $SETUP_dir/KPOINTS_222 $SCALEE_hp_dir/KPOINTS # KPOINTS 222 for SCALEE hp
+            cp $HELP_SCRIPTS/qmd/vasp/data_4_analysis.sh $SCALEE_hp_dir/
+
+            cp $SETUP_dir/INCAR_SCALEE INCAR
+            # Replace __SCALEE_CHOSEN__ with the SCALEE_CHOSEN
+            sed -i "s/__SCALEE_CHOSEN__/${SCALEE_CHOSEN}/" $SCALEE_hp_dir/INCAR
+            # Replace __TEMP_CHOSEN__ and __SIGMA_CHOSEN__ based on the chosen temperature
+            sed -i "s/__TEMP_CHOSEN__/${TEMP_CHOSEN}/" $SCALEE_hp_dir/INCAR
+            sed -i "s/__SIGMA_CHOSEN__/${SIGMA_CHOSEN}/" $SCALEE_hp_dir/INCAR
+            sed -i "s/__POTIM_CHOSEN__/${POTIM_CHOSEN}/" $SCALEE_hp_dir/INCAR
+            # Replace __NPAR_CHOSEN__ with the chosen NPAR
+            sed -i "s/__NPAR_CHOSEN__/${NPAR_CHOSEN}/" $SCALEE_hp_dir/INCAR
+            sed -i "s/__KPAR_CHOSEN__/${KPAR_CHOSEN_222}/" $SCALEE_hp_dir/INCAR
+            # Replace __NBANDS_CHOSEN__ with the chosen NBANDS
+            sed -i "s/__NBANDS_CHOSEN__/${NBANDS_CHOSEN}/" $SCALEE_hp_dir/INCAR
+
+
+            sbatch RUN_VASP.sh
+            touch $SCALEE_hp_dir/running_SCALEE_hp
+
+            job_id=$(squeue --user=$USER --sort=i --format=%i | tail -n 1 | awk '{print $1}')
+            echo ""
+            echo "------------------------"
+            echo "Job for SCALEE=1.0 - High accuracy | KPOINT 222 (${job_id}) submitted at $(date)"
+
+            #after submission, now wait as the job gets finished
+            while  squeue --user=$USER --sort=i --format=%i | grep -q $job_id
+            do 
+                # echo "Job ${master_id}${letter} (${job_id}; ${counter}) under work"
+                sleep ${WAIT_TIME_LONG}
+            done
+
+            echo "Job for SCALEE=1.0 - High accuracy | KPOINT 222 (${job_id}) done at $(date)"
+
+
+            # update and source data_4_analysis.sh
+            source data_4_analysis.sh
+            rm $SCALEE_hp_dir/running_SCALEE_hp
+            touch done_SCALEE_hp
+        else
+            echo "SCALEE=1.0 - High accuracy simulation already running. Exiting."
+            exit 1
+        fi
+    else
+        echo "SCALEE=1.0 - High accuracy simulation already done. Skipping."
+    fi
 fi
 
 ########################################################################

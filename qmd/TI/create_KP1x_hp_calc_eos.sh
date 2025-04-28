@@ -1,7 +1,8 @@
 #!/bin/bash
 # set -euo pipefail
 
-# Usage: source $HELP_SCRIPTS_TI/create_KP1x_hp_calc.sh > log.create_KP1x_hp_calc 2>&1 &
+# Usage: source $HELP_SCRIPTS_TI/create_KP1x_hp_calc_eos.sh > log.create_KP1x_hp_calc_eos 2>&1 &
+# Author: Akash Gupta
 
 
 # while IFS= read -r -d '' parent; do
@@ -50,12 +51,13 @@ kBar_to_GPa=0.1
 # Save the current working directory for later
 PT_dir=$(pwd)
 PT_dir_name=$(basename "$PT_dir")
+echo "Current time: $(date)"
 echo "Current working directory: $PT_dir"
 echo "Current working directory name: $PT_dir_name"
 
 
 SETUP_dir=$PT_dir/master_setup_TI
-LOCAL_SETUP_dir=$CONFIG_dir/setup_TI
+# LOCAL_SETUP_dir=$CONFIG_dir/setup_TI
 
 
 # read all the above from input.calculate_GFE file where each line is a key-value pair, e.g. TEMP_CHOSEN=13000
@@ -154,8 +156,8 @@ while IFS= read -r -d '' parent; do
             echo " → Entered ${child_abs}"
 
             # # Copy and source analysis script
-            # cp "${HELP_SCRIPTS_vasp}/data_4_analysis.sh" "${child_abs}/"
-            # source data_4_analysis.sh
+            cp "${HELP_SCRIPTS_vasp}/data_4_analysis.sh" "${child_abs}/"
+            source data_4_analysis.sh
 
             # # Check for average pressure file
             # if [[ ! -f analysis/peavg.out ]]; then
@@ -248,6 +250,9 @@ while IFS= read -r -d '' parent; do
     echo "Estimating final EoS parameters for ${KP1_dir}"
     echo "----------------------------------------"
     python $HELP_SCRIPTS_vasp/eos_fit__V_at_P.py -p $PSTRESS_CHOSEN_GPa -m 2 -e 0.2 -hp 0
+    estimated_cell_volume=$(awk 'NR==9 {print $7}' ${KP1_dir}/analysis/log.eos_fit_data_mode_2)
+    # replace third line of cell_sizes_KPX.dat with estimated_cell_volume
+    sed -i "3s/.*/$estimated_cell_volume/" ${KP1_dir}/../cell_sizes_KPX.dat
     echo ""
     echo ""
     cd "${PT_dir}" || exit

@@ -2,6 +2,7 @@
 # set -euo pipefail
 
 # Usage: source $HELP_SCRIPTS_TI/create_KP1x.sh > log.create_KP1x 2>&1 &
+# Author: Akash Gupta
 
 #--------------------------------------------------------------
 # Script to generate KP1* directories and submit NVT VASP runs
@@ -60,6 +61,7 @@ kB=0.00008617333262145               # Boltzmann constant in eV/K
 #-------------------------
 PT_dir=$(pwd)
 PT_dir_name=$(basename "$PT_dir")
+echo "Current time: $(date)"
 echo "Current working directory: $PT_dir"
 echo "Current working directory name: $PT_dir_name"
 

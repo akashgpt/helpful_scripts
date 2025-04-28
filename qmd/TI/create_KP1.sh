@@ -2,6 +2,7 @@
 # set -euo pipefail
 
 # Usage: source $HELP_SCRIPTS_TI/create_KP1.sh > log.create_KP1 2>&1 &
+# Author: Akash Gupta
 
 #--------------------------------------------------------------
 # Script to generate KP1* directories and submit NVT VASP runs
@@ -66,6 +67,9 @@ kB=0.00008617333262145               # Boltzmann constant in eV/K
 #-------------------------
 PT_dir=$(pwd)
 PT_dir_name=$(basename "$PT_dir")
+
+# echo time stamp
+echo "Current time: $(date)"
 echo "Current working directory: $PT_dir"
 echo "Current working directory name: $PT_dir_name"
 
@@ -100,6 +104,7 @@ fi
 
 SIGMA_CHOSEN=$(echo "$kB * $TEMP_CHOSEN" | bc -l)  # Gaussian smearing sigma
 
+PSTRESS_CHOSEN=$(echo "$PSTRESS_CHOSEN_GPa * 10" | bc -l)  # Convert GPa to kBar
 
 #-------------------------
 # Print the parameters
@@ -107,6 +112,7 @@ echo "------------------------"
 echo "Simulation parameters:"
 echo "TEMP_CHOSEN: $TEMP_CHOSEN"
 echo "PSTRESS_CHOSEN_GPa: $PSTRESS_CHOSEN_GPa"
+echo "PSTRESS_CHOSEN (kBar): $PSTRESS_CHOSEN"
 echo "NPAR_CHOSEN: $NPAR_CHOSEN"
 echo "POTIM_CHOSEN: $POTIM_CHOSEN"
 echo "NBANDS_CHOSEN: $NBANDS_CHOSEN"
@@ -162,7 +168,7 @@ while IFS= read -r -d '' parent; do
     sed -i "s/__KPAR_CHOSEN__/${KPAR_CHOSEN_111}/" $KP1_dir/INCAR
     sed -i "s/__SIGMA_CHOSEN__/${SIGMA_CHOSEN}/" $KP1_dir/INCAR
     sed -i "s/__SCALEE_CHOSEN__/${SCALEE_CHOSEN}/" $KP1_dir/INCAR
-    sed -i "s/__PSTRESS_CHOSEN__/${PSTRESS_CHOSEN_GPa}/" $KP1_dir/INCAR
+    sed -i "s/__PSTRESS_CHOSEN__/${PSTRESS_CHOSEN}/" $KP1_dir/INCAR
 
     # Submit the VASP job
     sbatch RUN_VASP.sh
