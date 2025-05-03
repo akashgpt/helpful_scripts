@@ -47,6 +47,7 @@ sed -i '1,2d' analysis/evo_cell_volume.dat
 
 grep "free  energy" OUTCAR | awk '{print $5}' > analysis/evo_free_energy.dat
 grep ETOTAL OUTCAR | awk '{print $5}' > analysis/evo_total_energy.dat
+grep "free  energy   TOTEN" OUTCAR | awk '{print $5}' > analysis/evo_TOTEN.dat
 grep "energy  without entropy" OUTCAR | awk '{print $4}' > analysis/evo_internal_energy.dat
 
 # grep "mean temperature" OUTCAR | awk '{print $5}' > analysis/evo_mean_temp.dat
@@ -105,10 +106,30 @@ analysis_dir = os.path.join(current_dir, "analysis")
 total_pressure = np.loadtxt("analysis/evo_total_pressure.dat")
 external_pressure = np.loadtxt("analysis/evo_external_pressure.dat")
 total_energy   = np.loadtxt("analysis/evo_total_energy.dat")
+TOTEN        = np.loadtxt("analysis/evo_TOTEN.dat")
 internal_energy = np.loadtxt("analysis/evo_internal_energy.dat")
 free_energy   = np.loadtxt("analysis/evo_free_energy.dat")
 cell_volume    = np.loadtxt("analysis/evo_cell_volume.dat")
 mean_temp      = np.loadtxt("analysis/evo_mean_temp.dat")
+
+# check if a ratio file exists
+if os.path.exists("ratio"):
+    ratio = np.loadtxt("ratio")
+    print(f"Ratio file found: {ratio}")
+else:
+    print("No ratio file found. Using default value of 4")
+    ratio = 4
+
+# choose the last (1 - (1/ratio)) of the data
+stat_total_pressure = total_pressure[int(len(total_pressure) * (1 - (1 / ratio))):]
+stat_external_pressure = external_pressure[int(len(external_pressure) * (1 - (1 / ratio))):]
+stat_total_energy = total_energy[int(len(total_energy) * (1 - (1 / ratio))):]
+stat_TOTEN = TOTEN[int(len(TOTEN) * (1 - (1 / ratio))):]
+stat_internal_energy = internal_energy[int(len(internal_energy) * (1 - (1 / ratio))):]
+stat_free_energy = free_energy[int(len(free_energy) * (1 - (1 / ratio))):]
+stat_cell_volume = cell_volume[int(len(cell_volume) * (1 - (1 / ratio))):]
+stat_mean_temp = mean_temp[int(len(mean_temp) * (1 - (1 / ratio))):]
+
 
 # make internal_energy and total_energy the same length as each other and get ride of the extra lines whichever has it
 if len(internal_energy) > len(total_energy):
@@ -122,9 +143,17 @@ if len(free_energy) > len(total_energy):
 elif len(total_energy) > len(free_energy):
     total_energy = total_energy[:len(free_energy)]
 
+# TOTEN and total_energy
+if len(TOTEN) > len(total_energy):
+    TOTEN = TOTEN[:len(total_energy)]
+elif len(total_energy) > len(TOTEN):
+    total_energy = total_energy[:len(TOTEN)]
+
 # pressure kBar to GPa
 total_pressure = total_pressure * 0.1
 external_pressure = external_pressure * 0.1
+stat_total_pressure = stat_total_pressure * 0.1
+stat_external_pressure = stat_external_pressure * 0.1
 
 # Create a time-step array based on the number of data points.
 time_steps_pressure = np.arange(1, len(total_pressure) + 1)
@@ -139,7 +168,7 @@ fig.subplots_adjust(hspace=0.5)
 
 # Panel 1: evo_total_pressure vs time-step
 axs[0].plot(time_steps_pressure, total_pressure, 'b-', alpha=0.5)
-axs[0].axhline(np.mean(total_pressure), color='b', linestyle='--', label=f'Mean: {np.mean(total_pressure):.2f} +/- {np.std(total_pressure):.2f} GPa')
+axs[0].axhline(np.mean(total_pressure), color='b', linestyle='--', label=f'Mean: {np.mean(stat_total_pressure):.2f} +/- {np.std(stat_total_pressure):.2f} GPa')
 axs[0].set_ylabel('Total Pressure (GPa)')
 leg = axs[0].legend(loc='upper left')
 for text in leg.get_texts():
@@ -148,7 +177,7 @@ axs[0].grid()
 # twinx axis for external pressure
 ax1 = axs[0].twinx()
 ax1.plot(time_steps_external_pressure, external_pressure, 'r-', alpha=0.5)
-ax1.axhline(np.mean(external_pressure), color='r', linestyle='--', label=f'Mean: {np.mean(external_pressure):.2f} +/- {np.std(external_pressure):.2f} GPa')
+ax1.axhline(np.mean(external_pressure), color='r', linestyle='--', label=f'Mean: {np.mean(stat_external_pressure):.2f} +/- {np.std(stat_external_pressure):.2f} GPa')
 ax1.set_ylabel('External Pressure (GPa)')
 # color the axis red
 # ax1.tick_params(axis='y', labelcolor='r')
@@ -159,7 +188,9 @@ for text in leg.get_texts():
 
 # Panel 2: evo_total_energy vs time-step
 axs[1].plot(time_steps_energy, total_energy, 'g-', alpha=0.5)
-axs[1].axhline(np.mean(total_energy), color='g', linestyle='--', label=f'Mean: {np.mean(total_energy):.2f} +/- {np.std(total_energy):.2f} eV')
+axs[1].axhline(np.mean(total_energy), color='g', linestyle='--', label=f'Mean: {np.mean(stat_total_energy):.2f} +/- {np.std(stat_total_energy):.2f} eV')
+# axs[1].plot(time_steps_energy, TOTEN, 'b-', alpha=0.5)
+# axs[1].axhline(np.mean(TOTEN), color='b', linestyle='--', label=f'Mean: {np.mean(TOTEN):.2f} +/- {np.std(TOTEN):.2f} eV')
 # axs[1].plot(time_steps_energy, free_energy, 'm:', label='Free Energy')
 axs[1].set_ylabel('Total Energy (ETOTAL; eV)')
 axs[1].grid()
@@ -169,7 +200,7 @@ for text in leg.get_texts():
 # twinx axis for internal energy
 ax2 = axs[1].twinx()
 ax2.plot(time_steps_energy, internal_energy, 'r-',alpha=0.5)
-ax2.axhline(np.mean(internal_energy), color='r', linestyle='--', label=f'Mean: {np.mean(internal_energy):.2f} +/- {np.std(internal_energy):.2f} eV')
+ax2.axhline(np.mean(internal_energy), color='r', linestyle='--', label=f'Mean: {np.mean(stat_internal_energy):.2f} +/- {np.std(stat_internal_energy):.2f} eV')
 ax2.set_ylabel('Internal Energy (energy without entropy; eV)')
 # color the axis red
 # ax2.tick_params(axis='y', labelcolor='r')
@@ -179,19 +210,21 @@ for text in leg.get_texts():
 
 # Panel 3: evo_cell_volume vs time-step
 axs[2].plot(time_steps_volume, cell_volume, 'r-', alpha=0.5)
-axs[2].axhline(np.mean(cell_volume), color='r', linestyle='--', label=f'Mean: {np.mean(cell_volume):.2f} +/- {np.std(cell_volume):.2f} Å³')
+axs[2].axhline(np.mean(cell_volume), color='r', linestyle='--', label=f'Mean: {np.mean(stat_cell_volume):.2f} +/- {np.std(stat_cell_volume):.2f} Å³')
 axs[2].set_ylabel('Cell Volume (Å³)')
 axs[2].grid()
 axs[2].legend()
 
 # Panel 4: evo_mean_temp vs time-step
 axs[3].plot(time_steps_temp, mean_temp, 'm-', alpha=0.5)
-axs[3].axhline(np.mean(mean_temp), color='m', linestyle='--', label=f'Mean: {np.mean(mean_temp):.2f} +/- {np.std(mean_temp):.2f} K')
+axs[3].axhline(np.mean(mean_temp), color='m', linestyle='--', label=f'Mean: {np.mean(stat_mean_temp):.2f} +/- {np.std(stat_mean_temp):.2f} K')
 axs[3].set_xlabel('Time-step')
 axs[3].set_ylabel('Temperature (K)')
 axs[3].legend()
 axs[3].grid()
 
+# plot title
+plt.suptitle(f"Analysis of VASP Simulation Data: {os.path.basename(current_dir)} (ratio: {ratio})", fontsize=12)
 
 # Improve layout to prevent overlapping labels
 plt.tight_layout()
@@ -199,15 +232,16 @@ plt.tight_layout()
 # Save the figure to a file
 plt.savefig("analysis/plot_evo_data.png", dpi=300)
 
+
 # create a log file with all means
 with open("analysis/log.plot_evo_data", "w") as log_file:
-    log_file.write(f"Mean Total Pressure: {np.mean(total_pressure):.2f} +/- {np.std(total_pressure):.2f} GPa\n")
-    log_file.write(f"Mean External Pressure: {np.mean(external_pressure):.2f} +/- {np.std(external_pressure):.2f} GPa\n")
-    log_file.write(f"Mean Total Energy: {np.mean(total_energy):.2f} +/- {np.std(total_energy):.2f} eV\n")
-    log_file.write(f"Mean Internal Energy: {np.mean(internal_energy):.2f} +/- {np.std(internal_energy):.2f} eV\n")
-    log_file.write(f"Mean Free Energy: {np.mean(free_energy):.2f} +/- {np.std(free_energy):.2f} eV\n")
-    log_file.write(f"Mean Cell Volume: {np.mean(cell_volume):.2f} +/- {np.std(cell_volume):.2f} Å³\n")
-    log_file.write(f"Mean Temperature: {np.mean(mean_temp):.2f} +/- {np.std(mean_temp):.2f} K\n")
+    log_file.write(f"Mean Total Pressure: {np.mean(stat_total_pressure):.2f} +/- {np.std(stat_total_pressure):.2f} GPa\n")
+    log_file.write(f"Mean External Pressure: {np.mean(stat_external_pressure):.2f} +/- {np.std(stat_external_pressure):.2f} GPa\n")
+    log_file.write(f"Mean Total Energy: {np.mean(stat_total_energy):.2f} +/- {np.std(stat_total_energy):.2f} eV\n")
+    log_file.write(f"Mean Internal Energy: {np.mean(stat_internal_energy):.2f} +/- {np.std(stat_internal_energy):.2f} eV\n")
+    log_file.write(f"Mean Free Energy: {np.mean(stat_free_energy):.2f} +/- {np.std(stat_free_energy):.2f} eV\n")
+    log_file.write(f"Mean Cell Volume: {np.mean(stat_cell_volume):.2f} +/- {np.std(stat_cell_volume):.2f} Å³\n")
+    log_file.write(f"Mean Temperature: {np.mean(stat_mean_temp):.2f} +/- {np.std(stat_mean_temp):.2f} K\n")
 
 EOF
 

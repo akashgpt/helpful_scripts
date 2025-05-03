@@ -11,7 +11,7 @@
 # =======================================================================================
 # =======================================================================================
 run_switch=${1:-1} # 0: create directories, 1: create directories and run VASP simulations
-mode=${2:-1} # 0: run in normal mode (KP1+KP2+...), 1: run in high accuracy mode (KP1+hp_calculations)
+mode=${2:-2} # 0: run in normal mode (KP1+KP2+...), 1: run in high accuracy mode (KP1+hp_calculations)
 # mode 0 is where you first figure out V_est (low accuracy; KP1) and then do a high accuracy KP2 given this better V_est and CONTCAR from KP1 sim
 # mode 1 is where you do high accuracy calculations for a select number of frames from KP1 sim as in the DPAL recal calculations
 # mode 2 is where you first do a low accuracy KP1 sim (~1 hour) > estimate V_est_1a, V_est_1b, V_est_1c and V_est_1d such that the corresponding pressures are P_STRESS_CHOSEN_GPa * [1.0250,1.0125,0.9875,0.975].

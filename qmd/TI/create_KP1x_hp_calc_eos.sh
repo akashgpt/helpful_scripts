@@ -4,7 +4,6 @@
 # Usage: source $HELP_SCRIPTS_TI/create_KP1x_hp_calc_eos.sh > log.create_KP1x_hp_calc_eos 2>&1 &
 # Author: Akash Gupta
 
-
 # while IFS= read -r -d '' parent; do
 #     # …look for its immediate subdirectories starting with “KP1”
 #     for child in "$parent"/KP1*; do

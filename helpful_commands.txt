@@ -495,7 +495,13 @@ find . -type f -name 'POSCAR_NPT' -exec sed -i '2s/.*/7.845/' {} +
 # replace one string with another in all files of a certain name
 sed -i 's/05:00:00/24:00:00/g' */RUN_VASP.sh
 sed -i 's/NSW    = 15000/NSW    = 10000/g' */INCAR
+sed -i 's/# Pressure in kb; 1 kb = 0.1 GPa/ /g' */INCAR
 
 # in all files starting with "INCAR" in the current directory and sub-directories, replace "# ; TEEND=13000" with " "
 find . -type f -name 'INCAR*' -exec sed -i 's/# ;   TEEND=13000/ /g' {} +
-find . -type f -name 'INCAR*' -exec sed -i 's/k bar; 1 k bar/kb; 1 kb/g' {} +
+find . -type f -name 'input.calc*' -exec sed -i 's/NBANDS_CHOSEN=672/NBANDS_CHOSEN=784/g' {} +
+find . -type f -name 'INCAR*' -exec sed -i 's/LCHARG = .FALSE./LCHARG = .TRUE./g' {} +
+find . -type f -name 'INCAR*' -exec sed -i 's/LCHARG = .TRUE./LCHARG = .FALSE./g' {} +
+find . -type f -name 'INCAR*' -exec sed -i 's/LWAVE = .TRUE./LWAVE = .FALSE./g' {} +
+find . -type f -name 'INCAR*' -exec sed -i 's/POTIM  =   0.5/POTIM  =   0.25/g' {} +
+find . -type f -name 'INCAR*' -exec sed -i 's/NSW    = 15000/NSW    = 40000/g' {} +

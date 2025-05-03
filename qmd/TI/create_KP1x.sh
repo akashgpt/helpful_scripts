@@ -138,8 +138,9 @@ while IFS= read -r -d '' parent; do
     source data_4_analysis.sh
 
     # Generate KP1* subdirectories with EOS script
+    l_ase
     python $HELP_SCRIPTS_vasp/eos* \
-        -p 250 -m 0 -e 0.025 -hp -1  # create KP1a, KP1b, etc.
+        -p $PSTRESS_CHOSEN_GPa -m 0 -e 0.025 -hp -1  # create KP1a, KP1b, etc.
 
     # Return to root
     cd $PT_dir || exit
