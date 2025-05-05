@@ -40,6 +40,7 @@
 
 # Scaling parameter for alchemical transformations
 SCALEE_CHOSEN=1.0            # Lambda scaling factor
+MLDP_SCRIPTS="/projects/BURROWS/akashgpt/misc_libraries/scripts_Jie/mldp"
 
 # Physical constants
 kB=0.00008617333262145       # Boltzmann constant (eV/K)
@@ -178,6 +179,67 @@ while IFS= read -r -d '' parent; do
             cd hp_calculations
             hp_calculations_dir=$(pwd)
             echo " → In hp_calculations"
+
+
+            #########################################################
+            #########################################################
+            python ${MLDP_SCRIPTS}/post_recal_rerun.py -ip all -v -ss $INPUT_FILES_DIR/sub_vasp_xtra.sh > log.recal_test 2>&1
+
+            logfile="log.recal_test"
+            line_count=$(wc -l < "$logfile")    # Count the number of lines in the file
+            num_failed_recal_frames=$((${line_count}-14)) # name says it all ...
+
+
+            # backup to old.log.recal_test with a timestamp
+            touch old.log.recal_test
+            echo "##################################################################" >> old.log.recal_test
+            echo "### ~ 1 ~ ### $(date) ###" >> old.log.recal_test
+            echo "##################################################################" >> old.log.recal_test
+            cat log.recal_test >> old.log.recal_test
+
+
+            if [ "$num_failed_recal_frames" -gt 0 ]; then
+
+                echo "Problem with recal phase ($((${line_count}-14))) at $(date). Or so it seems but sleeping to see if it gets resolved."
+                
+                #10 times check if line_count is still > 14 or num_failed_recal_frames > 0 and sleep for 600 seconds each time if not
+                for i in {1..6}; do
+                    echo "Seeing if it completes ~ $i ..."
+                    sleep ${WAIT_TIME_LONG}
+                    python ${MLDP_SCRIPTS}/post_recal_rerun.py -ip all -v -ss $INPUT_FILES_DIR/sub_vasp_xtra.sh > log.recal_test 2>&1
+                    line_count=$(wc -l < "$logfile")    # Count the number of lines in the file
+                    num_failed_recal_frames=$((${line_count}-14))
+                    if [ "$num_failed_recal_frames" -le 0 ]; then
+                        break
+                    fi
+                done
+
+                # append to old.log.recal_test with a timestamp
+                echo "##################################################################" >> old.log.recal_test
+                echo "### ~ 2 ~ ### $(date) ###" >> old.log.recal_test
+                echo "##################################################################" >> old.log.recal_test
+                cat log.recal_test >> old.log.recal_test
+
+                if [ "$num_failed_recal_frames" -gt 0 ]; then
+                    echo ""
+                    echo "Problem with recal phase persists ($((${line_count}-14))) -- check then rerun."
+                    echo "Exiting script."
+                    echo ""
+                    exit 1
+                else
+                    echo ""
+                    echo "Recal phase completed successfully after waiting."
+                    echo ""
+                    # exit 0
+                fi
+            fi
+
+
+
+
+            ##########################################################
+            ##########################################################
+
 
             # grep pressure (external pressure == total pressure in relaxation) from OUTCAR and save it in a file called pressure.txt
             mkdir -p $hp_calculations_dir/analysis
