@@ -107,6 +107,7 @@ echo "WAIT_TIME_LONG: $WAIT_TIME_LONG"
 echo "WAIT_TIME_SHORT: $WAIT_TIME_SHORT"
 echo "N_FRAMES_hp_calculations: $N_FRAMES_hp_calculations"
 echo "SCALEE_CHOSEN: $SCALEE_CHOSEN"
+echo "MLDP_SCRIPTS: $MLDP_SCRIPTS"
 echo "-------------------------"
 
 
@@ -145,6 +146,9 @@ while IFS= read -r -d '' parent; do
     echo "# after KP1, KP1X, hp_calculations" > "${corrected_volume_file}"
     echo "# after KP1, KP1X, hp_calculations" > "${pressure_correction_file}"
     cd "${PT_dir}" || exit
+
+
+    counter_incomplete_runs=0
 
     # Iterate over immediate subdirectories beginning with 'KP1'
     for child in "${parent}"/KP1*; do
@@ -188,51 +192,52 @@ while IFS= read -r -d '' parent; do
             logfile="log.recal_test"
             line_count=$(wc -l < "$logfile")    # Count the number of lines in the file
             num_failed_recal_frames=$((${line_count}-14)) # name says it all ...
-
+            echo "Number of failed recal frames: $num_failed_recal_frames"
+            counter_incomplete_runs=$(($counter_incomplete_runs + $num_failed_recal_frames))
 
             # backup to old.log.recal_test with a timestamp
-            touch old.log.recal_test
-            echo "##################################################################" >> old.log.recal_test
-            echo "### ~ 1 ~ ### $(date) ###" >> old.log.recal_test
-            echo "##################################################################" >> old.log.recal_test
-            cat log.recal_test >> old.log.recal_test
+            # touch old.log.recal_test
+            # echo "##################################################################" >> old.log.recal_test
+            # echo "### ~ 1 ~ ### $(date) ###" >> old.log.recal_test
+            # echo "##################################################################" >> old.log.recal_test
+            # cat log.recal_test >> old.log.recal_test
 
 
-            if [ "$num_failed_recal_frames" -gt 0 ]; then
+            # if [ "$num_failed_recal_frames" -gt 0 ]; then
 
-                echo "Problem with recal phase ($((${line_count}-14))) at $(date). Or so it seems but sleeping to see if it gets resolved."
+            #     echo "Problem with recal phase ($((${line_count}-14))) at $(date). Or so it seems but sleeping to see if it gets resolved."
                 
-                #10 times check if line_count is still > 14 or num_failed_recal_frames > 0 and sleep for 600 seconds each time if not
-                for i in {1..6}; do
-                    echo "Seeing if it completes ~ $i ..."
-                    sleep ${WAIT_TIME_LONG}
-                    python ${MLDP_SCRIPTS}/post_recal_rerun.py -ip all -v -ss $INPUT_FILES_DIR/sub_vasp_xtra.sh > log.recal_test 2>&1
-                    line_count=$(wc -l < "$logfile")    # Count the number of lines in the file
-                    num_failed_recal_frames=$((${line_count}-14))
-                    if [ "$num_failed_recal_frames" -le 0 ]; then
-                        break
-                    fi
-                done
+            #     #10 times check if line_count is still > 14 or num_failed_recal_frames > 0 and sleep for 600 seconds each time if not
+            #     for i in {1..6}; do
+            #         echo "Seeing if it completes ~ $i ..."
+            #         sleep ${WAIT_TIME_LONG}
+            #         python ${MLDP_SCRIPTS}/post_recal_rerun.py -ip all -v -ss $INPUT_FILES_DIR/sub_vasp_xtra.sh > log.recal_test 2>&1
+            #         line_count=$(wc -l < "$logfile")    # Count the number of lines in the file
+            #         num_failed_recal_frames=$((${line_count}-14))
+            #         if [ "$num_failed_recal_frames" -le 0 ]; then
+            #             break
+            #         fi
+            #     done
 
-                # append to old.log.recal_test with a timestamp
-                echo "##################################################################" >> old.log.recal_test
-                echo "### ~ 2 ~ ### $(date) ###" >> old.log.recal_test
-                echo "##################################################################" >> old.log.recal_test
-                cat log.recal_test >> old.log.recal_test
+            #     # append to old.log.recal_test with a timestamp
+            #     echo "##################################################################" >> old.log.recal_test
+            #     echo "### ~ 2 ~ ### $(date) ###" >> old.log.recal_test
+            #     echo "##################################################################" >> old.log.recal_test
+            #     cat log.recal_test >> old.log.recal_test
 
-                if [ "$num_failed_recal_frames" -gt 0 ]; then
-                    echo ""
-                    echo "Problem with recal phase persists ($((${line_count}-14))) -- check then rerun."
-                    echo "Exiting script."
-                    echo ""
-                    exit 1
-                else
-                    echo ""
-                    echo "Recal phase completed successfully after waiting."
-                    echo ""
-                    # exit 0
-                fi
-            fi
+            #     if [ "$num_failed_recal_frames" -gt 0 ]; then
+            #         echo ""
+            #         echo "Problem with recal phase persists ($((${line_count}-14))) -- check then rerun."
+            #         echo "Exiting script."
+            #         echo ""
+            #         exit 1
+            #     else
+            #         echo ""
+            #         echo "Recal phase completed successfully after waiting."
+            #         echo ""
+            #         # exit 0
+            #     fi
+            # fi
 
 
 
@@ -328,7 +333,8 @@ echo ""
 echo "################################"
 echo "################################"
 echo "################################"
-echo "All EoS data "corrected" in all KP1/*/hp_calculations directories under ${PT_dir}."
+echo "All EoS data "corrected" in all KP1/*/hp_calculations directories under ${PT_dir} @ $(date)."
+echo "Total number of incomplete runs: $counter_incomplete_runs"
 echo "################################"
 echo "################################"
 echo "################################"

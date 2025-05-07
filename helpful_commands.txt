@@ -501,7 +501,10 @@ sed -i 's/# Pressure in kb; 1 kb = 0.1 GPa/ /g' */INCAR
 find . -type f -name 'INCAR*' -exec sed -i 's/# ;   TEEND=13000/ /g' {} +
 find . -type f -name 'input.calc*' -exec sed -i 's/NBANDS_CHOSEN=672/NBANDS_CHOSEN=784/g' {} +
 find . -type f -name 'INCAR*' -exec sed -i 's/LCHARG = .FALSE./LCHARG = .TRUE./g' {} +
+find . -type f -name 'INCAR*' -exec sed -i 's/NPAR   = 8/NPAR   = 2/g' {} +
 find . -type f -name 'INCAR*' -exec sed -i 's/LCHARG = .TRUE./LCHARG = .FALSE./g' {} +
 find . -type f -name 'INCAR*' -exec sed -i 's/LWAVE = .TRUE./LWAVE = .FALSE./g' {} +
 find . -type f -name 'INCAR*' -exec sed -i 's/POTIM  =   0.5/POTIM  =   0.25/g' {} +
 find . -type f -name 'INCAR*' -exec sed -i 's/NSW    = 15000/NSW    = 40000/g' {} +
+find . -type f -name 'INCAR_relax' -exec sed -i 's/ALGO   = F/ALGO   = N/g' {} +
+find . -type f -name 'RUN_VASP*' -exec sed -i 's/#SBATCH --time=5:00:00/#SBATCH --time=24:00:00/g' {} +
