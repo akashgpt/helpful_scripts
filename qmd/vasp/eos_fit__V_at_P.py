@@ -75,6 +75,15 @@ elif data_mode == 0:
 P_data = np.loadtxt(pressure_file)  # total pressure data array
 V_data = np.loadtxt(volume_file)    # cell volume data array
 
+# Check if length of P_data and V_data are the same
+if P_data.size != V_data.size:
+    raise ValueError("Pressure and volume data arrays must have the same length.")
+    # correct this by taking the minimum size
+    min_size = min(P_data.size, V_data.size)
+    P_data = P_data[:min_size]
+    V_data = V_data[:min_size]
+    print(f"Warning: Truncating data arrays to minimum size: {min_size}")
+
 # minimum_time_step
 minimum_time_step = int(P_data.size/ratio)
 

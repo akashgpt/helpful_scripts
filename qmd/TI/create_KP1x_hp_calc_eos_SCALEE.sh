@@ -19,11 +19,13 @@ for dir in */; do
 
     (
         cd "$dir" || exit 1
+        dir_address=$(pwd)
         # source the helper script with args "1 2",
         # redirect both stdout+stderr into the log file,
         # and put it in the background.
         source "$HELP_SCRIPTS_TI/calculate_GFE_v2.sh" 1 2 > log.calculate_GFE 2>&1 &
-        echo "Sourcing calculate_GFE_v2.sh in $dir"
+        echo "Sourcing calculate_GFE_v2.sh in $dir_address"
+        echo ""
         cd "$PT_dir" || exit 1
     )
 done
