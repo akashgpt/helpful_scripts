@@ -11,6 +11,7 @@ PT_dir_name=$(basename "$PT_dir")
 echo "Current time: $(date)"
 echo "Current working directory: $PT_dir"
 echo "Current working directory name: $PT_dir_name"
+echo ""
 
 
 for dir in */; do

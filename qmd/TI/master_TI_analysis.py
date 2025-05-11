@@ -1,30 +1,43 @@
 #!/usr/bin/env python3
+"""
+Driver for analysing all SCALEE folders and writing TI_analysis.csv
+"""
+from __future__ import annotations
+
+import argparse
+import os
+from pathlib import Path
+
+import pandas as pd
+from ase.io import read  # needed by get_n_atoms
+
 import os
 import pandas as pd
 import numpy as np
 
 # 1) abscissae
 SCALEE = np.array([
-    1.08469e-06,
-    0.00035461,
-    0.00965853,
-    0.08082001,
-    0.3192687,
+    1.0,
     0.71792289,
-    1.0
+    0.3192687,
+    0.08082001,
+    0.00965853,
+    0.00035461,
+    1.08469e-06
 ])
+
 # matching folder names
 DIRS = [f"SCALEE_{i}" for i in range(1, len(SCALEE)+1)]
 
 # 2) quadrature weights
 W = np.array([
+    0.0357143,
     0.2107042,
     0.3411227,
     0.4124588,
     0.4124588,
     0.3411227,
-    0.2107042,
-    0.0357143
+    0.2107042       
 ])
 
 def parse_peavg(path):
@@ -83,15 +96,26 @@ def process_all(base_dir="."):
         data = parse_peavg(peavg)
         Fs.append(data['F'])
         F_errs.append(data['F_err'])
-        Ps.append(data['P'])
-        P_errs.append(data['P_err'])
-        # only read volume once (first abscissa)
+        # only read volume, pressure, pressure_error once (first abscissa)
         if idx == 0:
             volume_cell = data.get('V')
+            P_SCALEE_1 = data['P']
+            P_err_SCALEE_1 = data['P_err']
+        Ps.append(P_SCALEE_1)
+        P_errs.append(P_err_SCALEE_1)
         Vs.append(volume_cell)
+    print(f"WARNING: Need to correct Pressure -> (Pressure + KPOINT 222 correction)")
+
+    # for SCALEE_1, read volume, pressure, and pressure error
+    # for idx, (lam, d) in enumerate(zip(SCALEE[-1], DIRS[-1])):
+    #     peavg = os.path.join(base_dir, d, "analysis", "peavg.out")
+    #     data = parse_peavg(peavg)
+    #     # only read volume once (first abscissa)
+
 
     # build DataFrame
     df = pd.DataFrame({
+        'DIR': DIRS,
         'scalee': SCALEE,
         'F @ OSZICAR': Fs,
         'F err @ OSZICAR': F_errs,
@@ -123,21 +147,28 @@ def process_all(base_dir="."):
         df['V (Å³)'].iloc[-1] * 1e-30 *
         6.242e18
     )
+    # print(f"PV term: {df['pv (eV)'].iloc[-1]:.3f} eV")
+    # print(f"P: {df['P (GPa)'].iloc[-1]:.3f} GPa, V: {df['V (Å³)'].iloc[-1]:.3f} Å³")
+
     df['pv_correction (eV)'] = (
-        df['P_error (GPa)'].iloc[-1] * 1e9 *
+        df['P_target (GPa)'].iloc[-1] * 1e9 *
         df['V (Å³)'].iloc[-1] * 1e-30 *
         6.242e18
     ) - df['pv (eV)']
+    print(f"WARNING: WHY '+R11' in Ghp calculation? And, why not abs() of the resulting value here?")
 
 
 
     ΔU_ig = -503.181 # eV ## needs to be updated
+    print("WARNING: ΔU_ig is hardcoded to -503.181 eV")
     df['ΔU_ig (eV)'] = ΔU_ig
 
     ΔU_hp_m_ab = -0.571 # eV ## needs to be updated
+    print("WARNING: ΔU_hp_m_ab is hardcoded to -0.571 eV")
     df['ΔU_hp_m_ab (eV)'] = ΔU_hp_m_ab
 
     TS_term = 37.9997320160768 # eV ## needs to be updated
+    print("WARNING: TS_term is hardcoded to 37.9997320160768 eV")
     df['TS_term (eV)'] = TS_term
 
 
@@ -162,45 +193,133 @@ def process_all(base_dir="."):
 
 
 
+
+
+# -----------------------------------------------------------------------------#
+# ------------------------  Helper routines  ----------------------------------#
+# -----------------------------------------------------------------------------#
+def _read_keyword(file_path: Path, keyword: str) -> float:
+    """
+    Return the numeric value that follows KEYWORD either in
+
+        KEYWORD=value          # e.g. PSTRESS_CHOSEN_GPa=10
+    or  KEYWORD  value         # e.g. PSTRESS_CHOSEN_GPa   10
+
+    Ignores blank lines and lines that start with '#'.
+    Raises ValueError if the keyword is not found.
+    """
+    with open(file_path) as fh:
+        for raw in fh:
+            line = raw.strip()
+            if not line or line.startswith("#"):
+                continue
+
+            # --- 1. KEY=value style ----------------------------------------
+            if '=' in line:
+                k, v = line.split('=', 1)
+                if k.strip() == keyword:
+                    return float(v.strip())
+
+            # --- 2. KEY  value style ---------------------------------------
+            parts = line.split()
+            if parts and parts[0] == keyword:
+                if len(parts) < 2:
+                    raise ValueError(
+                        f"Found '{keyword}' but no value after it in {file_path}"
+                    )
+                return float(parts[1])
+
+    raise ValueError(f"{keyword!r} not found in {file_path}")
+
+
+def resolve_targets(
+    base: str | None,
+    p_target: float | None,
+    t_target: float | None,
+) -> tuple[Path, float, float]:
+    """
+    Resolve base directory, pressure (GPa) and temperature (K).
+
+    Any of the three may be passed in as -1, None, or an empty string to request
+    automatic lookup in   <base>/../master_setup_TI/input.calculate_GFE
+    """
+    # --- base directory -------------------------------------------------------
+    if not base or str(base) == "-1":
+        base_path = Path.cwd()
+    else:
+        base_path = Path(base).expanduser().resolve()
+
+    if not base_path.is_dir():
+        raise NotADirectoryError(f"Base directory does not exist: {base_path}")
+
+    # --- auxiliary file with defaults ----------------------------------------
+    aux_file = base_path.parent / "master_setup_TI" / "input.calculate_GFE"
+    if not aux_file.is_file():
+        raise FileNotFoundError(f"Auxiliary file not found: {aux_file}")
+
+    # --- fill in any missing targets -----------------------------------------
+    if p_target in (None, -1):
+        p_target = _read_keyword(aux_file, "PSTRESS_CHOSEN_GPa")
+    if t_target in (None, -1):
+        t_target = _read_keyword(aux_file, "TEMP_CHOSEN")
+
+    return base_path, float(p_target), float(t_target)
+
+
+# -----------------------------------------------------------------------------#
+# ------------------------------  main  ---------------------------------------#
+# -----------------------------------------------------------------------------#
 if __name__ == "__main__":
-    import sys
-    import argparse
-    import os
-    from ase.io import read
-
-
     parser = argparse.ArgumentParser(
         description="Process all SCALEE folders and calculate free energy."
     )
     parser.add_argument(
-        "-b", "--base", type=str, default=".", help="Base directory for SCALEE folders."
+        "-b", "--base",
+        metavar="PATH",
+        help="Top-level directory containing SCALEE_*/ subfolders "
+            "(default: current working directory)."
     )
-    # P_target and T_target parse
     parser.add_argument(
-        "-p", "--pressure", type=float, default=1000.0, help="Target pressure in GPa."
+        "-p", "--pressure",
+        metavar="GPa",
+        type=float,
+        default=None,
+        help="Target pressure in GPa (omit or -1 to read from input.calculate_GFE)."
     )
     parser.add_argument(
-        "-t", "--temperature", type=float, default=13000.0, help="Target temperature in K."
+        "-t", "--temperature",
+        metavar="K",
+        type=float,
+        default=None,
+        help="Target temperature in K (omit or -1 to read from input.calculate_GFE)."
     )
     args = parser.parse_args()
-    base = args.base
-    P_target = args.pressure
-    T_target = args.temperature
 
-    # P_target = 10 # GPa
-    # T_target = 300 # K
+    # ------------------------------------------------------------------ setup
+    base_dir, P_target, T_target = resolve_targets(
+        args.base, args.pressure, args.temperature
+    )
 
-    # use ASE to get the number of atoms
-    n_atoms = get_n_atoms(base)
+    print(f"Base directory      : {base_dir}")
+    print(f"Target pressure     : {P_target:.3f}  GPa")
+    print(f"Target temperature  : {T_target:.1f}  K")
 
-    df = process_all(base)
+    # ------------------------------------------------------------------ run
+    n_atoms = get_n_atoms(base_dir)          # <-- your helper must exist
+    print(f"System size         : {n_atoms} atoms")
 
-    pd.set_option('display.max_columns', None)
-    print(df.to_string(index=False))
-    # print(f"\n▶ Free energy    = {ΔU:.6f} eV")
-    # print(f"▶ Free energy err= {ΔU_err:.6f} eV")
+    print("")
 
-    # save to CSV
-    output_file = os.path.join(base, "analysis", "TI_analysis.csv")
-    df.to_csv(output_file, index=False)
-    print(f"Saved results to {output_file}")
+    df = process_all(base_dir)               # <-- your helper must exist
+
+    pd.set_option("display.max_columns", None)
+    # print("\nResults\n-------")
+    # print(df.to_string(index=False))
+
+    out_file = base_dir / "TI_analysis.csv"
+    df.to_csv(out_file, index=False)
+    print(f"\nSaved results to {out_file}")
+
+# -----------------------------------------------------------------------------#
+# if __name__ == "__main__":
+#     main()

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-# Usage: python $HELP_SCRIPTS_TI/continue_run_ase.py -r 100
+# Usage: python $HELP_SCRIPTS_vasp/continue_run_ase.py -r 100
 
 import os
 import sys

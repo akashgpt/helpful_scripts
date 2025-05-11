@@ -38,6 +38,27 @@ echo "Updating data for 'analysis/' ..."
 
 mkdir -p analysis
 
+
+# Count the number of lines matching the two patterns
+scaled_count=$(grep "SCALED FREE ENERGIE" OUTCAR | wc -l)
+free_count=$(grep "free  energy" OUTCAR | wc -l)
+half_free=$(echo "0.5 * $free_count" | bc)
+# make half_free an integer
+half_free=${half_free%.*}
+
+# Define TI_mode: 1 if scaled_count equals half_free, 0 otherwise.
+if [ "$scaled_count" -eq "$half_free" ]; then
+    TI_mode=1
+    # echo "TI_mode switched on."
+else
+    TI_mode=0
+fi
+
+echo "TI_mode is: $TI_mode" #; scaled_count is: $scaled_count, free_count is: $free_count, half_free is: $half_free"
+
+
+
+
 grep "total pressure" OUTCAR | awk '{print $4}' > analysis/evo_total_pressure.dat
 grep external OUTCAR | awk '{print $4}' > analysis/evo_external_pressure.dat
 grep "kinetic pressure" OUTCAR | awk '{print $7}' > analysis/evo_kinetic_pressure.dat
@@ -53,6 +74,15 @@ grep "energy  without entropy" OUTCAR | awk '{print $4}' > analysis/evo_internal
 # grep "mean temperature" OUTCAR | awk '{print $5}' > analysis/evo_mean_temp.dat
 grep "(temperature" OUTCAR | sed -E 's/.*temperature[[:space:]]*([0-9]+\.[0-9]+).*/\1/' > analysis/evo_mean_temp.dat
 
+# if TI_mode is 1, then
+if [ "$TI_mode" -eq 1 ]; then
+    awk 'NR%2==0' analysis/evo_internal_energy.dat > analysis/temp
+    mv analysis/temp analysis/evo_internal_energy.dat
+    awk 'NR%2==0' analysis/evo_free_energy.dat > analysis/temp
+    mv analysis/temp analysis/evo_free_energy.dat
+    awk 'NR%2==0' analysis/evo_TOTEN.dat > analysis/temp
+    mv analysis/temp analysis/evo_TOTEN.dat
+fi
 
 echo "Sourcing peavg.sh"
 source peavg.sh OUTCAR
@@ -101,6 +131,9 @@ import os
 
 current_dir = os.getcwd()
 analysis_dir = os.path.join(current_dir, "analysis")
+
+axis_low_limit = 0.90
+axis_high_limit = 1.10
 
 # Load data from each file.
 total_pressure = np.loadtxt("analysis/evo_total_pressure.dat")
@@ -174,6 +207,7 @@ leg = axs[0].legend(loc='upper left')
 for text in leg.get_texts():
     text.set_color('b')
 axs[0].grid()
+axs[0].set_ylim(np.min(total_pressure)*axis_low_limit, np.max(total_pressure)*axis_high_limit)
 # twinx axis for external pressure
 ax1 = axs[0].twinx()
 ax1.plot(time_steps_external_pressure, external_pressure, 'r-', alpha=0.5)
@@ -184,6 +218,7 @@ ax1.set_ylabel('External Pressure (GPa)')
 leg = ax1.legend(loc='upper right')
 for text in leg.get_texts():
     text.set_color('r')
+ax1.set_ylim(np.min(external_pressure)*axis_low_limit, np.max(external_pressure)*axis_high_limit)
 
 
 # Panel 2: evo_total_energy vs time-step
@@ -197,16 +232,25 @@ axs[1].grid()
 leg = axs[1].legend(loc='upper left')
 for text in leg.get_texts():
     text.set_color('g')
-# twinx axis for internal energy
+# axs[1].set_ylim(np.min(total_energy)*axis_low_limit, np.max(total_energy)*axis_high_limit)
+# twinx axis for TOTEN
 ax2 = axs[1].twinx()
-ax2.plot(time_steps_energy, internal_energy, 'r-',alpha=0.5)
-ax2.axhline(np.mean(internal_energy), color='r', linestyle='--', label=f'Mean: {np.mean(stat_internal_energy):.2f} +/- {np.std(stat_internal_energy):.2f} eV')
-ax2.set_ylabel('Internal Energy (energy without entropy; eV)')
+ax2.plot(time_steps_energy, TOTEN, 'r-',alpha=0.5)
+ax2.axhline(np.mean(TOTEN), color='r', linestyle='--', label=f'Mean: {np.mean(stat_internal_energy):.2f} +/- {np.std(stat_internal_energy):.2f} eV')
+ax2.set_ylabel('TOTEN (El. Helmholtz free energy; eV)')
 # color the axis red
 # ax2.tick_params(axis='y', labelcolor='r')
 leg = ax2.legend(loc='upper right')
 for text in leg.get_texts():
     text.set_color('r')
+# if np.max(TOTEN) > 0 and np.min(TOTEN) < 0:
+#     ax2.set_ylim(np.min(TOTEN)*axis_high_limit, np.max(TOTEN)*axis_high_limit)
+# elif np.max(TOTEN) > 0 and np.min(TOTEN) > 0:
+#     ax2.set_ylim(np.min(TOTEN)*axis_low_limit, np.max(TOTEN)*axis_high_limit)
+# elif np.max(TOTEN) < 0 and np.min(TOTEN) < 0:
+#     ax2.set_ylim(np.min(TOTEN)*axis_high_limit, np.max(TOTEN)*axis_low_limit)
+# else:
+#     ax2.set_ylim(np.min(TOTEN)*axis_low_limit, np.max(TOTEN)*axis_high_limit)
 
 # Panel 3: evo_cell_volume vs time-step
 axs[2].plot(time_steps_volume, cell_volume, 'r-', alpha=0.5)
@@ -214,6 +258,7 @@ axs[2].axhline(np.mean(cell_volume), color='r', linestyle='--', label=f'Mean: {n
 axs[2].set_ylabel('Cell Volume (Å³)')
 axs[2].grid()
 axs[2].legend()
+# axs[2].set_ylim(np.min(cell_volume)*axis_low_limit, np.max(cell_volume)*axis_high_limit)
 
 # Panel 4: evo_mean_temp vs time-step
 axs[3].plot(time_steps_temp, mean_temp, 'm-', alpha=0.5)
@@ -222,6 +267,7 @@ axs[3].set_xlabel('Time-step')
 axs[3].set_ylabel('Temperature (K)')
 axs[3].legend()
 axs[3].grid()
+# axs[3].set_ylim(np.min(mean_temp)*axis_low_limit, np.max(mean_temp)*axis_high_limit)
 
 # plot title
 plt.suptitle(f"Analysis of VASP Simulation Data: {os.path.basename(current_dir)} (ratio: {ratio})", fontsize=12)

@@ -177,8 +177,7 @@ while IFS= read -r -d '' parent; do
                 l_ase
                 # Generate high-precision calculations using eos script
                 rm -rf hp_calculations
-                python ${HELP_SCRIPTS_vasp}/eos* \
-                    -p ${P_RUN} -m 0 -e 0.1 -hp 1 -nt ${N_FRAMES_hp_calculations}
+                python ${HELP_SCRIPTS_vasp}/eos* -p ${P_RUN} -m 0 -e 0.1 -hp 1 -nt ${N_FRAMES_hp_calculations}
             else
                 echo "Skipping data_4_analysis.sh+eos_fit__V_at_P.py in ${child} as rerun is set to 1."
             fi
@@ -235,11 +234,11 @@ while IFS= read -r -d '' parent; do
                     }
                 '  log.recal_test > rerun_folders.dat            
 
-            logfile="log.recal_test"
-            line_count=$(wc -l < "$logfile")    # Count the number of lines in the file
-            num_failed_recal_frames=$((${line_count}-14)) # name says it all ...
-            echo "Number of failed recal frames: $num_failed_recal_frames"
-            counter_incomplete_runs=$(($counter_incomplete_runs + $num_failed_recal_frames))
+                logfile="log.recal_test"
+                line_count=$(wc -l < "$logfile")    # Count the number of lines in the file
+                num_failed_recal_frames=$((${line_count}-14)) # name says it all ...
+                echo "Number of failed recal frames: $num_failed_recal_frames"
+                counter_incomplete_runs=$(($counter_incomplete_runs + $num_failed_recal_frames))
 
             fi
 
