@@ -361,11 +361,11 @@ if [ ! -f "done_estimating_V" ]; then
 
             cp $SETUP_dir/POTCAR .
             cp $SETUP_dir/KPOINTS_222 KPOINTS # KPOINTS 222
-            cp $SETUP_dir/INCAR_relax INCAR
-            cp $SETUP_dir/RUN_VASP_relax.sh RUN_VASP.sh
+            cp $SETUP_dir/INCAR_SPC INCAR
+            cp $SETUP_dir/RUN_VASP_SPC.sh RUN_VASP.sh
 
             # find the number right after ntasks-per-node= in the slurm script and nothing else
-            NPAR_CHOSEN_hp_calculations=$(grep -oP '(?<=ntasks-per-node=)\d+' $SETUP_dir/RUN_VASP_relax.sh)
+            NPAR_CHOSEN_hp_calculations=$(grep -oP '(?<=ntasks-per-node=)\d+' $SETUP_dir/RUN_VASP_SPC.sh)
 
             # Replace __..._CHOSEN__ with the chosen values in INCAR
             sed -i "s/__TEMP_CHOSEN__/${TEMP_CHOSEN}/" INCAR
@@ -419,7 +419,7 @@ if [ ! -f "done_estimating_V" ]; then
             echo "hp_calculations already done. Skipping..."
         fi
 
-        # grep pressure (external pressure == total pressure in relaxation) from OUTCAR and save it in a file called pressure.txt
+        # grep pressure (external pressure == total pressure in SPC/single point calculation) from OUTCAR and save it in a file called pressure.txt
         mkdir -p $hp_calculations_dir/analysis
         grep "pressure" */OUTCAR | awk '{print $4}' > analysis/pressure.dat
         # grep vol

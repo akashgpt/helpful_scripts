@@ -1,4 +1,8 @@
 #!/usr/bin/env python3
+
+# Usage:                       python master_TI_analysis.py 
+# or (if no master_setup_TI)   python master_TI_analysis.py -b <base_dir> -p <pressure> -t <temperature>
+
 """
 Driver for analysing all SCALEE folders and writing TI_analysis.csv
 """
@@ -53,8 +57,8 @@ def parse_peavg(path):
                 continue
             if parts[0] == "Free" and parts[1] == "energy":
                 # grep ... | awk '{print $4}'  → parts[3]
-                out['F']      = float(parts[3])
-                out['F_err']  = float(parts[5])
+                out['F']      = float(parts[4])
+                out['F_err']  = float(parts[6])
             elif parts[0] == "Pressure":
                 # awk '{print $3,$5}'
                 out['P']      = float(parts[2])
@@ -116,9 +120,9 @@ def process_all(base_dir="."):
     # build DataFrame
     df = pd.DataFrame({
         'DIR': DIRS,
-        'scalee': SCALEE,
-        'F @ OSZICAR': Fs,
-        'F err @ OSZICAR': F_errs,
+        'SCALEE': SCALEE,
+        'TOTEN (eV)': Fs,
+        'TOTEN (eV)_error (eV)': F_errs,
         'P (GPa)': Ps,
         'P_error (GPa)': P_errs,
         'V (Å³)': Vs,
@@ -127,10 +131,10 @@ def process_all(base_dir="."):
     })
 
     # same pipeline as before:
-    df['ab-ig']    = df['F @ OSZICAR'] / df['scalee']
-    df['err']      = df['F err @ OSZICAR'] / df['scalee']
+    df['ab-ig']    = df['TOTEN (eV)']# / df['SCALEE']
+    df['err']      = df['TOTEN (eV)_error (eV)']# / df['SCALEE']
     k = 0.8
-    df['lambda^k'] = df['scalee'] ** k
+    df['lambda^k'] = df['SCALEE'] ** k
     df['w']        = W
     df['err_scaled']    = df['err']    * df['lambda^k'] * df['w'] / 0.4
     df['deltaU_scaled'] = df['ab-ig'] * df['lambda^k'] * df['w'] / 0.4

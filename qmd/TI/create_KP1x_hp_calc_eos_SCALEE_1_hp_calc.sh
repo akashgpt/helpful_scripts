@@ -70,6 +70,7 @@ PT_dir_name=$(basename "$PT_dir")
 echo "Current time: $(date)"
 echo "Current working directory: $PT_dir"
 echo "Current working directory name: $PT_dir_name"
+echo ""
 
 
 SETUP_dir=$PT_dir/master_setup_TI
@@ -103,7 +104,12 @@ SIGMA_CHOSEN=$(echo "$kB * $TEMP_CHOSEN" | bc -l)  # Gaussian smearing sigma
 
 
 ########################################
+########################################
+########################################
 NPAR_CHOSEN=2 # For single point calculations, set NPAR_CHOSEN to 2; KPAR is 4 for hp_calculations
+N_FRAMES_hp_calculations=50 # Number of frames for high-precision calculations
+########################################
+########################################
 ########################################
 
 
@@ -121,7 +127,7 @@ echo "KPAR_CHOSEN_222: $KPAR_CHOSEN_222"
 echo "WAIT_TIME_VLONG: $WAIT_TIME_VLONG"
 echo "WAIT_TIME_LONG: $WAIT_TIME_LONG"
 echo "WAIT_TIME_SHORT: $WAIT_TIME_SHORT"
-echo "N_FRAMES_hp_calculations: $N_FRAMES_hp_calculations"
+echo "N_FRAMES_hp_calculations: $N_FRAMES_hp_calculations (special case for single point calculations for SCALEE 1)"
 echo "SCALEE_CHOSEN: $SCALEE_CHOSEN"
 echo "MLDP_SCRIPTS: $MLDP_SCRIPTS"
 echo "-------------------------"
@@ -150,13 +156,22 @@ while IFS= read -r -d '' parent; do
     echo "#----------------------------------------"
     echo "#----------------------------------------"
 
+    cd "${parent}" || exit
+    parent_abs=$(pwd)
+    echo " → Entered ${parent_abs}"
+    cp $HELP_SCRIPTS_vasp/data_4_analysis.sh .
+    source data_4_analysis.sh 
+
+    child=$parent # to make the previous script work, we need to set child to parent
+    child_abs=$parent_abs
+
     # Iterate over immediate subdirectories beginning with 'KP1'
-    for child in "${parent}"/KP1*; do
-        if [ -d "${child}" ]; then
-            # Enter the child directory
-            cd "${child}" || exit
-            child_abs=$(pwd)
-            echo " → Entered ${child_abs}"
+    # for child in "${parent}"/KP1*; do
+    #     if [ -d "${child}" ]; then
+    #         # Enter the child directory
+    #         cd "${child}" || exit
+    #         child_abs=$(pwd)
+    #         echo " → Entered ${child_abs}"
 
             # only if rerun is 0, check if the directory has already been processed
             if [[ $rerun -eq 0 ]]; then
@@ -177,7 +192,7 @@ while IFS= read -r -d '' parent; do
                 l_ase
                 # Generate high-precision calculations using eos script
                 rm -rf hp_calculations
-                python ${HELP_SCRIPTS_vasp}/eos* -p ${P_RUN} -m 0 -e 0.1 -hp 1 -nt ${N_FRAMES_hp_calculations}
+                python ${HELP_SCRIPTS_vasp}/eos* -p ${P_RUN} -m 0 -e 0.1 -hp 1 -nt ${N_FRAMES_hp_calculations} # creates hp_calculations directory
             else
                 echo "Skipping data_4_analysis.sh+eos_fit__V_at_P.py in ${child} as rerun is set to 1."
             fi
@@ -284,9 +299,9 @@ while IFS= read -r -d '' parent; do
             echo "Started hp_calculations in ${child}"
             # Return to the original driver directory
             cd ${PT_dir} || exit
-        fi
-    done
-done < <(find . -type d -name KP1 -print0)
+    #     fi
+    # done
+done < <(find . -type d -name SCALEE_1 -print0)
 
 # Final confirmation message
 echo ""
