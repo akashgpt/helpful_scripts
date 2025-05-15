@@ -2,6 +2,7 @@
 # set -euo pipefail
 
 # Usage: source $HELP_SCRIPTS_TI/create_KP1x_hp_calc_eos.sh > log.create_KP1x_hp_calc_eos 2>&1 &
+#        nohup "$HELP_SCRIPTS_TI/create_KP1x_hp_calc_eos.sh" > log.create_KP1x_hp_calc_eos 2>&1 &
 # Author: Akash Gupta
 
 # while IFS= read -r -d '' parent; do
@@ -87,7 +88,7 @@ SIGMA_CHOSEN=$(echo "$kB * $TEMP_CHOSEN" | bc -l)  # Gaussian smearing sigma
 
 
 ########################################
-NPAR_CHOSEN=8 # For single point calculations, set NPAR_CHOSEN to 8
+# NPAR_CHOSEN=8 # For single point calculations, set NPAR_CHOSEN to 8
 ########################################
 
 
@@ -142,9 +143,9 @@ while IFS= read -r -d '' parent; do
     # create corrected_pressure.dat and corrected_volume.dat files and add the header: "# after KP1, KP1X, hp_calculations"
     mkdir -p "${analysis_KP1_dir}"
     rm -f "${corrected_pressure_file}" "${corrected_volume_file}" "${pressure_correction_file}"
-    echo "# after KP1, KP1X, hp_calculations" > "${corrected_pressure_file}"
-    echo "# after KP1, KP1X, hp_calculations" > "${corrected_volume_file}"
-    echo "# after KP1, KP1X, hp_calculations" > "${pressure_correction_file}"
+    echo "# after KP1, KP1X, hp_calculations (in kBar)" > "${corrected_pressure_file}"
+    echo "# after KP1, KP1X, hp_calculations (in kBar)" > "${corrected_volume_file}"
+    echo "# after KP1, KP1X, hp_calculations (in kBar)" > "${pressure_correction_file}"
     cd "${PT_dir}" || exit
 
 
@@ -298,11 +299,12 @@ while IFS= read -r -d '' parent; do
             cell_volume=$(awk 'NR==21 {print $5}' ${KP1x_dir}/analysis/peavg.out)
             # corrected_pressure = total_pressure_KP1 + avg_diff_external_pressure
             avg_diff_external_pressure=$(awk 'NR==1 {print $1}' $hp_calculations_dir/analysis/avg_diff_external_pressure.dat)
+            avg_diff_external_pressure_kBar=$(echo "$avg_diff_external_pressure / $kBar_to_GPa" | bc -l)
             corrected_pressure=$(echo "$total_pressure_KP1 + $avg_diff_external_pressure" | bc -l)
             corrected_pressure_kBar=$(echo "$corrected_pressure / $kBar_to_GPa " | bc -l)
             echo $corrected_pressure_kBar >> $corrected_pressure_file # pressure required in kBar there
             echo $cell_volume >> $corrected_volume_file
-            echo $avg_diff_external_pressure >> $pressure_correction_file
+            echo $avg_diff_external_pressure_kBar >> $pressure_correction_file
             # echo "Started hp_calculations in ${child}"
             # Return to the original driver directory
             cd ${PT_dir} || exit
@@ -334,6 +336,7 @@ echo "################################"
 echo "################################"
 echo "################################"
 echo "All EoS data "corrected" in all KP1/*/hp_calculations directories under ${PT_dir} @ $(date)."
+echo ""
 echo "Total number of incomplete runs: $counter_incomplete_runs"
 echo "################################"
 echo "################################"

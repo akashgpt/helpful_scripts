@@ -103,7 +103,7 @@ SIGMA_CHOSEN=$(echo "$kB * $TEMP_CHOSEN" | bc -l)  # Gaussian smearing sigma
 
 
 ########################################
-NPAR_CHOSEN=2 # For single point calculations, set NPAR_CHOSEN to 2; KPAR is 4 for hp_calculations
+NPAR_CHOSEN_SPC=2 # For single point calculations, set NPAR_CHOSEN to 2; KPAR is 4 for hp_calculations
 ########################################
 
 
@@ -113,7 +113,7 @@ echo "------------------------"
 echo "Simulation parameters:"
 echo "TEMP_CHOSEN: $TEMP_CHOSEN"
 echo "PSTRESS_CHOSEN_GPa: $PSTRESS_CHOSEN_GPa"
-echo "NPAR_CHOSEN: $NPAR_CHOSEN (special case for single point calculations)"
+echo "NPAR_CHOSEN: $NPAR_CHOSEN_SPC (special case for single point calculations)"
 echo "POTIM_CHOSEN: $POTIM_CHOSEN"
 echo "NBANDS_CHOSEN: $NBANDS_CHOSEN"
 echo "KPAR_CHOSEN_111: $KPAR_CHOSEN_111"
@@ -178,6 +178,7 @@ while IFS= read -r -d '' parent; do
                 # Generate high-precision calculations using eos script
                 rm -rf hp_calculations
                 python ${HELP_SCRIPTS_vasp}/eos* -p ${P_RUN} -m 0 -e 0.1 -hp 1 -nt ${N_FRAMES_hp_calculations}
+                module purge
             else
                 echo "Skipping data_4_analysis.sh+eos_fit__V_at_P.py in ${child} as rerun is set to 1."
             fi
@@ -203,7 +204,7 @@ while IFS= read -r -d '' parent; do
             sed -i "s/__TEMP_CHOSEN__/${TEMP_CHOSEN}/" ${hp_calculations_dir}/INCAR
             sed -i "s/__NBANDS_CHOSEN__/${NBANDS_CHOSEN}/" ${hp_calculations_dir}/INCAR
             sed -i "s/__POTIM_CHOSEN__/${POTIM_CHOSEN}/" ${hp_calculations_dir}/INCAR
-            sed -i "s/__NPAR_CHOSEN__/${NPAR_CHOSEN}/" ${hp_calculations_dir}/INCAR
+            sed -i "s/__NPAR_CHOSEN__/${NPAR_CHOSEN_SPC}/" ${hp_calculations_dir}/INCAR
             sed -i "s/__KPAR_CHOSEN__/${KPAR_CHOSEN_222}/" ${hp_calculations_dir}/INCAR
             sed -i "s/__SIGMA_CHOSEN__/${SIGMA_CHOSEN}/" ${hp_calculations_dir}/INCAR
             sed -i "s/__SCALEE_CHOSEN__/${SCALEE_CHOSEN}/" ${hp_calculations_dir}/INCAR
@@ -219,7 +220,9 @@ while IFS= read -r -d '' parent; do
 
             # if rerun is 1, check if the jobs are already completed successfully
             if [[ $rerun -eq 1 ]]; then
+                l_deepmd
                 python ${MLDP_SCRIPTS}/post_recal_rerun.py -ip all -v -ss $INPUT_FILES_DIR/sub_vasp_xtra.sh > log.recal_test 2>&1
+                module purge
                 # wait for log.recal_test to be created
                 while [ ! -f ${hp_calculations_dir}/log.recal_test ]; do
                     sleep 1
