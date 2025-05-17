@@ -39,19 +39,28 @@ module load intel-mkl/2024.2
 module load hdf5/oneapi-2024.2/1.14.4
 
 
-### Log: log.runsim
+##############################
+###### Log: log.runsim #######
 # record job id in log.run_sim
+touch running_RUN_VASP
+
 if [ -f log.run_sim ]; then
     rm log.run_sim
 fi
 echo "Job ID: $SLURM_JOB_ID" > log.run_sim
 echo "# =========================================" >> log.run_sim
 echo "" >> log.run_sim
-### CALLING VASP
+
+##############################
+####### CALLING VASP ########
 srun vasp_std >> log.run_sim
-###
+#############################
+
 echo "" >> log.run_sim
 echo "# =========================================" >> log.run_sim
 echo "Job $SLURM_JOB_ID completed at" `date ` >> log.run_sim
+
+rm running_RUN_VASP
 touch done_RUN_VASP
-### Log: log.runsim
+###### Log: log.runsim #######
+##############################

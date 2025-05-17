@@ -2,6 +2,7 @@
 # set -euo pipefail
 
 # Usage: source $HELP_SCRIPTS_TI/create_KP1x.sh > log.create_KP1x 2>&1 &
+#        nohup bash $HELP_SCRIPTS_TI/create_KP1x.sh > log.create_KP1x 2>&1 &
 # Author: Akash Gupta
 
 #--------------------------------------------------------------
@@ -138,15 +139,92 @@ fi
 # Main loop: find KP1 dirs
 #-------------------------
 while IFS= read -r -d '' parent; do
+    echo
+    echo
+    echo
+    echo "=========================="
     echo "Processing $parent"
-
-    # Enter parent directory and perform analysis
+    # Enter parent directory
     cd "$parent" || exit
+
+    echo "###########################"
+    echo 
+    echo "###########################"
+    echo "UNCOMMENT THE FOLLOWING LINES IN THE CODE!!!"
+    echo "###########################"
+    echo
+    echo "###########################"
+    # 0) file log.create_KP1 has numbers next to "JOB_ID_KP1:" -- grab all those numbers and check if they are running
+    #    if they are running, sleep and wait for them to finish
+    #    if they are not running, continue to the next step
+    #    if there are no numbers, prompt error and exit
+    # 0.1) Extract all tokens after "JOB_ID_KP1:" 
+    # mapfile -t job_ids < <(grep -oP 'JOB_ID_KP1:\s*\K\S+' log.create_KP1)
+
+    # # 0.2) Error if none found
+    # if [ ${#job_ids[@]} -eq 0 ]; then
+    # echo "ERROR: no JOB_ID_KP1 entries found in log.create_KP1" >&2
+    # exit 1
+    # fi
+
+    # # 0.3) Validate that each is a pure integer
+    # for jid in "${job_ids[@]}"; do
+    # if ! [[ $jid =~ ^[0-9]+$ ]]; then
+    #     echo "ERROR: invalid job ID '$jid' extracted from log.create_KP1" >&2
+    #     exit 1
+    # fi
+    # done
+
+    # echo "Found JOB_ID_KP1 IDs: ${job_ids[*]}"
+
+    # # 0.4) For each valid job ID, wait until SLURM no longer lists it
+    # for jid in "${job_ids[@]}"; do
+    # echo -n "Waiting for SLURM job $jid to finish"
+    # while squeue -h -j "$jid" &>/dev/null; do
+    #     echo -n "."      # progress dot
+    #     sleep "$WAIT_TIME_LONG"
+    # done
+    # echo " done."
+    # done
+
+    # echo "All JOB_ID_KP1 jobs have completed; proceeding with the next steps."
+    # echo
+    # echo
+    #################
+    # UNCOMMENT THE ABOVE LINES!!!
+
+
+
+    # backup check
+    # 1) extract JOB_ID_KP1 from the first line of log.run_sim
+    JOB_ID_KP1=$(awk 'NR==1 {print $3}' log.run_sim)
+
+    if [[ -z "$JOB_ID_KP1" ]]; then
+        echo "ERROR: could not read JOB_ID_KP1 from log.run_sim"
+        exit 1
+    fi
+
+    echo "JOB_ID_KP1: $JOB_ID_KP1"
+    echo -n "Waiting for job $JOB_ID_KP1 to finish "
+
+    # 2) loop until squeue no longer reports it
+    while squeue -h -j "$JOB_ID_KP1" >/dev/null; do
+        # print a dot and sleep
+        echo -n "."
+        sleep "$WAIT_TIME_LONG"
+    done
+
+    echo    # newline after the dots
+    echo "Job $JOB_ID_KP1 has completed."
+    echo
+
+
+    # perform analysis
     cp $HELP_SCRIPTS_vasp/data_4_analysis.sh .
     source data_4_analysis.sh
 
     # Generate KP1* subdirectories with EOS script
-    l_ase
+    module load anaconda3/2024.6; conda activate ase_env
     python $HELP_SCRIPTS_vasp/eos* \
         -p $PSTRESS_CHOSEN_GPa -m 0 -e 0.025 -hp -1  # create KP1a, KP1b, etc.
 
@@ -176,14 +254,24 @@ while IFS= read -r -d '' parent; do
 
             # Submit the VASP job
             sbatch RUN_VASP.sh
-            echo "Started VASP in $child"
+            LAST_JOB_ID=$(squeue -u $USER -h -o "%i" | sort -n | tail -1)
+            echo "   → Started VASP in ${child}"
+            echo "JOB_ID_KP1x: $LAST_JOB_ID"
+            echo ""
 
             # Return to root directory for next iteration
             cd $PT_dir || exit
         fi
     done
+    echo "++++++++++++++++++++++++++++++"
+    echo 
+    echo
 
 done < <(find . -type d -name KP1 -print0)
 
 # Final status message
+echo ""
+echo "=========================="
 echo "All VASP jobs started in KP1 directories in ${PT_dir}."
+echo "=========================="
+echo ""

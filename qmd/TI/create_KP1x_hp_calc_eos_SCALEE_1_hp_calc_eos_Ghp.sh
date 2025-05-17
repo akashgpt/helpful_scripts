@@ -13,7 +13,7 @@ echo ""
 echo ""
 
 module purge
-l_ase
+module load anaconda3/2024.6; conda activate ase_env
 # for all directories in the current directory, go in and run "nohup python $HELP_SCRIPTS_TI/GhP_analysis.py > log.GhP_analysis 2>&1 &"
 for dir in */; do
     # if directory contains SCALEE_1 directory

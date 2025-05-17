@@ -508,3 +508,20 @@ find . -type f -name 'INCAR*' -exec sed -i 's/POTIM  =   0.5/POTIM  =   0.25/g' 
 find . -type f -name 'INCAR*' -exec sed -i 's/NSW    = 15000/NSW    = 40000/g' {} +
 find . -type f -name 'INCAR_relax' -exec sed -i 's/ALGO   = F/ALGO   = N/g' {} +
 find . -type f -name 'RUN_VASP*' -exec sed -i 's/#SBATCH --time=5:00:00/#SBATCH --time=24:00:00/g' {} +
+
+
+
+
+# Capture PIDs explicitly to wait for them to finish -- also note how "nohup bash" is used and not source ... &
+pids=()
+for dir in */SCALEE_1; do
+    (
+      cd "$dir/.." || exit
+      nohup bash "$HELP_SCRIPTS_TI/master_TI_analysis.sh" \
+            > log.master_TI_analysis 2>&1 &
+      pids+=($!)          # $! is the PID of the backgrounded command
+    )
+done
+
+# Now wait only for those jobs
+wait "${pids[@]}"

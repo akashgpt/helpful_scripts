@@ -3,6 +3,7 @@
 
 # Usage: 
 # (for new run): source $HELP_SCRIPTS_TI/create_KP1x_hp_calc.sh > log.create_KP1x_hp_calc 2>&1 &
+#                nohup bash $HELP_SCRIPTS_TI/create_KP1x_hp_calc.sh > log.create_KP1x_hp_calc 2>&1 &
 # (for rerun with same parameters): source $HELP_SCRIPTS_TI/create_KP1x_hp_calc.sh 1 > log.create_KP1x_hp_calc 2>&1 &
 # Author: Akash Gupta
 
@@ -13,7 +14,7 @@
 #         if [ -d "$child" ]; then
 #         touch "$child/done_KP1x"
 #         # P_RUN=$(grep Pressure analysis/peavg.out  | awk '{print $3}')
-#         # l_ase; python $HELP_SCRIPTS_vasp/eos* -p $P_RUN -m 0 -e 0.01 -hp 1
+#         # module load anaconda3/2024.6; conda activate ase_env; python $HELP_SCRIPTS_vasp/eos* -p $P_RUN -m 0 -e 0.01 -hp 1
 #         echo "Touched $child/done_KP1x"
 #         fi
 #     done
@@ -80,7 +81,7 @@ echo ""
 
 
 SETUP_dir=$PT_dir/master_setup_TI
-LOCAL_SETUP_dir=$CONFIG_dir/setup_TI
+# LOCAL_SETUP_dir=$CONFIG_dir/setup_TI
 
 
 # read all the above from input.calculate_GFE file where each line is a key-value pair, e.g. TEMP_CHOSEN=13000
@@ -145,6 +146,13 @@ fi
 
 counter_incomplete_runs=0
 
+
+## Check if KP1a, KP1b, KP1c, etc. directories span the PSTRESS_CHOSEN_GPa or not
+
+# create array of P_RUN values
+P_RUN_array=()
+counter_P_not_spanned=0
+
 #--------------------------------------------------------------
 # Loop over every directory named exactly 'KP1'
 #--------------------------------------------------------------
@@ -161,9 +169,33 @@ while IFS= read -r -d '' parent; do
     for child in "${parent}"/KP1*; do
         if [ -d "${child}" ]; then
             # Enter the child directory
-            cd "${child}" || exit
+            cd "${child}" || exit # KP1a, KP1b, etc.
             child_abs=$(pwd)
+            KP1x_dir=$(pwd)
             echo " → Entered ${child_abs}"
+
+            # backup check
+            # 1) extract JOB_ID_KP1x from the first line of log.run_sim
+            JOB_ID_KP1x=$(awk 'NR==1 {print $3}' log.run_sim)
+
+            if [[ -z "$JOB_ID_KP1x" ]]; then
+                echo "ERROR: could not read JOB_ID_KP1x from log.run_sim"
+                exit 1
+            fi
+
+            echo "JOB_ID_KP1x: $JOB_ID_KP1x"
+            echo -n "Waiting for job $JOB_ID_KP1x to finish "
+
+            # 2) loop until squeue no longer reports it
+            while squeue -h -j "$JOB_ID_KP1x" >/dev/null; do
+                # print a dot and sleep
+                echo -n "."
+                sleep "$WAIT_TIME_LONG"
+            done
+
+            echo    # newline after the dots
+            echo "Job $JOB_ID_KP1x has completed."
+            echo
 
             # only if rerun is 0, check if the directory has already been processed
             if [[ $rerun -eq 0 ]]; then
@@ -179,9 +211,116 @@ while IFS= read -r -d '' parent; do
                 # Extract the third field (pressure) from peavg.out
                 P_RUN=$(grep Pressure analysis/peavg.out | awk '{print $3}')
 
+                # create array of P_RUN values
+                P_RUN_array+=("$P_RUN")
+                echo "P_RUN @ $child: $P_RUN GPa"   
+                echo
+            fi
+            cd $PT_dir || exit   
+        fi          
+    done
+
+    # Check if P_RUN values span the PSTRESS_CHOSEN_GPa
+    min_P_RUN=$(printf '%s\n' "${P_RUN_array[@]}" | sort -n | head -n 1)
+    max_P_RUN=$(printf '%s\n' "${P_RUN_array[@]}" | sort -n | tail -n 1)
+    echo
+    echo
+    echo "Minimum P_RUN: $min_P_RUN GPa"
+    echo "Maximum P_RUN: $max_P_RUN GPa"
+    if (( $(echo "$min_P_RUN < $PSTRESS_CHOSEN_GPa" | bc -l) )) && (( $(echo "$max_P_RUN > $PSTRESS_CHOSEN_GPa" | bc -l) )); then
+        echo "P_RUN values span the PSTRESS_CHOSEN_GPa = $PSTRESS_CHOSEN_GPa GPa @ $KP1x_dir"
+        echo
+    else
+        counter_P_not_spanned=$((counter_P_not_spanned + 1))
+        echo "P_RUN values do NOT span the PSTRESS_CHOSEN_GPa = $PSTRESS_CHOSEN_GPa GPa @ $KP1x_dir"
+        echo "counter_P_not_spanned set to 1"
+        echo
+    fi
+
+done < <(find . -type d -name KP1 -print0)
+
+if [[ $counter_P_not_spanned -eq 0 ]]; then
+    echo
+    echo
+    echo
+    echo "========================="
+    echo "========================="
+    echo "Across all CONFIGs, KP1x span the PSTRESS_CHOSEN_GPa ($PSTRESS_CHOSEN_GPa). Proceeding with the script."
+    echo "========================="
+    echo "========================="
+    echo
+    echo
+    echo
+else
+    echo
+    echo
+    echo
+    echo "========================="
+    echo "========================="
+    echo "Across all CONFIGs, KP1x do NOT span the PSTRESS_CHOSEN_GPa ($PSTRESS_CHOSEN_GPa). Exiting."
+    echo "counter_P_not_spanned = $counter_P_not_spanned (number of CONFIGs that do not span the PSTRESS_CHOSEN_GPa)"
+    echo "========================="
+    echo "========================="
+    echo 
+    echo 
+    echo
+    exit 1
+fi
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#--------------------------------------------------------------
+# Loop over every directory named exactly 'KP1'
+#--------------------------------------------------------------
+while IFS= read -r -d '' parent; do
+    echo "#----------------------------------------"
+    echo "#----------------------------------------"
+    echo ""
+    echo "Processing parent directory: ${parent}"
+    echo ""
+    echo "#----------------------------------------"
+    echo "#----------------------------------------"
+
+    # Iterate over immediate subdirectories beginning with 'KP1'
+    for child in "${parent}"/KP1*; do
+        if [ -d "${child}" ]; then
+            # Enter the child directory
+            cd "${child}" || exit # KP1a, KP1b, etc.
+            child_abs=$(pwd)
+            echo " → Entered ${child_abs}"
+
+            # only if rerun is 0, check if the directory has already been processed
+            if [[ $rerun -eq 0 ]]; then
+                # Copy and source analysis script
+                # cp "${HELP_SCRIPTS_vasp}/data_4_analysis.sh" "${child_abs}/"
+                # source data_4_analysis.sh
+
+                # Check for average pressure file
+                if [[ ! -f analysis/peavg.out ]]; then
+                    echo "ERROR: analysis/peavg.out not found in ${child}" >&2
+                    exit 1
+                fi
+                # Extract the third field (pressure) from peavg.out
+                P_RUN=$(grep Pressure analysis/peavg.out | awk '{print $3}')
+
 
                 # Run ASE setup (assumed alias/function)
-                l_ase
+                module load anaconda3/2024.6; conda activate ase_env
                 # Generate high-precision calculations using eos script
                 rm -rf hp_calculations
                 python ${HELP_SCRIPTS_vasp}/eos* -p ${P_RUN} -m 0 -e 0.1 -hp 1 -nt ${N_FRAMES_hp_calculations}
@@ -275,14 +414,20 @@ while IFS= read -r -d '' parent; do
                             echo "Subdirectory ${subchild_basename} is in rerun_folders.dat. Rerunning the job with ALGO = Normal."
                             # find . -type f -name 'INCAR' -exec sed -i 's/ALGO   = F/ALGO   = N/g' {} +
                             sbatch RUN_VASP.sh
+                            LAST_JOB_ID=$(squeue -u $USER -h -o "%i" | sort -n | tail -1)
                             echo "   → Started VASP in ${subchild}"
+                            echo "JOB_ID_hp_calc: $LAST_JOB_ID"
+                            echo ""
                         else
                             echo "VASP job already completed in ${subchild}. Skipping submission."
                         fi
                     else
                         # If rerun is 0, just submit the job
                         sbatch RUN_VASP.sh
+                        LAST_JOB_ID=$(squeue -u $USER -h -o "%i" | sort -n | tail -1)
                         echo "   → Started VASP in ${subchild}"
+                        echo "JOB_ID_hp_calc: $LAST_JOB_ID"
+                        echo ""
                     fi
 
                     # Return to the hp_calculations directory
@@ -296,6 +441,10 @@ while IFS= read -r -d '' parent; do
             cd ${PT_dir} || exit
         fi
     done
+    echo
+    echo "++++++++++++++++++++++++++++++"
+    echo
+    echo
 done < <(find . -type d -name KP1 -print0)
 
 # Final confirmation message

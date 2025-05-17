@@ -251,7 +251,11 @@ while IFS= read -r -d '' parent; do
 
     # Submit the VASP job
     sbatch RUN_VASP.sh
+
+    # list just the job IDs for your user, sort them numerically, and take the last one
+    LAST_JOB_ID=$(squeue -u $USER -h -o "%i" | sort -n | tail -1)
     echo "Started VASP in $KP1_dir"
+    echo "JOB_ID_KP1: $LAST_JOB_ID"
     echo ""
 
     # Return to root directory for next iteration

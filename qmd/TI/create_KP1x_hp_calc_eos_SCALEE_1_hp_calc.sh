@@ -13,7 +13,7 @@
 #         if [ -d "$child" ]; then
 #         touch "$child/done_KP1x"
 #         # P_RUN=$(grep Pressure analysis/peavg.out  | awk '{print $3}')
-#         # l_ase; python $HELP_SCRIPTS_vasp/eos* -p $P_RUN -m 0 -e 0.01 -hp 1
+#         # module load anaconda3/2024.6; conda activate ase_env; python $HELP_SCRIPTS_vasp/eos* -p $P_RUN -m 0 -e 0.01 -hp 1
 #         echo "Touched $child/done_KP1x"
 #         fi
 #     done
@@ -80,7 +80,7 @@ echo ""
 
 
 SETUP_dir=$PT_dir/master_setup_TI
-LOCAL_SETUP_dir=$CONFIG_dir/setup_TI
+# LOCAL_SETUP_dir=$CONFIG_dir/setup_TI
 
 
 # read all the above from input.calculate_GFE file where each line is a key-value pair, e.g. TEMP_CHOSEN=13000
@@ -195,7 +195,7 @@ while IFS= read -r -d '' parent; do
 
 
         # Run ASE setup (assumed alias/function)
-        l_ase
+        module load anaconda3/2024.6; conda activate ase_env
         # Generate high-precision calculations using eos script
         rm -rf hp_calculations
         python ${HELP_SCRIPTS_vasp}/eos* -p ${P_RUN} -m 0 -e 0.1 -hp 1 -nt ${N_FRAMES_hp_calculations__SCALEE_1} # creates hp_calculations directory
@@ -289,14 +289,20 @@ while IFS= read -r -d '' parent; do
                     echo "Subdirectory ${subchild_basename} is in rerun_folders.dat. Rerunning the job with ALGO = Normal."
                     # find . -type f -name 'INCAR' -exec sed -i 's/ALGO   = F/ALGO   = N/g' {} +
                     sbatch RUN_VASP.sh
+                    LAST_JOB_ID=$(squeue -u $USER -h -o "%i" | sort -n | tail -1)
                     echo "   → Started VASP in ${subchild}"
+                    echo "JOB_ID_hp_calc: $LAST_JOB_ID"
+                    echo ""
                 else
                     echo "VASP job already completed in ${subchild}. Skipping submission."
                 fi
             else
                 # If rerun is 0, just submit the job
                 sbatch RUN_VASP.sh
+                LAST_JOB_ID=$(squeue -u $USER -h -o "%i" | sort -n | tail -1)
                 echo "   → Started VASP in ${subchild}"
+                echo "JOB_ID_hp_calc: $LAST_JOB_ID"
+                echo ""
             fi
 
             # Return to the hp_calculations directory
