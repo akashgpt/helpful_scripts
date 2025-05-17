@@ -16,6 +16,7 @@ echo "#==========================================#"
 echo "#==========================================#"
 echo "#==========================================#"
 echo "WARNING: It is better to do 4 {KP 222} calculations rather than 4 {KP 111} + hp_calculcations"
+echo "Not sure though ..."
 echo "Thermal pressure correction is likely larger than a simple external pressure offset between KPOINTS 222 vs 111. Not 100% sure though."
 echo "#==========================================#"
 echo "#==========================================#"
@@ -61,14 +62,21 @@ kB=0.00008617333262145               # Boltzmann constant in eV/K
 #-------------------------
 PT_dir=$(pwd)
 PT_dir_name=$(basename "$PT_dir")
+
+COMPOSITION_dir=$(dirname "$PT_dir")
+COMPOSITION_dir_name=$(basename "$COMPOSITION_dir")
+
 echo "Current time: $(date)"
-echo "Current working directory: $PT_dir"
-echo "Current working directory name: $PT_dir_name"
+echo "Current PT directory: $PT_dir"
+echo "Current PT directory name: $PT_dir_name"
+echo "Current COMPOSITION directory: $COMPOSITION_dir"
+echo "Current COMPOSITION directory name: $COMPOSITION_dir_name"
+echo ""
 
 
 
 SETUP_dir=$PT_dir/master_setup_TI
-LOCAL_SETUP_dir=$CONFIG_dir/setup_TI
+# LOCAL_SETUP_dir=$CONFIG_dir/setup_TI
 
 
 # read all the above from input.calculate_GFE file where each line is a key-value pair, e.g. TEMP_CHOSEN=13000

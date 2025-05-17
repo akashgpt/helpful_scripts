@@ -67,9 +67,15 @@ kB=0.00008617333262145       # Boltzmann constant (eV/K)
 # Save the current working directory for later
 PT_dir=$(pwd)
 PT_dir_name=$(basename "$PT_dir")
+
+COMPOSITION_dir=$(dirname "$PT_dir")
+COMPOSITION_dir_name=$(basename "$COMPOSITION_dir")
+
 echo "Current time: $(date)"
-echo "Current working directory: $PT_dir"
-echo "Current working directory name: $PT_dir_name"
+echo "Current PT directory: $PT_dir"
+echo "Current PT directory name: $PT_dir_name"
+echo "Current COMPOSITION directory: $COMPOSITION_dir"
+echo "Current COMPOSITION directory name: $COMPOSITION_dir_name"
 echo ""
 
 

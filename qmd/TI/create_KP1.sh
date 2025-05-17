@@ -18,6 +18,7 @@ echo "#==========================================#"
 echo "#==========================================#"
 echo "#==========================================#"
 echo "WARNING: It is better to do 4 {KP 222} calculations rather than 4 {KP 111} + hp_calculcations"
+echo "Not sure though ..."
 echo "Thermal pressure correction is likely larger than a simple external pressure offset between KPOINTS 222 vs 111. Not 100% sure though."
 echo "#==========================================#"
 echo "#==========================================#"
@@ -48,7 +49,15 @@ echo ""
 
 
 #######
-CELL_SIZE=9.09
+CELL_SIZE_P50_T3500_w_Fe=8.5
+CELL_SIZE_P250_T6500_w_Fe=7.8
+CELL_SIZE_P500_T9000_w_Fe=7.4
+CELL_SIZE_P1000_T13000_w_Fe=7.0
+
+CELL_SIZE_P50_T3500_w_MgSiO3=10.9
+CELL_SIZE_P250_T6500_w_MgSiO3=9.7
+CELL_SIZE_P500_T9000_w_MgSiO3=9.0
+CELL_SIZE_P1000_T13000_w_MgSiO3=8.4
 #######
 
 
@@ -68,15 +77,19 @@ kB=0.00008617333262145               # Boltzmann constant in eV/K
 PT_dir=$(pwd)
 PT_dir_name=$(basename "$PT_dir")
 
-# echo time stamp
-echo "Current time: $(date)"
-echo "Current working directory: $PT_dir"
-echo "Current working directory name: $PT_dir_name"
+# parent directory
+COMPOSITION_dir=$(dirname "$PT_dir")
+COMPOSITION_dir_name=$(basename "$COMPOSITION_dir")
 
+echo "Current time: $(date)"
+echo "Current PT directory: $PT_dir"
+echo "Current PT directory name: $PT_dir_name"
+echo "Current COMPOSITION directory: $COMPOSITION_dir"
+echo "Current COMPOSITION directory name: $COMPOSITION_dir_name"
+echo ""
 
 
 SETUP_dir=$PT_dir/master_setup_TI
-LOCAL_SETUP_dir=$CONFIG_dir/setup_TI
 
 
 # read all the above from input.calculate_GFE file where each line is a key-value pair, e.g. TEMP_CHOSEN=13000
@@ -102,6 +115,19 @@ else
     exit 1
 fi
 
+
+# if TEMP_CHOSEN and PSTRESS_CHOSEN_GPa are not a number, exit
+if ! [[ "$TEMP_CHOSEN" =~ ^[0-9]+([.][0-9]+)?$ ]]; then
+    echo "TEMP_CHOSEN is not a number: $TEMP_CHOSEN. Exiting. Please check the input.calculate_GFE file."
+    exit 1
+fi
+if ! [[ "$PSTRESS_CHOSEN_GPa" =~ ^[0-9]+([.][0-9]+)?$ ]]; then
+    echo "PSTRESS_CHOSEN_GPa is not a number: $PSTRESS_CHOSEN_GPa. Exiting. Please check the input.calculate_GFE file."
+    exit 1
+fi
+
+
+
 SIGMA_CHOSEN=$(echo "$kB * $TEMP_CHOSEN" | bc -l)  # Gaussian smearing sigma
 
 PSTRESS_CHOSEN=$(echo "$PSTRESS_CHOSEN_GPa * 10" | bc -l)  # Convert GPa to kBar
@@ -124,8 +150,8 @@ echo "WAIT_TIME_SHORT: $WAIT_TIME_SHORT"
 echo "N_FRAMES_hp_calculations: $N_FRAMES_hp_calculations"
 echo "SCALEE_CHOSEN: $SCALEE_CHOSEN"
 echo "-------------------------"
-
-
+echo ""
+#-------------------------
 
 # Check if the folder name contains both TEMP_CHOSEN and PSTRESS_CHOSEN_GPa
 if [[ "$PT_dir_name" == *"${TEMP_CHOSEN}"* && "$PT_dir_name" == *"${PSTRESS_CHOSEN_GPa}"* ]]; then
@@ -139,19 +165,72 @@ fi
 # Main loop: find KP1 dirs
 #-------------------------
 while IFS= read -r -d '' parent; do
-    echo "Processing $parent"
+    # echo "Processing $parent"
     cd "$parent" || exit
 
 
     KP1_dir=$(pwd)
+
+    # parent directory is V_est_dir
+    V_est_dir=$(dirname "$KP1_dir")
+    cd "$V_est_dir" || exit
+    # parent directory is CONFIG_dir
+    CONFIG_dir=$(dirname "$V_est_dir")
+    cd "$CONFIG_dir" || exit
+    LOCAL_SETUP_dir=$CONFIG_dir/setup_TI
+    cd $KP1_dir || exit
+
+    echo "CONFIG_dir: $CONFIG_dir"
+    echo "LOCAL_SETUP_dir: $LOCAL_SETUP_dir"
+    echo "Processing KP1 directory: $KP1_dir"
+
 
     # Enter parent directory and perform analysis
 
     # echo current directory
     # echo "Current directory: ${KP1_dir}"
 
+    # check if POSCAR file exists
+    if [ ! -f POSCAR ]; then
+        cp ${LOCAL_SETUP_dir}/POSCAR_NPT $KP1_dir/POSCAR
+    fi
+
     # in POSCAR, replace second line with CELL_SIZE
+    # sed -i "2s/.*/$CELL_SIZE/" POSCAR
+    if [[ "$COMPOSITION_dir_name" == *"Fe"* ]]; then
+        if [[ "$PT_dir_name" == *"P50_T3500"* ]]; then
+            CELL_SIZE=$CELL_SIZE_P50_T3500_w_Fe
+        elif [[ "$PT_dir_name" == *"P250_T6500"* ]]; then
+            CELL_SIZE=$CELL_SIZE_P250_T6500_w_Fe
+        elif [[ "$PT_dir_name" == *"P500_T9000"* ]]; then
+            CELL_SIZE=$CELL_SIZE_P500_T9000_w_Fe
+        elif [[ "$PT_dir_name" == *"P1000_T13000"* ]]; then
+            CELL_SIZE=$CELL_SIZE_P1000_T13000_w_Fe
+        else
+            echo "Unknown folder name: $PT_dir_name"
+            exit 1
+        fi
+    elif [[ "$COMPOSITION_dir_name" == *"MgSiO3"* ]]; then
+        if [[ "$PT_dir_name" == *"P50_T3500"* ]]; then
+            CELL_SIZE=$CELL_SIZE_P50_T3500_w_MgSiO3
+        elif [[ "$PT_dir_name" == *"P250_T6500"* ]]; then
+            CELL_SIZE=$CELL_SIZE_P250_T6500_w_MgSiO3
+        elif [[ "$PT_dir_name" == *"P500_T9000"* ]]; then
+            CELL_SIZE=$CELL_SIZE_P500_T9000_w_MgSiO3
+        elif [[ "$PT_dir_name" == *"P1000_T13000"* ]]; then
+            CELL_SIZE=$CELL_SIZE_P1000_T13000_w_MgSiO3
+        else
+            echo "Unknown folder name: $PT_dir_name"
+            exit 1
+        fi
+    else
+        echo "Unknown folder name: $COMPOSITION_dir_name"
+        exit 1
+    fi
+    echo "POSCAR CELL_SIZE: $CELL_SIZE"
     sed -i "2s/.*/$CELL_SIZE/" POSCAR
+
+
 
 
     # Copy VASP run scripts and input templates
@@ -173,6 +252,7 @@ while IFS= read -r -d '' parent; do
     # Submit the VASP job
     sbatch RUN_VASP.sh
     echo "Started VASP in $KP1_dir"
+    echo ""
 
     # Return to root directory for next iteration
     cd $PT_dir || exit
