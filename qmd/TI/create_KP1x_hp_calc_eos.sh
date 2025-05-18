@@ -325,9 +325,28 @@ while IFS= read -r -d '' parent; do
     echo "Estimating final EoS parameters for ${KP1_dir}"
     echo "----------------------------------------"
     python $HELP_SCRIPTS_vasp/eos_fit__V_at_P.py -p $PSTRESS_CHOSEN_GPa -m 2 -e 0.2 -hp 0
-    estimated_cell_volume=$(awk 'NR==9 {print $7}' ${KP1_dir}/analysis/log.eos_fit_data_mode_2)
+
+    # check if ${KP1_dir}/../cell_sizes_KPX.dat exists
+    if [ ! -f ${KP1_dir}/../cell_sizes_KPX.dat ]; then
+        echo "cell_sizes_KP1; cell_sizes_KP2 (or the hp_calculations equivalent)" > ${KP1_dir}/../cell_sizes_KPX.dat
+        echo "cell_sizes_KPX.dat not found. Creating a new one."
+    fi
+
+    # KP2 corrected volume
+    estimated_cell_volume_KP2=$(awk 'NR==9 {print $7}' ${KP1_dir}/analysis/log.eos_fit_data_mode_2)
     # replace third line of cell_sizes_KPX.dat with estimated_cell_volume
-    sed -i "3s/.*/$estimated_cell_volume/" ${KP1_dir}/../cell_sizes_KPX.dat
+    sed -i "3s/.*/$estimated_cell_volume_KP2/" ${KP1_dir}/../cell_sizes_KPX.dat
+
+    # KP1 volume estimate
+    estimated_cell_volume_KP1=$(awk 'NR==9 {print $7}' ${KP1_dir}/analysis/log.eos_fit)
+    # replace second line of cell_sizes_KPX.dat with estimated_cell_volume
+    sed -i "2s/.*/$estimated_cell_volume_KP1/" ${KP1_dir}/../cell_sizes_KPX.dat
+
+    echo "cell_sizes_KPX.dat updated with estimated cell volumes."
+    echo "estimated_cell_volume_KP1: $estimated_cell_volume_KP1"
+    echo "estimated_cell_volume_KP2: $estimated_cell_volume_KP2"
+    echo "----------------------------------------"
+
     echo ""
     echo ""
     cd "${PT_dir}" || exit
