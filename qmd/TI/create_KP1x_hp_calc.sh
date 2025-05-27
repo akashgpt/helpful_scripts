@@ -3,7 +3,7 @@
 
 # Usage: 
 # (for new run): source $HELP_SCRIPTS_TI/create_KP1x_hp_calc.sh > log.create_KP1x_hp_calc 2>&1 &
-#                nohup bash $HELP_SCRIPTS_TI/create_KP1x_hp_calc.sh > log.create_KP1x_hp_calc 2>&1 &
+#                nohup $HELP_SCRIPTS_TI/create_KP1x_hp_calc.sh > log.create_KP1x_hp_calc 2>&1 &
 # (for rerun with same parameters): source $HELP_SCRIPTS_TI/create_KP1x_hp_calc.sh 1 > log.create_KP1x_hp_calc 2>&1 &
 # Author: Akash Gupta
 
@@ -228,42 +228,40 @@ while IFS= read -r -d '' parent; do
     echo "Minimum P_RUN: $min_P_RUN GPa"
     echo "Maximum P_RUN: $max_P_RUN GPa"
     if (( $(echo "$min_P_RUN < $PSTRESS_CHOSEN_GPa" | bc -l) )) && (( $(echo "$max_P_RUN > $PSTRESS_CHOSEN_GPa" | bc -l) )); then
-        echo "P_RUN values span the PSTRESS_CHOSEN_GPa = $PSTRESS_CHOSEN_GPa GPa @ $KP1x_dir"
-        echo
+        echo "P_RUN values span the PSTRESS_CHOSEN_GPa = $PSTRESS_CHOSEN_GPa GPa @ $parent"
+        echo ""
+        echo ""
     else
         counter_P_not_spanned=$((counter_P_not_spanned + 1))
-        echo "P_RUN values do NOT span the PSTRESS_CHOSEN_GPa = $PSTRESS_CHOSEN_GPa GPa @ $KP1x_dir"
+        echo "P_RUN values do NOT span the PSTRESS_CHOSEN_GPa = $PSTRESS_CHOSEN_GPa GPa @ $parent"
         echo "counter_P_not_spanned set to 1"
-        echo
+        echo ""
+        echo ""
     fi
 
 done < <(find . -type d -name KP1 -print0)
 
-if [[ $counter_P_not_spanned -eq 0 ]]; then
-    echo
-    echo
+if [ $counter_P_not_spanned -eq 0 ]; then
     echo
     echo "========================="
     echo "========================="
     echo "Across all CONFIGs, KP1x span the PSTRESS_CHOSEN_GPa ($PSTRESS_CHOSEN_GPa). Proceeding with the script."
     echo "========================="
     echo "========================="
-    echo
-    echo
-    echo
+    echo ""
+    echo ""
+    echo ""
 else
-    echo
-    echo
-    echo
+    echo ""
     echo "========================="
     echo "========================="
     echo "Across all CONFIGs, KP1x do NOT span the PSTRESS_CHOSEN_GPa ($PSTRESS_CHOSEN_GPa). Exiting."
     echo "counter_P_not_spanned = $counter_P_not_spanned (number of CONFIGs that do not span the PSTRESS_CHOSEN_GPa)"
     echo "========================="
     echo "========================="
-    echo 
-    echo 
-    echo
+    echo ""
+    echo ""
+    echo ""
     exit 1
 fi
 

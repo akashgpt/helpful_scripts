@@ -74,7 +74,7 @@ if [ $verbose -eq 1 ]; then
 fi
 # squeue
 alias sqp='squeue -o "%.18i %Q %.9q %.8j %.8u %.10a %.2t %.10M %.10L %.6C %R" | more' #priority rating
-alias sqpmy='squeue -o "%.18i %Q %.9q %.8j %.8u %.10a %.2t %.10M %.10L %.6C %R" | grep $USER | more' #priority rating
+alias sqpmy='squeue -o "%.18i %Q %.9q %.8j %.8u %.10a %.2t %.10M %.10L %.6C %R" | grep $USER' #priority rating
 alias sq='squeue -u $USER -o "%.18i %.9P %.12j %.8u %.2t %.10M %.6D %.8C %.10l"
 '
 end_block2=$(date +%s)
@@ -318,9 +318,11 @@ export BACKUP_DIR="$SCRATCH/akashgpt_ucla_desktop_backup_20231231"
 export VASP_ANALYSIS="$AG_BACKUP/Academics/Research/VASP/analysis_codes"
 export VASP_DATA="$SCRATCH/qmd_data"
 export mldp="$AG_BURROWS/misc_libraries/scripts_Jie/mldp"
-export local_mldp="$LOCAL_AG_BURROWS/misc_libraries/scripts_Jie/mldp"
+export LOCAL_mldp="$LOCAL_AG_BURROWS/misc_libraries/scripts_Jie/mldp"
 export JIE_SCRIPTS_DIR="$AG_BURROWS/misc_libraries/scripts_Jie"
+export LOCAL_JIE_SCRIPTS_DIR="$LOCAL_AG_BURROWS/misc_libraries/scripts_Jie"
 export LARS_SCRIPTS_DIR="$AG_BURROWS/misc_libraries/Box_Lars"
+export LOCAL_LARS_SCRIPTS_DIR="$LOCAL_AG_BURROWS/misc_libraries/Box_Lars"
 export MY_MLMD_SCRIPTS="$AG_BURROWS/run_scripts/MLMD_scripts"
 export APPTAINER_REPO="$SCRATCH/softwares/APPTAINER_REPO"
 export DPAL__dev="$AG_BURROWS/run_scripts/DPAL__dev"
@@ -328,6 +330,7 @@ export DPAL__main="$AG_BURROWS/run_scripts/DPAL__in_use"
 export CONDA_SECONDARY_DIR="$SCRATCH/softwares/conda_envs_dir_secondary"
 
 export HELP_SCRIPTS="$AG_BURROWS/run_scripts/helpful_scripts"
+export LOCAL_HELP_SCRIPTS="$LOCAL_AG_BURROWS/run_scripts/helpful_scripts"
 export HELP_SCRIPTS_qmd="$AG_BURROWS/run_scripts/helpful_scripts/qmd"
 export HELP_SCRIPTS_vasp="$AG_BURROWS/run_scripts/helpful_scripts/qmd/vasp"
 export HELP_SCRIPTS_plmd="$AG_BURROWS/run_scripts/helpful_scripts/qmd/plmd"
@@ -341,14 +344,14 @@ export HELP_SCRIPTS_DPAL="$AG_BURROWS/run_scripts/helpful_scripts/qmd/DPAL"
 ##########
 # Adding to different default paths
 ##########
-export PATH=$PATH:$AG_BURROWS/misc_libraries/
-export PATH=$PATH:$LARS_SCRIPTS_DIR
-export PATH=$PATH:$JIE_SCRIPTS_DIR
-export PATH=$PATH:$mldp
+export PATH=$PATH:$LOCAL_AG_BURROWS/misc_libraries/
+export PATH=$PATH:$LOCAL_LARS_SCRIPTS_DIR
+export PATH=$PATH:$LOCAL_JIE_SCRIPTS_DIR
+export PATH=$PATH:$LOCAL_mldp
 export PATH=$HOME/local/bin:$PATH # for patchelf
 
 
-export PYTHONPATH=$PYTHONPATH:$AG_BURROWS/misc_libraries/
+export PYTHONPATH=$PYTHONPATH:$LOCAL_AG_BURROWS/misc_libraries/
 # export PATH=$PATH:$LARS_SCRIPTS_DIR
 # export PATH=$PATH:$JIE_SCRIPTS_DIR
 # export PATH=$PATH:$mldp
@@ -392,6 +395,7 @@ DIR4="misc_libraries/XDATCAR_toolkit"
 # DIR5="run_scripts/MLMD_scripts/mol_systems/MgSiOHN"
 DIR6="run_scripts/helpful_scripts"
 DIR7="run_scripts/DPAL__in_use"
+DIR8=
 
 FILE1="myshortcuts.sh"
 FILE2=".bashrc"

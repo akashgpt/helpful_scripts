@@ -235,12 +235,18 @@ def process_all(base_dir="."):
             P_err_SCALEE_1 = data['P_err']
 
             file_pressure_correction = os.path.join(base_dir, d, "analysis", "pressure_correction.dat") # file units: kBar
-            # read second line of file_pressure_correction
-            P_SCALEE_1_corr = np.loadtxt(file_pressure_correction, skiprows=1)
-            #P_SCALEE_1_corr make float from array
-            P_SCALEE_1_corr = float(P_SCALEE_1_corr)
-            P_SCALEE_1_corr = P_SCALEE_1_corr * 0.1 # convert from kBar to GPa
-            # print(f"Pressure correction: {P_SCALEE_1_corr:.3f} GPa")
+            if not os.path.isfile(file_pressure_correction):
+                print("")
+                print(f"WARNING: {file_pressure_correction} not found. Assuming no pressure correction.")
+                print("")
+                P_SCALEE_1_corr = 0.0
+            else:
+                # read second line of file_pressure_correction
+                P_SCALEE_1_corr = np.loadtxt(file_pressure_correction, skiprows=1)
+                #P_SCALEE_1_corr make float from array
+                P_SCALEE_1_corr = float(P_SCALEE_1_corr)
+                P_SCALEE_1_corr = P_SCALEE_1_corr * 0.1 # convert from kBar to GPa
+                # print(f"Pressure correction: {P_SCALEE_1_corr:.3f} GPa")
 
         Ps.append(P_SCALEE_1)
         P_errs.append(P_err_SCALEE_1)
@@ -338,7 +344,7 @@ def process_all(base_dir="."):
 
 
 
-    HF_ig = -503.181 # eV ## needs to be updated
+    # HF_ig = -503.181 # eV ## needs to be updated
     HF_ig = estimate_IdealGas_Helmholtz_Free_Energy(atomic_masses, atom_counts, volume_cell, T_target)
     # # type
     # print(f"type of HF_ig: {type(HF_ig)}")
@@ -346,7 +352,7 @@ def process_all(base_dir="."):
     # print("WARNING: HF_ig is hardcoded to -503.181 eV")
     df['HF_ig (eV)'] = HF_ig
 
-    TS_term = 37.9997320160768 # eV ## needs to be updated
+    # TS_term = 37.9997320160768 # eV ## needs to be updated
     TS_term = estimate_TS(atom_counts, T_target) # eV
     # # type
     # print(f"type of TS_term: {type(TS_term)}")
@@ -355,8 +361,9 @@ def process_all(base_dir="."):
     df['TS_term (eV)'] = TS_term
 
 
-    ΔHF_hp_m_ab = -0.571 # eV ## needs to be updated
-    print("WARNING: ΔHF_hp_m_ab is hardcoded to -0.571 eV. Not needed for my calculations, right? Not being used right now though")
+    # ΔHF_hp_m_ab = -0.571 # eV ## needs to be updated
+    # print("WARNING: ΔHF_hp_m_ab is hardcoded to -0.571 eV. Not needed for my calculations, right? Not being used right now though")
+    ΔHF_hp_m_ab = 0.0
     df['ΔHF_hp_m_ab (eV)'] = ΔHF_hp_m_ab
 
 

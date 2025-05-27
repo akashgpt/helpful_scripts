@@ -84,7 +84,7 @@ if [ "$TI_mode" -eq 1 ]; then
     mv analysis/temp analysis/evo_TOTEN.dat
 fi
 
-echo "Sourcing peavg.sh"
+echo "Sourcing peavg.sh | Make sure to have peavg.sh on your PATH."
 source peavg.sh OUTCAR
 
 

@@ -7,18 +7,19 @@ source_sequentially=${1:-0} # 0: source in parallel, 1: source sequentially
 update_data_4_analysis_script=${2:-1} # 0: do not update the script, 1: update the script
 suppress_output=${3:-1} # 0: show output, 1: suppress output
 
+echo ""
+
 for dir in */; do 
 
     # if directory does not have have OUTCAR, echo warning
     if [ ! -f "$dir/OUTCAR" ]; then
-        echo ""
         echo "################################"
         echo "Warning: OUTCAR not found in $dir. Skipping this directory."
         echo "################################"
         echo ""
         continue
     fi
-    echo ""
+    # echo ""
     echo "Processing $dir"
     cd "$dir"
     
@@ -47,8 +48,9 @@ for dir in */; do
         fi
     fi
     
-
     echo ""
     cd ..
     
 done
+
+echo ""

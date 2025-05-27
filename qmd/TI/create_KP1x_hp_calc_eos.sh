@@ -326,25 +326,45 @@ while IFS= read -r -d '' parent; do
     echo "----------------------------------------"
     python $HELP_SCRIPTS_vasp/eos_fit__V_at_P.py -p $PSTRESS_CHOSEN_GPa -m 2 -e 0.2 -hp 0
 
-    # check if ${KP1_dir}/../cell_sizes_KPX.dat exists
-    if [ ! -f ${KP1_dir}/../cell_sizes_KPX.dat ]; then
-        echo "cell_sizes_KP1; cell_sizes_KP2 (or the hp_calculations equivalent)" > ${KP1_dir}/../cell_sizes_KPX.dat
-        echo "cell_sizes_KPX.dat not found. Creating a new one."
+    CELL_FILE="$KP1_dir/../cell_sizes_KPX.dat"
+
+    # 1) create the file if it doesn't exist
+    if [ ! -f "$CELL_FILE" ]; then
+        cat > "$CELL_FILE" <<EOF
+    cell_sizes_KP1; cell_sizes_KP2 (or the hp_calculations equivalent)
+    <cell_size_KP1>
+    <cell_size_KP2>
+EOF
+        echo "cell_sizes_KPX.dat not found. Creating a new one at $CELL_FILE."
     fi
 
-    # KP2 corrected volume
-    estimated_cell_volume_KP2=$(awk 'NR==9 {print $7}' ${KP1_dir}/analysis/log.eos_fit_data_mode_2)
-    # replace third line of cell_sizes_KPX.dat with estimated_cell_volume
-    sed -i "3s/.*/$estimated_cell_volume_KP2/" ${KP1_dir}/../cell_sizes_KPX.dat
+    # ensure at least 3 lines in the file
+    line_count=$(wc -l < "$CELL_FILE")
+    if [ "$line_count" -lt 3 ]; then
+    # append blank lines until there are 3
+    for n in $(seq $((line_count + 1)) 3); do
+        echo "" >> "$CELL_FILE"
+    done
+    fi
 
-    # KP1 volume estimate
-    estimated_cell_volume_KP1=$(awk 'NR==9 {print $7}' ${KP1_dir}/analysis/log.eos_fit)
-    # replace second line of cell_sizes_KPX.dat with estimated_cell_volume
-    sed -i "2s/.*/$estimated_cell_volume_KP1/" ${KP1_dir}/../cell_sizes_KPX.dat
+    # make sure the log files exist before you try to awk them
+    LOG2="$KP1_dir/analysis/log.eos_fit_data_mode_2"
+    LOG1="$KP1_dir/analysis/log.eos_fit"
+    for f in "$LOG2" "$LOG1"; do
+        [ -r "$f" ] || { echo "Error: cannot read $f"; exit 1; }
+    done
+
+    # 2) extract volumes
+    estimated_cell_volume_KP2=$(awk 'NR==9 {print $7}' "$LOG2")
+    estimated_cell_volume_KP1=$(awk 'NR==9 {print $7}' "$LOG1")
+
+    # 3) patch line 3 and line 2
+    sed -i "3s/.*/$estimated_cell_volume_KP2/" "$CELL_FILE"
+    sed -i "2s/.*/$estimated_cell_volume_KP1/" "$CELL_FILE"
 
     echo "cell_sizes_KPX.dat updated with estimated cell volumes."
-    echo "estimated_cell_volume_KP1: $estimated_cell_volume_KP1"
-    echo "estimated_cell_volume_KP2: $estimated_cell_volume_KP2"
+    echo "  estimated_cell_volume_KP1: $estimated_cell_volume_KP1"
+    echo "  estimated_cell_volume_KP2: $estimated_cell_volume_KP2"
     echo "----------------------------------------"
 
     echo ""

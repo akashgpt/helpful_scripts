@@ -101,22 +101,26 @@ kB=0.00008617333262145  # Boltzmann constant in eV/K
 
 
 
-# check if the following files exist in the setup directory: POTCAR, KPOINTS_111, KPOINTS_222, INCAR_NPT, RUN_VASP_NPT.sh, INCAR_SCALEE, RUN_VASP_SCALEE.sh, POSCAR_NPT, RUN_VASP_SCALEE_hp.sh
+# check if the following files exist in the setup directory: 
 check_files=(
     "POTCAR"
     "KPOINTS_111"
     "KPOINTS_222"
     "INCAR_NPT"
-    "RUN_VASP_NPT.sh"
     "INCAR_SCALEE"
+    "INCAR_SPC"
+    "RUN_VASP_NPT.sh"
+    "RUN_VASP_NVT.sh"
     "RUN_VASP_SCALEE.sh"
-    "RUN_VASP_SCALEE_hp.sh"
+    "RUN_VASP_SPC.sh"
     "input.calculate_GFE"
 )
 for file in "${check_files[@]}"; do
     if [ ! -f "$SETUP_dir/$file" ]; then
+        echo ""
         echo "Error: $file not found in $SETUP_dir"
-        echo "NOTE: You need the following files in the setup directory -- POTCAR, KPOINTS_111, KPOINTS_222, INCAR_NPT, RUN_VASP_NPT.sh, INCAR_SCALEE, RUN_VASP_SCALEE.sh, POSCAR_NPT, RUN_VASP_SCALEE_hp.s, input.calculate_GFE"
+        echo "NOTE: You need the following files in the setup directory -- ${check_files[*]}"
+        echo ""
         exit 1
     fi
 done
