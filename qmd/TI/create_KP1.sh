@@ -237,7 +237,7 @@ while IFS= read -r -d '' parent; do
     cp ${SETUP_dir}/RUN_VASP_NPT.sh $KP1_dir/RUN_VASP.sh
     cp ${SETUP_dir}//POTCAR         $KP1_dir/POTCAR
     cp ${SETUP_dir}//KPOINTS_111    $KP1_dir/KPOINTS   # KPOINTS 1×1×1
-    cp ${SETUP_dir}/INCAR_NPT    $KP1_dir/INCAR
+    cp ${SETUP_dir}/INCAR_NPT       $KP1_dir/INCAR
 
     # Populate INCAR placeholders
     sed -i "s/__TEMP_CHOSEN__/${TEMP_CHOSEN}/" $KP1_dir/INCAR

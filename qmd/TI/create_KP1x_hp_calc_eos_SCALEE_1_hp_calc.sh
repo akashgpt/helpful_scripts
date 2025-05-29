@@ -169,6 +169,13 @@ while IFS= read -r -d '' parent; do
     # cp $HELP_SCRIPTS_vasp/data_4_analysis.sh .
     # source data_4_analysis.sh 
 
+    # if the parent directory does not contain "32MgSiO3_1H", then skip it
+    if [[ $parent != *32MgSiO3_8H* ]]; then
+        echo "Skipping $parent – doesn’t contain 32MgSiO3_1H"
+        cd ${PT_dir} || exit
+        continue
+    fi
+
     child=$parent # to make the previous script work, we need to set child to parent
     child_abs=$parent_abs
 

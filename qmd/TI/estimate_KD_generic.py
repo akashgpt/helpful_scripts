@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 """
-Estimate chemical potentials and partition coefficients for He in Fe and MgSiO3 systems from TI data.
+Estimate chemical potentials and partition coefficients for {secondary_species} in Fe and MgSiO3 systems from TI data.
 Walks through directory structure, parses log.Ghp_analysis files, assembles results into a DataFrame,
 computes mixing fractions, fits linear excess chemical potentials, and adds entropy corrections.
 
 Usage: python $HELP_SCRIPTS_TI/estimate_KD.py
 
 This script assumes the following directory structure:
-Fe_He/
+Fe_{secondary_species}/
     P50_T3500/
         Config1/
             log.Ghp_analysis
@@ -16,7 +16,7 @@ Fe_He/
     P100_T4000/
         Config1/
             log.Ghp_analysis
-MgSiO3_He/
+MgSiO3_{secondary_species}/
     P50_T3500/
         Config1/
             log.Ghp_analysis
@@ -25,8 +25,8 @@ MgSiO3_He/
 This script will output a CSV file `all_TI_results.csv` with the following columns:
 Phase, P_T_folder, Config_folder, Target pressure, Target temperature, Atom counts, Atomic masses,
 Unique species, Total # of atoms, G_hp, G_hp_error, G_hp_per_atom, G_hp_per_atom_error,
-HF_ig, TS, Volume (Å³), Volume per atom (Å³), X_He, mu_excess_He, mu_He_TS_term, mu_He,
-mu_excess_He, mu_He, KD_sil_to_metal, D_wt, a, b, G_hp_per_atom_w_TS, TS_per_atom
+HF_ig, TS, Volume (Å³), Volume per atom (Å³), X_{secondary_species}, mu_excess_{secondary_species}, mu_{secondary_species}_TS_term, mu_{secondary_species},
+mu_excess_{secondary_species}, mu_{secondary_species}, KD_sil_to_metal, D_wt, a, b, G_hp_per_atom_w_TS, TS_per_atom
 
 Author: Akash Gupta
 """
@@ -36,15 +36,41 @@ import ast
 from pathlib import Path
 import pandas as pd
 import numpy as np
+import matplotlib.pyplot as plt
+import sys
+import argparse
 
 # Boltzmann constant in eV/K for entropy term
 kB = 8.617333262145e-5
 
+
+# read secondary species from terminal, e.g., He, H, C, etc.
+parser = argparse.ArgumentParser(description="Estimate KD for a species in Fe and MgSiO3 systems from TI data.")
+parser.add_argument(
+    "-s", "--secondary_species",
+    type=str,
+    default="He",
+    help="Secondary species to estimate KD for (default: He)."
+)
+args = parser.parse_args()
+# Use the parsed secondary species
+secondary_species = args.secondary_species
+
+
+
 # 1) Define the root directories containing your TI data
 ROOT_DIRS = [
-    "Fe_He",            # directory for Fe-He system
-    "MgSiO3_He"         # directory for MgSiO3-He system
+    f"Fe_{secondary_species}",
+    f"MgSiO3_{secondary_species}"
 ]
+
+print(f"Using secondary species: {secondary_species}")
+# Ensure the root directories exist
+for root in ROOT_DIRS:
+    if not Path(root).is_dir():
+        print(f"Error: Root directory {root} does not exist.")
+        sys.exit(1)
+
 
 # 2) Regex to capture lines of the form "Key : Value"
 KV_RE = re.compile(r'^\s*([^:]+?)\s*:\s*(.+)$')
@@ -94,7 +120,7 @@ def parse_float_list(raw):
 def parse_species_list(raw):
     """
     Convert a raw string representing species list, possibly missing a trailing bracket,
-    into a list of strings, e.g. "['He', 'Fe'" -> ['He','Fe'].
+    into a list of strings, e.g. "['He', 'Fe'" -> ['He','Fe'], or "['H', 'Fe']" -> ['H','Fe'].
     """
     if not isinstance(raw, str):
         return list(raw)
@@ -189,16 +215,16 @@ df.sort_values(by=["Phase", "Target pressure (GPa)"], inplace=True)
 
 
 
-# 7) Compute He mole fraction X_He = n_He / total_atoms for each row
+# 7) Compute {secondary_species} mole fraction X_{secondary_species} = n_{secondary_species} / total_atoms for each row
 
-def frac_he(row):
+def frac_secondary_species(row):
     counts = row["Atom counts"]
     species = row["Unique species"]
     mapping = dict(zip(species, counts))
     total = sum(counts)
-    return mapping.get("He", 0) / total if total else 0.0
+    return mapping.get(secondary_species, 0) / total if total else 0.0
 
-df["X_He"] = df.apply(frac_he, axis=1)
+df[f"X_{secondary_species}"] = df.apply(frac_secondary_species, axis=1)
 
 # 8) Drop any columns starting with WARNING
 warn_cols = [c for c in df.columns if c.startswith("WARNING")]
@@ -213,9 +239,9 @@ if warn_cols:
 df["TS_per_atom"] = df["TS"] / df["Total # of atoms"]
 
 # G_hp_per_atom_w_TS = df["G_hp_per_atom"] + df["TS_per_atom"]
-# for all cases except those with n_He = 0
+# for all cases except those with n_{secondary_species} = 0
 for i, row in df.iterrows():
-    if row["X_He"] > 0:
+    if row[f"X_{secondary_species}"] > 0:
         df.at[i, "G_hp_per_atom_w_TS"] = row["G_hp_per_atom"] + row["TS_per_atom"]
     else:
         df.at[i, "G_hp_per_atom_w_TS"] = row["G_hp_per_atom"]
@@ -232,7 +258,7 @@ df["b"] = np.nan
 
 # Group by Phase and P_T_folder to fit separate lines
 for (phase, pt), sub in df.groupby(["Phase", "P_T_folder"]):
-    x = sub["X_He"].values
+    x = sub[f"X_{secondary_species}"].values
     y = sub["G_hp_per_atom_w_TS"].values
     if len(x) > 1:
         slope, intercept = np.polyfit(x, y, 1)
@@ -242,54 +268,58 @@ for (phase, pt), sub in df.groupby(["Phase", "P_T_folder"]):
     df.loc[mask, "a"] = intercept
     df.loc[mask, "b"] = slope
 
-# Compute mu_excess = a + b (no X_He factor)
-df["mu_excess_He"] = df["a"] + df["b"]
+# Compute mu_excess = a + b (no X_{secondary_species} factor)
+df[f"mu_excess_{secondary_species}"] = df["a"] + df["b"]
 
-# 10) Compute mixing entropy term mu_TS and total mu_He
+# 10) Compute mixing entropy term mu_TS and total mu_{secondary_species}
 
 def compute_mu_TS(row):
     """
-    Compute the TS mixing entropy term for He, using different formulas per phase.
-    Fe_He: TS = kB * T * ln(X)
-    MgSiO3_He: TS = kB * T * ln( X / (5 - 4X) )
+    Compute the TS mixing entropy term for {secondary_species}, using different formulas per phase.
+    Fe_{secondary_species}: TS = kB * T * ln(X)
+    MgSiO3_{secondary_species}: TS = kB * T * ln( X / (5 - 4X) )
     """
     T = row.get("Target temperature (K)")
-    X = row.get("X_He", 0)
+    X = row.get(f"X_{secondary_species}", 0)
+
+    # add floor to X to avoid log(0)
+    X = max(X, 1e-10)  # avoid log(0) or negative values
+
     if T is None or X < 0:
         return np.nan
-    if row["Phase"] == "Fe_He":
+    if row["Phase"] == f"Fe_{secondary_species}":
         return kB * T * np.log(X)
-    elif row["Phase"] == "MgSiO3_He":
+    elif row["Phase"] == f"MgSiO3_{secondary_species}":
         denom = 5 - 4 * X
         return kB * T * np.log(X / denom)# if denom > 0 else np.nan
     else:
         return np.nan
 
-# apply TS term and total mu_He
-df["mu_He_TS_term"] = df.apply(compute_mu_TS, axis=1)
-df["mu_He"] = df["mu_excess_He"] + df["mu_He_TS_term"]
+# apply TS term and total mu_{secondary_species}
+df[f"mu_{secondary_species}_TS_term"] = df.apply(compute_mu_TS, axis=1)
+df[f"mu_{secondary_species}"] = df[f"mu_excess_{secondary_species}"] + df[f"mu_{secondary_species}_TS_term"]
 
 
 
 
 
 
-# partiction coefficient: (1.78/5) * np.exp(-(mu_excess_He_for_Fe - mu_excess_He_for_MgSiO3) / (kB * T)) for the same P_T_folder
+# partiction coefficient: (1.78/5) * np.exp(-(mu_excess_{secondary_species}_for_Fe - mu_excess_{secondary_species}_for_MgSiO3) / (kB * T)) for the same P_T_folder
 def compute_KD(row):
     # 1) Identify this row’s phase & P_T group
     phase = row["Phase"]
     pt    = row["P_T_folder"]
     # 2) Determine the other phase
-    other_phase = "MgSiO3_He" if phase == "Fe_He" else "Fe_He"
-    # 3) Grab that phase’s mu_excess_He for the same P_T_folder
+    other_phase = f"MgSiO3_{secondary_species}" if phase == f"Fe_{secondary_species}" else f"Fe_{secondary_species}"
+    # 3) Grab that phase’s mu_excess_{secondary_species} for the same P_T_folder
     partner = df.loc[
         (df["Phase"] == other_phase) &
         (df["P_T_folder"] == pt),
-        "mu_excess_He"
+        f"mu_excess_{secondary_species}"
     ]
 
-    if phase == "Fe_He":
-        mult_factor = 1 # to ensure that KD is always for He_{silicate} -> He_{metal}
+    if phase == f"Fe_{secondary_species}":
+        mult_factor = 1 # to ensure that KD is always for {secondary_species}_{silicate} -> {secondary_species}_{metal}
     else:
         mult_factor = -1
 
@@ -301,8 +331,8 @@ def compute_KD(row):
     if np.isnan(T) or T <= 0:
         return np.nan
     # 5) Compute KD
-    # solve for KD = (x/y) such that (x/y) = (1/(5-4*y)) * np.exp(-mult_factor*(row["mu_excess_He"] - other_mu) / (kB * T))
-    return (1/5.0) * np.exp(-mult_factor*(row["mu_excess_He"] - other_mu) / (kB * T))
+    # solve for KD = (x/y) such that (x/y) = (1/(5-4*y)) * np.exp(-mult_factor*(row[f"mu_excess_{secondary_species}"] - other_mu) / (kB * T))
+    return (1/5.0) * np.exp(-mult_factor*(row[f"mu_excess_{secondary_species}"] - other_mu) / (kB * T))
 
 # Apply it
 df["KD_sil_to_metal"] = df.apply(compute_KD, axis=1)
@@ -332,13 +362,13 @@ print(f"Wrote all_TI_results.csv with {len(df)} rows.")
 
 
 
-# plot X_He vs G_hp_per_atom_w_TS, and color by P_T_folder and size by phase
+# plot X_{secondary_species} vs G_hp_per_atom_w_TS, and color by P_T_folder and size by phase
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 from matplotlib.colors import ListedColormap, BoundaryNorm
 
-# 1) Load your assembled TI results (with columns: Phase, P_T_folder, X_He, G_hp_per_atom_w_TS, a, b, etc.)
+# 1) Load your assembled TI results (with columns: Phase, P_T_folder, X_{secondary_species}, G_hp_per_atom_w_TS, a, b, etc.)
 df = pd.read_csv("all_TI_results.csv")
 
 # 2) Build a discrete colormap only for the P_T_folder categories actually present
@@ -354,8 +384,8 @@ cmap      = ListedColormap(colors)
 norm      = BoundaryNorm(np.arange(len(used_codes)+1)-0.5, len(used_codes))
 
 # 3) Marker size and opacity by phase
-size_map  = {"Fe_He": 200, "MgSiO3_He": 100}
-alpha_map = {"Fe_He": 0.5,   "MgSiO3_He": 1.0}
+size_map  = {f"Fe_{secondary_species}": 200, f"MgSiO3_{secondary_species}": 100}
+alpha_map = {f"Fe_{secondary_species}": 0.5,   f"MgSiO3_{secondary_species}": 1.0}
 
 # 4) Create figure and axes
 fig, ax = plt.subplots(figsize=(8, 20))
@@ -367,7 +397,7 @@ sm.set_array([])
 # 6) Scatter plot of the data
 for phase, sub in df.groupby("Phase"):
     ax.scatter(
-        sub["X_He"],
+        sub[f"X_{secondary_species}"],
         sub["G_hp_per_atom_w_TS"],
         c=mapped_codes[sub.index],
         cmap=cmap, norm=norm,
@@ -380,7 +410,7 @@ for phase, sub in df.groupby("Phase"):
 for (phase, pt), sub in df.groupby(["Phase", "P_T_folder"]):
     a = sub["a"].iloc[0]
     b = sub["b"].iloc[0]
-    x_line = np.linspace(sub["X_He"].min(), sub["X_He"].max(), 200)
+    x_line = np.linspace(sub[f"X_{secondary_species}"].min(), sub[f"X_{secondary_species}"].max(), 200)
     # use the same norm+cmap via sm.to_rgba on the original code
     orig_code = folder_cats.cat.categories.get_loc(pt)
     line_color = sm.to_rgba(orig_code)
@@ -406,15 +436,15 @@ cbar.ax.set_yticklabels([folder_cats.cat.categories[i] for i in used_codes])
 cbar.set_label("P_T_folder")
 
 # 9) Final styling
-ax.set_xlabel("X_He")
+ax.set_xlabel(f"X_{secondary_species}")
 ax.set_ylabel("G_hp_per_atom_w_TS (eV)")
-ax.set_title("X_He vs G_hp_per_atom_w_TS\nColored by P_T_folder, Sized/Alpha by Phase")
+ax.set_title(f"X_{secondary_species} vs G_hp_per_atom_w_TS\nColored by P_T_folder, Sized/Alpha by Phase")
 ax.legend(title="Phase")
 ax.grid(True)
 plt.tight_layout()
 
 # 10) Save and/or show
-plt.savefig("X_He_vs_G_hp_per_atom_w_TS.png", dpi=300)
+plt.savefig(f"X_{secondary_species}_vs_G_hp_per_atom_w_TS.png", dpi=300)
 # plt.show()
 
 
@@ -424,10 +454,10 @@ plt.savefig("X_He_vs_G_hp_per_atom_w_TS.png", dpi=300)
 
 
 
-# narrow df to Fe_He phase and P_T_folder = P50_T3500
+# narrow df to Fe_{secondary_species} phase and P_T_folder = P50_T3500
 # df = df[ (df["P_T_folder"] == "P50_T3500")]
 
-# plot mu_He vs X_He, and color by P_T_folder and size by phase
+# plot mu_{secondary_species} vs X_{secondary_species}, and color by P_T_folder and size by phase
 # --- Prepare the discrete colormap for the used P_T_folders ---
 folder_cats  = df["P_T_folder"].astype("category")
 orig_codes   = folder_cats.cat.codes.values
@@ -439,15 +469,15 @@ colors    = [base_cmap(old) for old in used_codes]
 cmap      = ListedColormap(colors)
 norm      = BoundaryNorm(np.arange(len(used_codes)+1)-0.5, len(used_codes))
 # --- Size & opacity per phase ---
-size_map  = {"Fe_He": 200, "MgSiO3_He": 100}
-alpha_map = {"Fe_He": 0.5,  "MgSiO3_He": 1.0}
+size_map  = {f"Fe_{secondary_species}": 200, f"MgSiO3_{secondary_species}": 100}
+alpha_map = {f"Fe_{secondary_species}": 0.5,  f"MgSiO3_{secondary_species}": 1.0}
 # --- Make the figure & axes ---
 fig, ax = plt.subplots(figsize=(10,10))
 # 1) Scatter the raw data, grouping by Phase so we get two sizes/alphas
 for phase, sub in df.groupby("Phase"):
     ax.scatter(
-        sub["X_He"], sub["mu_He"],
-        # sub["X_He"], sub["mu_excess_H"],
+        sub[f"X_{secondary_species}"], sub[f"mu_{secondary_species}"],
+        # sub[f"X_{secondary_species}"], sub[f"mu_excess_{secondary_species}"],
         c=mapped_codes[sub.index],      # use remapped folder codes
         cmap=cmap, norm=norm,
         s=size_map[phase],
@@ -455,15 +485,15 @@ for phase, sub in df.groupby("Phase"):
         label=phase
     )
     # print(f"phase = {phase}")
-    # print(f"sub['X_He'] = {sub['X_He']}")
-    # print(f"sub['mu_He'] = {sub['mu_He']}")
+    # print(f"sub['X_{secondary_species}'] = {sub[f'X_{secondary_species}']}")
+    # print(f"sub['mu_{secondary_species}'] = {sub[f'mu_{secondary_species}']}")
 # # 2) Overlay the fitted lines for each (Phase, P_T_folder)
 # #    We pick the same x-range per folder so the line spans the full data
 # for (phase, pt), sub in df.groupby(["Phase","P_T_folder"]):
 #     a = sub["a"].iloc[0]
 #     b = sub["b"].iloc[0]
 #     # line x from min to max of that subgroup
-#     x_line = np.linspace(sub["X_He"].min(), sub["X_He"].max(), 200)
+#     x_line = np.linspace(sub[f"X_{secondary_species}"].min(), sub[f"X_{secondary_species}"].max(), 200)
 #     # get the original code for this folder, then map→0..N-1 for color lookup
 #     orig_code = folder_cats.cat.categories.get_loc(pt)
 #     mcode     = remap[orig_code]
@@ -502,14 +532,14 @@ cbar.set_label("P_T_folder")
 #     label.set_fontsize(8)
 
 # 4) Final styling
-ax.set_xlabel("X_He")
-ax.set_ylabel("mu_He (eV)")
-ax.set_title("X_He vs mu_He with Line Fits by Phase+P_T_folder")
+ax.set_xlabel(f"X_{secondary_species}")
+ax.set_ylabel(f"mu_{secondary_species} (eV)")
+ax.set_title(f"X_{secondary_species} vs mu_{secondary_species} with Line Fits by Phase+P_T_folder")
 ax.legend()
 # ax.legend(bbox_to_anchor=(1.05,1), loc="upper left", fontsize="small", title="Legend")
 ax.grid(True)
 plt.tight_layout()
-plt.savefig("X_He_vs_mu_He.png")
+plt.savefig(f"X_{secondary_species}_vs_mu_{secondary_species}.png")
 
 
 
@@ -521,7 +551,8 @@ fig, axes = plt.subplots(2, 2, figsize=(10, 8))
 ax1, ax2, ax3, ax4 = axes.flatten()
 
 # 2) Common settings
-marker_opts = dict(marker='o', linestyle='', markersize=10, alpha=0.25)
+marker_opts = dict(marker='o', linestyle='', markersize=10, alpha=0.5)
+marker_opts__others = dict(marker='s', linestyle='', markersize=15, alpha=0.25)
 
 # --- Panel 1: KD_sil_to_metal (linear) ---
 ax1.plot(df["P_T_folder"], df["KD_sil_to_metal"], **marker_opts)
@@ -558,30 +589,80 @@ ax4.grid(True)
 ax4.set_xlabel("P, T")
 
 # super title
-fig.suptitle("Partition Coefficient (K_D) and Weight Distribution Coefficient (D_wt) for He in Fe and MgSiO3. \n Note: Assumption that X_He in silicates is << 1", fontsize=12)
+fig.suptitle(f"Partition Coefficient (K_D) and Weight Distribution Coefficient (D_wt) for {secondary_species} in Fe and MgSiO3. \n Note: Assumption that X_{secondary_species} in silicates is << 1", fontsize=12)
 
 
-# in all plots, add two data points at P500_T9000 0.032 and at P1000_T13000, 1
-ax1.plot("P500_T9000", 0.032, **marker_opts)
-ax1.plot("P500_T9000", 0.07, **marker_opts)
-ax1.plot("P1000_T13000", 1, **marker_opts)
-ax1.plot("P1000_T13000", 0.32, **marker_opts)
-ax2.plot("P500_T9000", 0.032, **marker_opts)
-ax2.plot("P500_T9000", 0.07, **marker_opts)
-ax2.plot("P1000_T13000", 1, **marker_opts)
-ax2.plot("P1000_T13000", 0.32, **marker_opts)
-ax3.plot("P500_T9000", 0.032*1.78, **marker_opts)
-ax3.plot("P500_T9000", 0.07*1.78, **marker_opts)
-ax3.plot("P1000_T13000", 1*1.78, **marker_opts)
-ax3.plot("P1000_T13000", 0.32*1.78, **marker_opts)
-ax4.plot("P500_T9000", 0.032*1.78, **marker_opts)
-ax4.plot("P500_T9000", 0.07*1.78, **marker_opts)
-ax4.plot("P1000_T13000", 1*1.78, **marker_opts)
-ax4.plot("P1000_T13000", 0.32*1.78, **marker_opts)
+# if secondary_species is "He" -- in all plots, add two data points at P500_T9000 0.032 and at P1000_T13000, 1
+if secondary_species == "He":
+    ax1.plot("P500_T9000", 0.032, **marker_opts)
+    ax1.plot("P500_T9000", 0.07, **marker_opts)
+    # ax1.plot("P1000_T13000", 1, **marker_opts)
+    ax1.plot("P1000_T13000", 0.32, **marker_opts)
+    ax2.plot("P500_T9000", 0.032, **marker_opts)
+    ax2.plot("P500_T9000", 0.07, **marker_opts)
+    # ax2.plot("P1000_T13000", 1, **marker_opts)
+    ax2.plot("P1000_T13000", 0.32, **marker_opts)
+    ax3.plot("P500_T9000", 0.032*1.78, **marker_opts)
+    ax3.plot("P500_T9000", 0.07*1.78, **marker_opts)
+    # ax3.plot("P1000_T13000", 1*1.78, **marker_opts)
+    ax3.plot("P1000_T13000", 0.32*1.78, **marker_opts)
+    ax4.plot("P500_T9000", 0.032*1.78, **marker_opts)
+    ax4.plot("P500_T9000", 0.07*1.78, **marker_opts)
+    # ax4.plot("P1000_T13000", 1*1.78, **marker_opts)
+    ax4.plot("P1000_T13000", 0.32*1.78, **marker_opts)
+
+# previous studies
+if secondary_species == "He":
+    # P50_T3500: 2.6E-3
+    # P135_T4200: 8.7E-4
+    ax1.plot("P50_T3500", 2.6E-3, **marker_opts__others, color='red', label="Previous Study: P50_T3500")
+    # ax1.plot("P135_T4200", 8.7E-4, **marker_opts__others, color='red', label="Previous Study: P135_T4200")
+    ax2.plot("P50_T3500", 2.6E-3, **marker_opts__others, color='red', label="Previous Study: P50_T3500")
+    # ax2.plot("P135_T4200", 8.7E-4, **marker_opts__others, color='red', label="Previous Study: P135_T4200")
+    ax3.plot("P50_T3500", 2.6E-3*1.78, **marker_opts__others, color='red', label="Previous Study: P50_T3500")
+    # ax3.plot("P135_T4200", 8.7E-4*1.78, **marker_opts__others, color='red', label="Previous Study: P135_T4200")
+    ax4.plot("P50_T3500", 2.6E-3*1.78, **marker_opts__others, color='red', label="Previous Study: P50_T3500")
+    # ax4.plot("P135_T4200", 8.7E-4*1.78, **marker_opts__others, color='red', label="Previous Study: P135_T4200")
+
+
+if secondary_species == "H":
+    # Luo et al.
+    # P500_T9000: 10**1.4
+    # P1000_T13000: 10**1.8
+    ax1.plot("P500_T9000", 10**1.4, **marker_opts__others, color='red', label="Luo et al. P500_T9000")
+    ax1.plot("P1000_T13000", 10**1.8, **marker_opts__others, color='red', label="Luo et al. P1000_T13000")
+    ax2.plot("P500_T9000", 10**1.4, **marker_opts__others, color='red', label="Luo et al. P500_T9000")
+    ax2.plot("P1000_T13000", 10**1.8, **marker_opts__others, color='red', label="Luo et al. P1000_T13000")
+    ax3.plot("P500_T9000", 10**1.4*1.78, **marker_opts__others, color='red', label="Luo et al. P500_T9000")
+    ax3.plot("P1000_T13000", 10**1.8*1.78, **marker_opts__others, color='red', label="Luo et al. P1000_T13000")
+    ax4.plot("P500_T9000", 10**1.4*1.78, **marker_opts__others, color='red', label="Luo et al. P500_T9000")
+    ax4.plot("P1000_T13000", 10**1.8*1.78, **marker_opts__others, color='red', label="Luo et al. P1000_T13000")
+
+    # previous study
+    # P50_T3500: 9.1
+    ax1.plot("P50_T3500", 9.1, **marker_opts__others, color='blue', label="Previous Study: P50_T3500")
+    ax2.plot("P50_T3500", 9.1, **marker_opts__others, color='blue', label="Previous Study: P50_T3500")
+    ax3.plot("P50_T3500", 9.1*1.78, **marker_opts__others, color='blue', label="Previous Study: P50_T3500")
+    ax4.plot("P50_T3500", 9.1*1.78, **marker_opts__others, color='blue', label="Previous Study: P50_T3500")
+
+# x lim ,  y lim
+if secondary_species == "He":
+    y_min = 1e-4
+    y_max = 1e1
+elif secondary_species == "H":
+    y_min = 1e-1
+    y_max = 1e3
+
+# ax1.set_ylim(y_min, y_max)
+ax2.set_ylim(y_min, y_max)
+# ax3.set_ylim(y_min, y_max)
+ax4.set_ylim(y_min, y_max)
+
+
 
 # 3) Layout & save
 plt.tight_layout()
-plt.savefig("KD_D_wt_vs_P_T.png", dpi=300)
+plt.savefig(f"KD_D_wt_vs_P_T.png", dpi=300)
 
 
 
@@ -589,15 +670,14 @@ plt.savefig("KD_D_wt_vs_P_T.png", dpi=300)
 
 
 
-
-# plot all mu_He vs X_He, and color by P_T_folder
+# plot all mu_{secondary_species} vs X_{secondary_species}, and color by P_T_folder
 # plt.figure(figsize=(10,6))
 # plt.scatter(
-#     df["X_He"], df["mu_He"],
+#     df[f"X_{secondary_species}"], df[f"mu_{secondary_species}"],
 #     s=100,
 #     alpha=0.5
 # )
 # plt.savefig("test.png")
 
-print("Created: dataframe with G_hp_per_atom, G_hp_per_atom_error, X_He, etc. from all systems")
-print(f"Files created: all_TI_results_with_XHe.csv, X_He_vs_G_hp_per_atom.png")
+print(f"Created: dataframe with G_hp_per_atom, G_hp_per_atom_error, X_{secondary_species}, etc. from all systems")
+print(f"Files created: all_TI_results_with_X{secondary_species}.csv, X_{secondary_species}_vs_G_hp_per_atom.png")
