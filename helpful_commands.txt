@@ -501,13 +501,15 @@ sed -i 's/# Pressure in kb; 1 kb = 0.1 GPa/ /g' */INCAR
 find . -type f -name 'INCAR*' -exec sed -i 's/# ;   TEEND=13000/ /g' {} +
 find . -type f -name 'input.calc*' -exec sed -i 's/NBANDS_CHOSEN=672/NBANDS_CHOSEN=784/g' {} +
 find . -type f -name 'INCAR*' -exec sed -i 's/LCHARG = .FALSE./LCHARG = .TRUE./g' {} +
-find . -type f -name 'INCAR*' -exec sed -i 's/NPAR   = 8/NPAR   = 2/g' {} +
+find . -type f -name 'INCAR*' -exec sed -i 's/NPAR = 14/NPAR = 12/g' {} +
 find . -type f -name 'INCAR*' -exec sed -i 's/LCHARG = .TRUE./LCHARG = .FALSE./g' {} +
 find . -type f -name 'INCAR*' -exec sed -i 's/LWAVE = .TRUE./LWAVE = .FALSE./g' {} +
 find . -type f -name 'INCAR*' -exec sed -i 's/POTIM  =   0.5/POTIM  =   0.25/g' {} +
-find . -type f -name 'INCAR*' -exec sed -i 's/NSW    = 15000/NSW    = 40000/g' {} +
+find . -type f -name 'INCAR*' -exec sed -i 's/ALGO   = F/ALGO   = All/g' {} +
+find . -type f -name 'INCAR*' -exec sed -i 's/NBANDS = 784/NBANDS = 768/g' {} +
+find . -type f -name 'INCAR' -exec sed -i 's/LANGEVIN_GAMMA = 1.0 1.0 5.0 10.0/LANGEVIN_GAMMA = 1.0 1.0 2.0 10.0/g' {} +
 find . -type f -name 'INCAR_relax' -exec sed -i 's/ALGO   = F/ALGO   = N/g' {} +
-find . -type f -name 'RUN_VASP*' -exec sed -i 's/#SBATCH --time=5:00:00/#SBATCH --time=24:00:00/g' {} +
+find . -type f -name 'RUN_VASP*' -exec sed -i 's/#SBATCH --time=24:05:00/#SBATCH --time=24:00:00/g' {} +
 
 
 
@@ -525,3 +527,16 @@ done
 
 # Now wait only for those jobs
 wait "${pids[@]}"
+
+
+
+# to rerun SCALEE_X with SCALEE_{X-1} as the starting point + ALGO=All
+cp -r SCALEE_5 SCALEE_6__5cont && cd SCALEE_6__5cont/ && cp CONTCAR POSCAR && find . -type f -name 'INCAR' -exec sed -i 's/ALGO   = F/ALGO   = All/g' {} + && sb RUN_VASP.sh
+
+# restarting with SCALEE_6b by going back a few steps + ALGO=All
+cp -r SCALEE_6 SCALEE_6b && cd SCALEE_6b/ && python $HELP_SCRIPTS_vasp/continue_run_ase.py -r 500 && rm -f WAVECAR && find . -type f -name 'INCAR' -exec sed -i 's/ALGO   = F/ALGO   = All/g' {} + && sb RUN_VASP.sh
+
+
+# to change the INCAR files in all sub-directories -- TIGER3 to STELLAR
+find . -type f -name 'INCAR' -exec sed -i 's/LANGEVIN_GAMMA = 1.0 1.0 5.0 10.0/LANGEVIN_GAMMA = 1.0 1.0 2.0 10.0/g' {} + && find . -type f -name 'INCAR' -exec sed -i 's/NBANDS = 784/NBANDS = 768/g' {} + && find . -type f -name 'INCAR' -exec sed -i 's/NPAR = 14/NPAR = 12/g' {} +
+find . -type f -name 'INCAR' -exec sed -i 's/NBANDS = 784/NBANDS = 768/g' {} + && find . -type f -name 'INCAR' -exec sed -i 's/NPAR = 14/NPAR = 12/g' {} +

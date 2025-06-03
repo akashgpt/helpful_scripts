@@ -8,7 +8,7 @@ shopt -s nullglob   # so that `for dir in */` does nothing if there are no folde
 
 
 
-param_run_or_not=${1:-1}  # Default to 1 if not provided, which means run the script
+param_run_or_not=${1:-0}  # Default to 0 if not provided, which means do not run the script
 num_isobar_calculations=${2:-4}  # Default to 6 if not provided
 temp_gap_percentage=${3:-10}  # Default to 5 if not provided -- e.g. if TEMP_CHOSEN=13000, then the isobar calculations will be at 12000, 12500, 13000, 13500, 14000 for default values of both these variables
 
@@ -159,11 +159,23 @@ for dir in */; do
     # skip the master_setup_TI folder
     [[ "$dir" == "master_setup_TI/" ]] && continue
 
+
+    # skip if the CONFIG_dir does not contain _0 or _8
+    # skip unless there's “_0” or “_8” anywhere in the string
+    if [[ ! $dir =~ _[08] ]]; then
+        echo "Skipping $dir – it doesn't contain _0 or _8."
+        cd "$PT_dir" || exit 1
+        continue
+    fi
+
+
     (
         cd "$dir" || exit 1
         dir_address=$(pwd)
         CONFIG_dir=$dir_address
+        echo ""
         echo "Current directory: $dir_address"
+        echo ""
 
 
         # if CONFIG_dir contains "_0", then check if SCALEE_1 directory exists. If it does, move on.
@@ -172,21 +184,80 @@ for dir in */; do
         # add all the numbers in the seventh line to a variable called num_atoms and 
         # then remove all lines from this copied POSCAR that are after the (8+num_atoms) number of lines
         if [[ "$CONFIG_dir" == *_0* ]]; then
-            if [ -d "$CONFIG_dir/SCALEE_1" ]; then
-                echo "SCALEE_1 directory already exists in $CONFIG_dir, skipping..."
+            dest="$CONFIG_dir/SCALEE_1"
+
+            if [[ -d "$dest" ]]; then
+                echo "SCALEE_1 already exists in $CONFIG_dir, skipping."
             else
-                echo "Creating SCALEE_1 directory in $CONFIG_dir"
-                mkdir -p "$CONFIG_dir/SCALEE_1"
-                cp ../*_1H*/SCALEE_1/POSCAR "$CONFIG_dir/SCALEE_1/POSCAR"
-                # Replace the last " 1" with " 0" in the seventh line of POSCAR
-                sed -i '7s/ 1/ 0/' "$CONFIG_dir/SCALEE_1/POSCAR"
-                # Get the number of atoms from the seventh line
-                num_atoms=$(awk 'NR==7 {print $2}' "$CONFIG_dir/SCALEE_1/POSCAR")
-                # Remove all lines after (8 + num_atoms) lines
-                awk -v num_atoms="$num_atoms" 'NR <= (8 + num_atoms)' "$CONFIG_dir/SCALEE_1/POSCAR" > "$CONFIG_dir/SCALEE_1/POSCAR.tmp"
-                mv "$CONFIG_dir/SCALEE_1/POSCAR.tmp" "$CONFIG_dir/SCALEE_1/POSCAR"
+                echo "Creating $dest"
+                mkdir -p "$dest"
+
+                # find first matching source SCALEE_1 under any ../*_1H*/SCALEE_1
+                src=$(echo ../*_1H*/SCALEE_1 2>/dev/null | awk '{print $1}')
+                if [[ ! -d "$src" ]]; then
+                echo "Error: no source dir found for SCALEE_1" >&2
+                continue
+                fi
+
+                # copy CONTCAR if present, else POSCAR
+                if [[ -f "$src/CONTCAR" ]]; then
+                echo "Using CONTCAR from $src"
+                cp "$src/CONTCAR" "$dest/POSCAR"
+                elif [[ -f "$src/POSCAR" ]]; then
+                echo "Using POSCAR from $src"
+                cp "$src/POSCAR" "$dest/POSCAR"
+                else
+                echo "Error: neither CONTCAR nor POSCAR in $src" >&2
+                continue
+                fi
+
+                # if COMPOSITION_dir_name contains "MgSiO3", then
+                if [[ "$COMPOSITION_dir_name" == *"MgSiO3"* ]]; then
+                    echo "Primary component is MgSiO3, modifying POSCAR accordingly."
+                    # change the last ' 1' on line 7 to ' '
+                    sed -i '7s/\(.*\) 1$/\1 /' "$dest/POSCAR"
+
+                    # delete the last word on sixth line
+                    awk 'NR==6 { $NF=""; sub(/[[:space:]]+$/, ""); }1' \
+                        "$dest/POSCAR" > "$dest/POSCAR.tmp" && mv "$dest/POSCAR.tmp" "$dest/POSCAR"
+
+                    # count atoms by adding all numbers in the seventh line
+                    num_atoms=$(awk 'NR==7 {sum=0; for(i=1;i<=NF;i++) sum+=$i; print sum}' "$dest/POSCAR")
+                    echo "Number of atoms in POSCAR: $num_atoms"
+
+
+                    echo "Truncating to $((8 + num_atoms)) lines (8 header + $num_atoms atoms)"
+
+                    # truncate the file
+                    head -n $((8 + num_atoms)) "$dest/POSCAR" > "$dest/POSCAR.tmp"
+                    echo ""
+                elif [[ "$COMPOSITION_dir_name" == *"Fe"* ]]; then
+                    echo "Primary component is Fe, modifying POSCAR accordingly."
+                    # change the first ' 1' on line 7 to ' '
+                    sed -i '7s/ 1 / /' "$dest/POSCAR"
+
+                    # delete the first word on sixth line
+                    awk 'NR==6 { $1=""; sub(/^[[:space:]]+/, ""); }1' \
+                        "$dest/POSCAR" > "$dest/POSCAR.tmp" && mv "$dest/POSCAR.tmp" "$dest/POSCAR"
+                    # count atoms by adding all numbers in the seventh line
+                    num_atoms=$(awk 'NR==7 {sum=0; for(i=1;i<=NF;i++) sum+=$i; print sum}' "$dest/POSCAR")
+                    echo "Number of atoms in POSCAR: $num_atoms"
+
+                    echo "Truncating to $((8 + num_atoms)) lines (8 header + $num_atoms atoms)"
+                    # truncate the file by deleting the ninth line only
+                    awk 'NR!=9' "$dest/POSCAR" > "$dest/POSCAR.tmp" && mv "$dest/POSCAR.tmp" "$dest/POSCAR"
+                    echo ""
+                else
+                    echo "Unknown composition: $COMPOSITION_dir_name"
+                    exit 1
+                fi
+
+                mv "$dest/POSCAR.tmp" "$dest/POSCAR"
+                echo "POSCAR copied and modified in $dest"
             fi
         fi
+
+        echo ""
 
 
         mkdir -p isobar_calc  # Create the isobar_calculations directory if it doesn't exist
@@ -211,7 +282,26 @@ for dir in */; do
             cd "$TEMP_CHOSEN_ISOBAR_dir" || exit 1
 
             cp $CONFIG_dir/SCALEE_1/POSCAR $TEMP_CHOSEN_ISOBAR_dir/POSCAR
-            cp $SETUP_dir/POTCAR "$TEMP_CHOSEN_ISOBAR_dir/POTCAR"
+            num_atoms=$(python -c "from ase.io import read; print(len(read('$TEMP_CHOSEN_ISOBAR_dir/POSCAR').get_chemical_symbols()))")
+            echo "Number of atoms in POSCAR: $num_atoms"
+            # echo "Number of atoms in POSCAR: $num_atoms"
+            # Remove all lines after (8 + num_atoms) lines
+            awk -v num_atoms="$num_atoms" 'NR <= (8 + num_atoms)' "$TEMP_CHOSEN_ISOBAR_dir/POSCAR" > "$TEMP_CHOSEN_ISOBAR_dir/POSCAR.tmp"
+            mv "$TEMP_CHOSEN_ISOBAR_dir/POSCAR.tmp" "$TEMP_CHOSEN_ISOBAR_dir/POSCAR"
+
+            CONFIG_dir_name=$(basename "$CONFIG_dir")
+            # if "_0" in the CONFIG_dir_name and COMPOSITION_dir_name contains "MgSiO3", copy corresponding POTCARs
+            if [[ "$CONFIG_dir_name" == *_0* && "$COMPOSITION_dir_name" == *"MgSiO3"* ]]; then
+                echo "Copying POTCAR for MgSiO3"
+                cp $SETUP_dir/POTCAR_MgSiO3 "$TEMP_CHOSEN_ISOBAR_dir/POTCAR"
+            elif [[ "$CONFIG_dir_name" == *_0* && "$COMPOSITION_dir_name" == *"Fe"* ]]; then
+                echo "Copying POTCAR for Fe"
+                cp $SETUP_dir/POTCAR_Fe "$TEMP_CHOSEN_ISOBAR_dir/POTCAR"
+            else
+                echo "Copying default POTCAR"
+                cp $SETUP_dir/POTCAR "$TEMP_CHOSEN_ISOBAR_dir/POTCAR"
+            fi
+            # cp $SETUP_dir/POTCAR "$TEMP_CHOSEN_ISOBAR_dir/POTCAR"
             cp $SETUP_dir/KPOINTS_111 "$TEMP_CHOSEN_ISOBAR_dir/KPOINTS" # KPOINTS 111
             cp ${SETUP_dir}/INCAR_NPT    $TEMP_CHOSEN_ISOBAR_dir/INCAR
 
@@ -230,13 +320,24 @@ for dir in */; do
             sed -i "s/__SCALEE_CHOSEN__/${SCALEE_CHOSEN}/" $TEMP_CHOSEN_ISOBAR_dir/INCAR
             sed -i "s/__PSTRESS_CHOSEN__/${PSTRESS_CHOSEN}/" $TEMP_CHOSEN_ISOBAR_dir/INCAR
 
-            cp $SETUP_dir/RUN_VASP_SCALEE.sh "$TEMP_CHOSEN_ISOBAR_dir/RUN_VASP.sh"
+            cp $SETUP_dir/RUN_VASP_NPT.sh "$TEMP_CHOSEN_ISOBAR_dir/RUN_VASP.sh"
 
+            mkdir -p V_est/KP1 # follow the usual structure from before
+            cp $TEMP_CHOSEN_ISOBAR_dir/* $TEMP_CHOSEN_ISOBAR_dir/V_est/KP1/  # copy all files to V_est/KP1
+            rm $TEMP_CHOSEN_ISOBAR_dir/*  # remove all files (not dirs, e.g., V_est) from the current directory
+
+            cd "$TEMP_CHOSEN_ISOBAR_dir/V_est/KP1" || exit 1
             # Submit the VASP job
             if [[ "$param_run_or_not" == "1" ]]; then
                 echo "Submitting VASP job in $TEMP_CHOSEN_ISOBAR_dir"
                 # sbatch --job-name="isobar_calc_${TEMP_CHOSEN_ISOBAR_i}" --output="log.isobar_calc_${TEMP_CHOSEN_ISOBAR_i}" --error="log.isobar_calc_${TEMP_CHOSEN_ISOBAR_i}" "$TEMP_CHOSEN_ISOBAR_dir/RUN_VASP.sh"
                 sbatch RUN_VASP.sh
+
+                # list just the job IDs for your user, sort them numerically, and take the last one
+                LAST_JOB_ID=$(squeue -u $USER -h -o "%i" | sort -n | tail -1)
+                echo "Started VASP in $KP1_dir"
+                echo "JOB_ID_KP1: $LAST_JOB_ID"
+                echo ""
             else
                 echo "Skipping VASP job submission in $TEMP_CHOSEN_ISOBAR_dir (param_run_or_not is set to 0)"
             fi
@@ -250,6 +351,26 @@ for dir in */; do
     )
     sleep ${WAIT_TIME_SHORT}
 done
+
+
+
+# find all isobar_calc directories and run the isobar calculations in parallel
+while IFS= read -r -d '' isobar_calc_dir; do
+    (
+        cd "$isobar_calc_dir" || exit 1
+        echo "Processing isobar_calc directory: $isobar_calc_dir"
+
+        nohup $HELP_SCRIPTS_TI/isobar__create.sh > log.isobar__create 2>&1 &
+        
+        echo "Initiated isobar calculation in $isobar_calc_dir"
+
+        sleep ${WAIT_TIME_SHORT}
+
+        cd "$PT_dir" || exit 1
+    )
+done < <(find . -type d -name 'isobar_calc' -print0)
+
+
 
 echo ""
 echo "All calculations/directories initiated. $(date)."

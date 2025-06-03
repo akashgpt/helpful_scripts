@@ -49,18 +49,24 @@ kBar_to_GPa=0.1
 # Compute sigma = k_B * T (for smearing)
 # SIGMA_CHOSEN=$(echo "${kB} * ${TEMP_CHOSEN}" | bc -l)
 
-# Save the current working directory for later
-PT_dir=$(pwd)
+#-------------------------
+# Working directory
+#-------------------------
+ISOBAR_CALC_dir=$(pwd)
+CONFIG_dir=$(dirname "$ISOBAR_CALC_dir") # CONFIG_dir is the parent directory of isobar_calc
+PT_dir=$(dirname "$CONFIG_dir") # PT_dir is the parent directory of CONFIG_dir
 PT_dir_name=$(basename "$PT_dir")
 
+# parent directory
 COMPOSITION_dir=$(dirname "$PT_dir")
 COMPOSITION_dir_name=$(basename "$COMPOSITION_dir")
 
 echo "Current time: $(date)"
-echo "Current PT directory: $PT_dir"
-echo "Current PT directory name: $PT_dir_name"
-echo "Current COMPOSITION directory: $COMPOSITION_dir"
-echo "Current COMPOSITION directory name: $COMPOSITION_dir_name"
+echo "PT directory: $PT_dir"
+echo "PT directory name: $PT_dir_name"
+echo "COMPOSITION directory: $COMPOSITION_dir"
+echo "COMPOSITION directory name: $COMPOSITION_dir_name"
+echo "ISOBAR_CALC_dir: $ISOBAR_CALC_dir"
 echo ""
 
 
@@ -91,8 +97,25 @@ else
     exit 1
 fi
 
+
+
+# if TEMP_CHOSEN and PSTRESS_CHOSEN_GPa are not a number, exit
+if ! [[ "$TEMP_CHOSEN" =~ ^[0-9]+([.][0-9]+)?$ ]]; then
+    echo "TEMP_CHOSEN is not a number: $TEMP_CHOSEN. Exiting. Please check the input.calculate_GFE file."
+    exit 1
+fi
+if ! [[ "$PSTRESS_CHOSEN_GPa" =~ ^[0-9]+([.][0-9]+)?$ ]]; then
+    echo "PSTRESS_CHOSEN_GPa is not a number: $PSTRESS_CHOSEN_GPa. Exiting. Please check the input.calculate_GFE file."
+    exit 1
+fi
+
+# Extract TEMP_CHOSEN_ARRAY from the names of the directories in the current directory -- their format is "T<TEMP_CHOSEN_i>"
+TEMP_CHOSEN_ARRAY=($(ls -d T* | sed 's/T//g' | sort -n))
+echo "TEMP_CHOSEN_ARRAY: ${TEMP_CHOSEN_ARRAY[@]}"
+
 SIGMA_CHOSEN=$(echo "$kB * $TEMP_CHOSEN" | bc -l)  # Gaussian smearing sigma
 
+PSTRESS_CHOSEN=$(echo "$PSTRESS_CHOSEN_GPa * 10" | bc -l)  # Convert GPa to kBar
 
 ########################################
 # NPAR_CHOSEN=8 # For single point calculations, set NPAR_CHOSEN to 8
@@ -103,7 +126,7 @@ SIGMA_CHOSEN=$(echo "$kB * $TEMP_CHOSEN" | bc -l)  # Gaussian smearing sigma
 # Print the parameters
 echo "------------------------"
 echo "Simulation parameters:"
-echo "TEMP_CHOSEN: $TEMP_CHOSEN"
+echo "TEMP_CHOSEN_ARRAY: ${TEMP_CHOSEN_ARRAY[@]}"
 echo "PSTRESS_CHOSEN_GPa: $PSTRESS_CHOSEN_GPa"
 echo "NPAR_CHOSEN: $NPAR_CHOSEN (special case for single point calculations)"
 echo "POTIM_CHOSEN: $POTIM_CHOSEN"
@@ -143,6 +166,28 @@ while IFS= read -r -d '' parent; do
 
     cd "${parent}" || exit
     KP1_dir=$(pwd)
+    V_est_dir=$(dirname "$KP1_dir") # parent directory is V_est_dir
+    ISOBAR_T_dir=$(dirname "$V_est_dir") # parent directory is ISOBAR_T_dir
+    ISOBAR_T_dir_name=$(basename "$ISOBAR_T_dir") # name of the ISOBAR_T_dir directory
+    ISOBAR_CALC_dir__test=$(dirname "$ISOBAR_T_dir") # parent directory is ISOBAR_CALC_test_dir
+    # if ISOBAR_CALC_dir__test is not the same as ISOBAR_CALC_dir, exit
+    if [ "$ISOBAR_CALC_dir__test" != "$ISOBAR_CALC_dir" ]; then
+        echo "ERROR: ISOBAR_CALC_dir__test ($ISOBAR_CALC_dir__test) is not the same as ISOBAR_CALC_dir ($ISOBAR_CALC_dir)"
+        exit 1
+    fi
+
+    # Extract TEMP_CHOSEN_ISOBAR from the name of the ISOBAR_T_dir directory (ISOBAR_T_dir_name) -- the format is "T<TEMP_CHOSEN_i>"
+    TEMP_CHOSEN_ISOBAR=$(echo "$ISOBAR_T_dir_name" | sed 's/T//g')
+    echo "KP1_dir: $KP1_dir"
+    echo "V_est_dir: $V_est_dir"
+    echo "ISOBAR_T_dir: $ISOBAR_T_dir"
+    echo "ISOBAR_T_dir_name: $ISOBAR_T_dir_name"
+    echo "==========================="
+    echo "TEMP_CHOSEN_ISOBAR: $TEMP_CHOSEN_ISOBAR"
+    echo "==========================="
+    echo ""
+
+
     analysis_KP1_dir=$KP1_dir/analysis
     corrected_pressure_file="${analysis_KP1_dir}/corrected_pressure.dat"
     pressure_correction_file="${analysis_KP1_dir}/pressure_correction.dat"
@@ -153,7 +198,7 @@ while IFS= read -r -d '' parent; do
     echo "# after KP1, KP1X, hp_calculations (in kBar)" > "${corrected_pressure_file}"
     echo "# after KP1, KP1X, hp_calculations (in kBar)" > "${corrected_volume_file}"
     echo "# after KP1, KP1X, hp_calculations (in kBar)" > "${pressure_correction_file}"
-    cd "${PT_dir}" || exit
+    cd "${ISOBAR_CALC_dir}" || exit
 
 
     counter_incomplete_runs=0
@@ -202,50 +247,6 @@ while IFS= read -r -d '' parent; do
             num_failed_recal_frames=$((${line_count}-14)) # name says it all ...
             echo "Number of failed recal frames: $num_failed_recal_frames"
             counter_incomplete_runs=$(($counter_incomplete_runs + $num_failed_recal_frames))
-
-            # backup to old.log.recal_test with a timestamp
-            # touch old.log.recal_test
-            # echo "##################################################################" >> old.log.recal_test
-            # echo "### ~ 1 ~ ### $(date) ###" >> old.log.recal_test
-            # echo "##################################################################" >> old.log.recal_test
-            # cat log.recal_test >> old.log.recal_test
-
-
-            # if [ "$num_failed_recal_frames" -gt 0 ]; then
-
-            #     echo "Problem with recal phase ($((${line_count}-14))) at $(date). Or so it seems but sleeping to see if it gets resolved."
-                
-            #     #10 times check if line_count is still > 14 or num_failed_recal_frames > 0 and sleep for 600 seconds each time if not
-            #     for i in {1..6}; do
-            #         echo "Seeing if it completes ~ $i ..."
-            #         sleep ${WAIT_TIME_LONG}
-            #         python ${MLDP_SCRIPTS}/post_recal_rerun.py -ip all -v -ss $INPUT_FILES_DIR/sub_vasp_xtra.sh > log.recal_test 2>&1
-            #         line_count=$(wc -l < "$logfile")    # Count the number of lines in the file
-            #         num_failed_recal_frames=$((${line_count}-14))
-            #         if [ "$num_failed_recal_frames" -le 0 ]; then
-            #             break
-            #         fi
-            #     done
-
-            #     # append to old.log.recal_test with a timestamp
-            #     echo "##################################################################" >> old.log.recal_test
-            #     echo "### ~ 2 ~ ### $(date) ###" >> old.log.recal_test
-            #     echo "##################################################################" >> old.log.recal_test
-            #     cat log.recal_test >> old.log.recal_test
-
-            #     if [ "$num_failed_recal_frames" -gt 0 ]; then
-            #         echo ""
-            #         echo "Problem with recal phase persists ($((${line_count}-14))) -- check then rerun."
-            #         echo "Exiting script."
-            #         echo ""
-            #         exit 1
-            #     else
-            #         echo ""
-            #         echo "Recal phase completed successfully after waiting."
-            #         echo ""
-            #         # exit 0
-            #     fi
-            # fi
 
 
 
@@ -314,7 +315,7 @@ while IFS= read -r -d '' parent; do
             echo $avg_diff_external_pressure_kBar >> $pressure_correction_file
             # echo "Started hp_calculations in ${child}"
             # Return to the original driver directory
-            cd ${PT_dir} || exit
+            cd ${ISOBAR_CALC_dir} || exit
         fi
     done
 
@@ -367,11 +368,11 @@ EOF
     echo "  estimated_cell_volume_KP2: $estimated_cell_volume_KP2"
     echo "----------------------------------------"
 
-    touch $KP1_dir/../done_estimating_V
+    touch $V_est_dir/done_estimating_V
 
     echo ""
     echo ""
-    cd "${PT_dir}" || exit
+    cd "${ISOBAR_CALC_dir}" || exit
 
 
 done < <(find . -type d -name KP1 -print0)
@@ -383,7 +384,7 @@ echo ""
 echo "################################"
 echo "################################"
 echo "################################"
-echo "All EoS data "corrected" in all KP1/*/hp_calculations directories under ${PT_dir} @ $(date)."
+echo "All EoS data "corrected" in all KP1/*/hp_calculations directories under ${ISOBAR_CALC_dir} @ $(date)."
 echo ""
 echo "Total number of incomplete runs: $counter_incomplete_runs"
 echo "################################"

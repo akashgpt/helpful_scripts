@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-# Usage: python $HELP_SCRIPTS_vasp/continue_run_ase.py -r 100
+# Usage: python $HELP_SCRIPTS_vasp/continue_run_ase.py -r 500
 
 import os
 import sys
@@ -38,8 +38,8 @@ def find_a_previous_structure(step_back=RESTART_SHIFT):
     write("POSCAR", traj[i], format="vasp", direct=True)
     print(f"> Restarting from image {i} of {n}")
 
-    # create a log file as log.find_a_previous_structure
-    with open("log.find_a_previous_structure", "w") as f:
+    # create a log file as log.continue_run_ase
+    with open("log.continue_run_ase", "w") as f:
         f.write(f"Restarting from image {i} of {n}\n")
         f.write(f"Last structure written to POSCAR\n")
         f.write(f"Step back: {step_back}\n")

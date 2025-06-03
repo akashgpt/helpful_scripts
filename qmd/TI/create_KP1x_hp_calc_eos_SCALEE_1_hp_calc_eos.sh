@@ -144,6 +144,15 @@ while IFS= read -r -d '' parent; do
 
     cd "${parent}" || exit
     parent_abs=$(pwd)
+
+    # if parent_abs has "_0", then skip this instance
+    if [[ "${parent_abs}" == *_0* ]]; then
+        echo "Skipping parent directory with '_0': ${parent_abs}"
+        cd ${PT_dir} || exit
+        continue
+    fi
+
+
     KP1_dir=$(pwd) # SCALEE_1 -- KPOINTS 111 directory
     echo " → Entered ${KP1_dir}"
     analysis_KP1_dir=$KP1_dir/analysis

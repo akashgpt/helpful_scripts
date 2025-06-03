@@ -201,7 +201,7 @@ fig.subplots_adjust(hspace=0.5)
 
 # Panel 1: evo_total_pressure vs time-step
 axs[0].plot(time_steps_pressure, total_pressure, 'b-', alpha=0.5)
-axs[0].axhline(np.mean(total_pressure), color='b', linestyle='--', label=f'Mean: {np.mean(stat_total_pressure):.2f} +/- {np.std(stat_total_pressure):.2f} GPa')
+axs[0].axhline(np.mean(stat_total_pressure), color='b', linestyle='--', label=f'Mean: {np.mean(stat_total_pressure):.2f} +/- {np.std(stat_total_pressure):.2f} GPa')
 axs[0].set_ylabel('Total Pressure (GPa)')
 leg = axs[0].legend(loc='upper left')
 for text in leg.get_texts():
@@ -211,7 +211,7 @@ axs[0].set_ylim(np.min(total_pressure)*axis_low_limit, np.max(total_pressure)*ax
 # twinx axis for external pressure
 ax1 = axs[0].twinx()
 ax1.plot(time_steps_external_pressure, external_pressure, 'r-', alpha=0.5)
-ax1.axhline(np.mean(external_pressure), color='r', linestyle='--', label=f'Mean: {np.mean(stat_external_pressure):.2f} +/- {np.std(stat_external_pressure):.2f} GPa')
+ax1.axhline(np.mean(stat_external_pressure), color='r', linestyle='--', label=f'Mean: {np.mean(stat_external_pressure):.2f} +/- {np.std(stat_external_pressure):.2f} GPa')
 ax1.set_ylabel('External Pressure (GPa)')
 # color the axis red
 # ax1.tick_params(axis='y', labelcolor='r')
@@ -223,20 +223,20 @@ ax1.set_ylim(np.min(external_pressure)*axis_low_limit, np.max(external_pressure)
 
 # Panel 2: evo_total_energy vs time-step
 axs[1].plot(time_steps_energy, total_energy, 'g-', alpha=0.5)
-axs[1].axhline(np.mean(total_energy), color='g', linestyle='--', label=f'Mean: {np.mean(stat_total_energy):.2f} +/- {np.std(stat_total_energy):.2f} eV')
+axs[1].axhline(np.mean(stat_total_energy), color='g', linestyle='--', label=f'Mean: {np.mean(stat_total_energy):.2f} +/- {np.std(stat_total_energy):.2f} eV')
 # axs[1].plot(time_steps_energy, TOTEN, 'b-', alpha=0.5)
-# axs[1].axhline(np.mean(TOTEN), color='b', linestyle='--', label=f'Mean: {np.mean(TOTEN):.2f} +/- {np.std(TOTEN):.2f} eV')
+# axs[1].axhline(np.mean(stat_TOTEN), color='b', linestyle='--', label=f'Mean: {np.mean(stat_TOTEN):.2f} +/- {np.std(stat_TOTEN):.2f} eV')
 # axs[1].plot(time_steps_energy, free_energy, 'm:', label='Free Energy')
 axs[1].set_ylabel('Total Energy (ETOTAL; eV)')
-axs[1].grid()
-leg = axs[1].legend(loc='upper left')
+axs[1].grid();
+leg = axs[1].legend(loc='upper left');
 for text in leg.get_texts():
     text.set_color('g')
 # axs[1].set_ylim(np.min(total_energy)*axis_low_limit, np.max(total_energy)*axis_high_limit)
 # twinx axis for TOTEN
 ax2 = axs[1].twinx()
 ax2.plot(time_steps_energy, TOTEN, 'r-',alpha=0.5)
-ax2.axhline(np.mean(TOTEN), color='r', linestyle='--', label=f'Mean: {np.mean(stat_internal_energy):.2f} +/- {np.std(stat_internal_energy):.2f} eV')
+ax2.axhline(np.mean(stat_TOTEN), color='r', linestyle='--', label=f'Mean: {np.mean(stat_TOTEN):.2f} +/- {np.std(stat_TOTEN):.2f} eV')
 ax2.set_ylabel('TOTEN (El. Helmholtz free energy; eV)')
 # color the axis red
 # ax2.tick_params(axis='y', labelcolor='r')
@@ -254,7 +254,7 @@ for text in leg.get_texts():
 
 # Panel 3: evo_cell_volume vs time-step
 axs[2].plot(time_steps_volume, cell_volume, 'r-', alpha=0.5)
-axs[2].axhline(np.mean(cell_volume), color='r', linestyle='--', label=f'Mean: {np.mean(stat_cell_volume):.2f} +/- {np.std(stat_cell_volume):.2f} Å³')
+axs[2].axhline(np.mean(stat_cell_volume), color='r', linestyle='--', label=f'Mean: {np.mean(stat_cell_volume):.2f} +/- {np.std(stat_cell_volume):.2f} Å³')
 axs[2].set_ylabel('Cell Volume (Å³)')
 axs[2].grid()
 axs[2].legend()
@@ -262,7 +262,7 @@ axs[2].legend()
 
 # Panel 4: evo_mean_temp vs time-step
 axs[3].plot(time_steps_temp, mean_temp, 'm-', alpha=0.5)
-axs[3].axhline(np.mean(mean_temp), color='m', linestyle='--', label=f'Mean: {np.mean(stat_mean_temp):.2f} +/- {np.std(stat_mean_temp):.2f} K')
+axs[3].axhline(np.mean(stat_mean_temp), color='m', linestyle='--', label=f'Mean: {np.mean(stat_mean_temp):.2f} +/- {np.std(stat_mean_temp):.2f} K')
 axs[3].set_xlabel('Time-step')
 axs[3].set_ylabel('Temperature (K)')
 axs[3].legend()
