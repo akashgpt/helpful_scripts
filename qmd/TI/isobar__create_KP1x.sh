@@ -185,12 +185,7 @@ while IFS= read -r -d '' parent; do
     V_est_dir=$(dirname "$KP1_dir") # parent directory is V_est_dir
     ISOBAR_T_dir=$(dirname "$V_est_dir") # parent directory is ISOBAR_T_dir
     ISOBAR_T_dir_name=$(basename "$ISOBAR_T_dir") # name of the ISOBAR_T_dir directory
-    ISOBAR_CALC_dir__test=$(dirname "$ISOBAR_T_dir") # parent directory is ISOBAR_CALC_test_dir
-    # if ISOBAR_CALC_dir__test is not the same as ISOBAR_CALC_dir, exit
-    if [ "$ISOBAR_CALC_dir__test" != "$ISOBAR_CALC_dir" ]; then
-        echo "ERROR: ISOBAR_CALC_dir__test ($ISOBAR_CALC_dir__test) is not the same as ISOBAR_CALC_dir ($ISOBAR_CALC_dir)"
-        exit 1
-    fi
+
 
     # Extract TEMP_CHOSEN_ISOBAR from the name of the ISOBAR_T_dir directory (ISOBAR_T_dir_name) -- the format is "T<TEMP_CHOSEN_i>"
     TEMP_CHOSEN_ISOBAR=$(echo "$ISOBAR_T_dir_name" | sed 's/T//g')
@@ -203,30 +198,44 @@ while IFS= read -r -d '' parent; do
     echo "==========================="
     echo ""
 
-    # echo "###########################"
-    # echo 
-    # echo "###########################"
-    # echo "UNCOMMENT THE FOLLOWING LINES IN THE CODE!!!"
-    # echo "###########################"
-    # echo ""
-    # echo "###########################"
-    # # 0) file log.create_KP1 has numbers next to "JOB_ID_KP1:" -- grab all those numbers and check if they are running
+
+
+    ISOBAR_CALC_dir__test=$(dirname "$ISOBAR_T_dir") # parent directory is ISOBAR_CALC_test_dir
+    # if ISOBAR_CALC_dir__test is not the same as ISOBAR_CALC_dir, exit
+    if [ "$ISOBAR_CALC_dir__test" != "$ISOBAR_CALC_dir" ]; then
+        echo "ERROR: ISOBAR_CALC_dir__test ($ISOBAR_CALC_dir__test) is not the same as ISOBAR_CALC_dir ($ISOBAR_CALC_dir)"
+        exit 1
+    else
+        echo "ISOBAR_CALC_dir__test ($ISOBAR_CALC_dir__test) is the same as ISOBAR_CALC_dir ($ISOBAR_CALC_dir)"
+        echo ""
+    fi
+
+
+
+    # # echo "###########################"
+    # # echo 
+    # # echo "###########################"
+    # # echo "UNCOMMENT THE FOLLOWING LINES IN THE CODE!!!"
+    # # echo "###########################"
+    # # echo ""
+    # # echo "###########################"
+    # # 0) file log.isobar__create_KP1 has numbers next to "JOB_ID_KP1:" -- grab all those numbers and check if they are running
     # #    if they are running, sleep and wait for them to finish
     # #    if they are not running, continue to the next step
     # #    if there are no numbers, prompt error and exit
     # # 0.1) Extract all tokens after "JOB_ID_KP1:" 
-    # mapfile -t job_ids < <(grep -oP 'JOB_ID_KP1:\s*\K\S+' $ISOBAR_CALC_dir/log.create_KP1)
+    # mapfile -t job_ids < <(grep -oP 'JOB_ID_KP1:\s*\K\S+' $ISOBAR_CALC_dir/log.isobar__create_KP1)
 
     # # # 0.2) Error if none found
     # if [ ${#job_ids[@]} -eq 0 ]; then
-    #     echo "ERROR: no JOB_ID_KP1 entries found in log.create_KP1" >&2
+    #     echo "ERROR: no JOB_ID_KP1 entries found in log.isobar__create_KP1" >&2
     #     exit 1
     # fi
 
     # # # 0.3) Validate that each is a pure integer
     # for jid in "${job_ids[@]}"; do
     #     if ! [[ $jid =~ ^[0-9]+$ ]]; then
-    #         echo "ERROR: invalid job ID '$jid' extracted from log.create_KP1" >&2
+    #         echo "ERROR: invalid job ID '$jid' extracted from log.isobar__create_KP1" >&2
     #         exit 1
     #     fi
     # done
@@ -236,7 +245,7 @@ while IFS= read -r -d '' parent; do
     # # # 0.4) For each valid job ID, wait until SLURM no longer lists it
     # for jid in "${job_ids[@]}"; do
     #     echo -n "Waiting for SLURM job $jid to finish"
-    #     while squeue -h -j "$jid" &>/dev/null; dos
+    #     while squeue -h -j "$jid" &>/dev/null; do
     #         echo -n "."      # progress dot
     #         sleep "$WAIT_TIME_LONG"
     #     done
@@ -246,12 +255,12 @@ while IFS= read -r -d '' parent; do
     # echo "All JOB_ID_KP1 jobs have completed; proceeding with the next steps."
     # echo
     # echo
-    #################
-    # UNCOMMENT THE ABOVE LINES!!!
+    # #################
+    # # UNCOMMENT THE ABOVE LINES!!!
 
 
 
-    # backup check
+    # # backup check
     # # 1) extract JOB_ID_KP1 from the first line of log.run_sim
     # JOB_ID_KP1=$(awk 'NR==1 {print $3}' log.run_sim)
 

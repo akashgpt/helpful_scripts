@@ -1,14 +1,14 @@
 #!/usr/bin/env bash
-# Finds all KP1/ directories under the current directory,
+# Finds all hp_calculations/ directories under the current directory,
 # auto-detects compressor (zstd, pigz, or gzip),
-# and creates one compressed tarball per KP1/ folder in its parent directory.
+# and creates one compressed tarball per hp_calculations/ folder in its parent directory.
 # Usage:
-#   chmod +x tar_KP1.sh
-#   nohup $HELP_SCRIPTS_TI/tar_KP1.sh > log.tar_KP1 2>&1 &
+#   chmod +x tar_hp_calc.sh
+#   nohup $HELP_SCRIPTS_TI/tar_hp_calc.sh > log.tar_hp_calc 2>&1 &
 
 set -euo pipefail
 
-echo "Starting KP1 archiving process at $(date)"
+echo "Starting hp_calculations archiving process at $(date)"
 echo "Current directory: $(pwd)"
 echo ""
 
@@ -38,15 +38,15 @@ echo "Output extension: .$EXT"
 # Export for parallel jobs
 export COMP EXT
 
-# 2) Find KP1 directories and compress in parallel
+# 2) Find hp_calculations directories and compress in parallel
 CONCURRENCY=4  # tweak this to available I/O / CPU
 
-echo "Searching and archiving KP1 directories..."
-find . -type d -name 'KP1' -print0 \
+echo "Searching and archiving hp_calculations directories..."
+find . -type d -name 'hp_calculations' -print0 \
     | parallel -0 -j "$CONCURRENCY" --env COMP,EXT --will-cite \
         'dir="{}"; \
         parent=$(dirname "${dir}"); \
-        out="${parent}/KP1.${EXT}"; \
+        out="${parent}/hp_calculations.${EXT}"; \
         echo "Archiving ${dir} → ${out}"; \
         tar -C "${dir}" --use-compress-program="${COMP}" -cvf "${out}" .'
 

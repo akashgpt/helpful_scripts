@@ -39,6 +39,13 @@
 # WAIT_TIME_LONG=60            # Long jobs
 # WAIT_TIME_SHORT=10           # Short jobs
 
+
+
+# echo process ID
+echo "Process ID: $$"
+echo ""
+
+
 # Scaling parameter for alchemical transformations
 SCALEE_CHOSEN=1.0            # Lambda scaling factor
 MLDP_SCRIPTS="/projects/BURROWS/akashgpt/misc_libraries/scripts_Jie/mldp"

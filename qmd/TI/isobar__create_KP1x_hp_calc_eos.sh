@@ -5,39 +5,7 @@
 #        nohup "$HELP_SCRIPTS_TI/create_KP1x_hp_calc_eos.sh" > log.create_KP1x_hp_calc_eos 2>&1 &
 # Author: Akash Gupta
 
-# while IFS= read -r -d '' parent; do
-#     # …look for its immediate subdirectories starting with “KP1”
-#     for child in "$parent"/KP1*; do
-#         if [ -d "$child" ]; then
-#         touch "$child/done_KP1x"
-#         # P_RUN=$(grep Pressure analysis/peavg.out  | awk '{print $3}')
-#         # module load anaconda3/2024.6; conda activate ase_env; python $HELP_SCRIPTS_vasp/eos* -p $P_RUN -m 0 -e 0.01 -hp 1
-#         echo "Touched $child/done_KP1x"
-#         fi
-#     done
-# done < <(find . -type d -name KP1 -print0)
 
-
-
-#--------------------------------------------------------------
-# Driver script to set up and launch VASP runs in KP1*/hp_calculations
-#--------------------------------------------------------------
-
-# # Thermostat and MD settings
-# TEMP_CHOSEN=13000            # Target temperature (K)
-# PSTRESS_CHOSEN_GPa=1000     # Pressure offset (GPa), not used here
-# NBANDS_CHOSEN=784            # Number of electronic bands (e.g., 560 for Fe-He; 784 for MgSiO3-He)
-# POTIM_CHOSEN=0.5             # MD timestep (fs)
-# NPAR_CHOSEN=14               # Parallelization: cores/node × nodes (e.g., TIGER3=14, STELLAR=16)
-
-# # K-point parallelization choices
-# KPAR_CHOSEN_111=1            # KPAR for 1×1×1 k-point mesh
-# KPAR_CHOSEN_222=4            # KPAR for 2×2×2 k-point mesh
-
-# # Job wait-time thresholds (mins)
-# WAIT_TIME_VLONG=600          # Very long jobs
-# WAIT_TIME_LONG=60            # Long jobs
-# WAIT_TIME_SHORT=10           # Short jobs
 
 # Scaling parameter for alchemical transformations
 SCALEE_CHOSEN=1.0            # Lambda scaling factor

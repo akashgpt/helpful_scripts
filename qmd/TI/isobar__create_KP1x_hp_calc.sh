@@ -1,48 +1,22 @@
 #!/bin/bash
+
 # set -euo pipefail
 
 # Usage: 
 # (for new run): source $HELP_SCRIPTS_TI/isobar__create_KP1x_hp_calc.sh > log.isobar__create_KP1x_hp_calc 2>&1 &
 #                nohup $HELP_SCRIPTS_TI/isobar__create_KP1x_hp_calc.sh > log.isobar__create_KP1x_hp_calc 2>&1 &
 # (for rerun with same parameters): source $HELP_SCRIPTS_TI/isobar__create_KP1x_hp_calc.sh 1 > log.isobar__create_KP1x_hp_calc 2>&1 &
+#                                   nohup $HELP_SCRIPTS_TI/isobar__create_KP1x_hp_calc.sh 1 > log.isobar__create_KP1x_hp_calc 2>&1 &
 # Author: Akash Gupta
 
 
-# while IFS= read -r -d '' parent; do
-#     # …look for its immediate subdirectories starting with “KP1”
-#     for child in "$parent"/KP1*; do
-#         if [ -d "$child" ]; then
-#         touch "$child/done_KP1x"
-#         # P_RUN=$(grep Pressure analysis/peavg.out  | awk '{print $3}')
-#         # module load anaconda3/2024.6; conda activate ase_env; python $HELP_SCRIPTS_vasp/eos* -p $P_RUN -m 0 -e 0.01 -hp 1
-#         echo "Touched $child/done_KP1x"
-#         fi
-#     done
-# done < <(find . -type d -name KP1 -print0)
-
-
-
-#---------------------------    -----------------------------------
-# Driver script to set up and launch VASP runs in KP1*/hp_calculations
-#--------------------------------------------------------------
-
-# # Thermostat and MD settings
-# TEMP_CHOSEN=13000            # Target temperature (K)
-# PSTRESS_CHOSEN_GPa=1000     # Pressure offset (GPa), not used here
-# NBANDS_CHOSEN=784            # Number of electronic bands (e.g., 560 for Fe-He; 784 for MgSiO3-He)
-# POTIM_CHOSEN=0.5             # MD timestep (fs)
-# NPAR_CHOSEN=14               # Parallelization: cores/node × nodes (e.g., TIGER3=14, STELLAR=16)
-
-# # K-point parallelization choices
-# KPAR_CHOSEN_111=1            # KPAR for 1×1×1 k-point mesh
-# KPAR_CHOSEN_222=4            # KPAR for 2×2×2 k-point mesh
-
-# # Job wait-time thresholds (mins)
-# WAIT_TIME_VLONG=600          # Very long jobs
-# WAIT_TIME_LONG=60            # Long jobs
-# WAIT_TIME_SHORT=10           # Short jobs
 
 rerun=${1:-0}  # Default to 0 if not provided; 1 for a rerun with same parameters
+
+
+# echo process ID
+echo "Process ID: $$"
+echo ""
 
 echo "Rerun flag: $rerun"
 
@@ -195,56 +169,57 @@ while IFS= read -r -d '' parent; do
         if [ -d "${child}" ]; then
             # Enter the child directory
             cd "${child}" || exit # KP1a, KP1b, etc.
-            child_abs=$(pwd)
             KP1x_dir=$(pwd)
-            echo " → Entered ${child_abs}"
+            echo " → Entered ${KP1x_dir}"
 
 
-            # echo "###########################"
-            # echo 
-            # echo "###########################"
-            # echo "UNCOMMENT THE FOLLOWING LINES IN THE CODE!!!"
-            # echo "###########################"
-            echo ""
-            echo "###########################"
-            # 0) file log.create_KP1 has numbers next to "JOB_ID_KP1:" -- grab all those numbers and check if they are running
-            #    if they are running, sleep and wait for them to finish
-            #    if they are not running, continue to the next step
-            #    if there are no numbers, prompt error and exit
-            # 0.1) Extract all tokens after "JOB_ID_KP1:" 
-            mapfile -t job_ids < <(grep -oP 'JOB_ID_KP1x:\s*\K\S+' $ISOBAR_CALC_dir/log.create_KP1x)
 
-            # # 0.2) Error if none found
-            if [ ${#job_ids[@]} -eq 0 ]; then
-                echo "ERROR: no JOB_ID_KP1x entries found in log.create_KP1x" >&2
-                exit 1
-            fi
+            if [[ $rerun -eq 0 ]]; then # only in this case checking if KP1x sims completed or not
+                # echo "###########################"
+                # echo 
+                # echo "###########################"
+                # echo "UNCOMMENT THE FOLLOWING LINES IN THE CODE!!!"
+                # echo "###########################"
+                echo ""
+                echo "###########################"
+                # 0) file log.create_KP1 has numbers next to "JOB_ID_KP1:" -- grab all those numbers and check if they are running
+                #    if they are running, sleep and wait for them to finish
+                #    if they are not running, continue to the next step
+                #    if there are no numbers, prompt error and exit
+                # 0.1) Extract all tokens after "JOB_ID_KP1:" 
+                mapfile -t job_ids < <(grep -oP 'JOB_ID_KP1x:\s*\K\S+' $ISOBAR_CALC_dir/log.isobar__create_KP1x)
 
-            # # 0.3) Validate that each is a pure integer
-            for jid in "${job_ids[@]}"; do
-                if ! [[ $jid =~ ^[0-9]+$ ]]; then
-                    echo "ERROR: invalid job ID '$jid' extracted from log.create_KP1x" >&2
+                # # 0.2) Error if none found
+                if [ ${#job_ids[@]} -eq 0 ]; then
+                    echo "ERROR: no JOB_ID_KP1x entries found in log.isobar__create_KP1x" >&2
                     exit 1
                 fi
-            done
 
-            echo "Found JOB_ID_KP1x IDs: ${job_ids[*]}"
-
-            # # 0.4) For each valid job ID, wait until SLURM no longer lists it
-            for jid in "${job_ids[@]}"; do
-                echo -n "Waiting for SLURM job $jid to finish"
-                while squeue -h -j "$jid" &>/dev/null; do
-                    echo -n "."      # progress dot
-                    sleep "$WAIT_TIME_LONG"
+                # # 0.3) Validate that each is a pure integer
+                for jid in "${job_ids[@]}"; do
+                    if ! [[ $jid =~ ^[0-9]+$ ]]; then
+                        echo "ERROR: invalid job ID '$jid' extracted from log.isobar__create_KP1x" >&2
+                        exit 1
+                    fi
                 done
-                echo " done."
-            done
 
-            echo "All JOB_ID_KP1x jobs have completed; proceeding with the next steps."
-            echo
-            echo
-            #################
-            # UNCOMMENT THE ABOVE LINES!!!
+                echo "Found JOB_ID_KP1x IDs: ${job_ids[*]}"
+
+                # # 0.4) For each valid job ID, wait until SLURM no longer lists it
+                for jid in "${job_ids[@]}"; do
+                    echo -n "Waiting for SLURM job $jid to finish"
+                    while squeue -h -j "$jid" &>/dev/null; do
+                        echo -n "."      # progress dot
+                        sleep "$WAIT_TIME_LONG"
+                    done
+                    echo " done."
+                done
+
+                echo "All JOB_ID_KP1x jobs have completed; proceeding with the next steps."
+                echo
+                echo
+                #################
+                # UNCOMMENT THE ABOVE LINES!!!
 
 
 
@@ -256,48 +231,53 @@ while IFS= read -r -d '' parent; do
 
 
 
-            # backup check
-            # 1) extract JOB_ID_KP1x from the first line of log.run_sim
-            JOB_ID_KP1x=$(awk 'NR==1 {print $3}' log.run_sim)
+                # # backup check
+                # # 1) extract JOB_ID_KP1x from the first line of log.run_sim
+                # JOB_ID_KP1x=$(awk 'NR==1 {print $3}' log.run_sim)
 
-            if [[ -z "$JOB_ID_KP1x" ]]; then
-                echo "ERROR: could not read JOB_ID_KP1x from log.run_sim"
-                exit 1
+                # if [[ -z "$JOB_ID_KP1x" ]]; then
+                #     echo "ERROR: could not read JOB_ID_KP1x from log.run_sim"
+                #     exit 1
+                # fi
+
+                # echo "JOB_ID_KP1x: $JOB_ID_KP1x"
+                # echo -n "Waiting for job $JOB_ID_KP1x to finish "
+
+                # # 2) loop until squeue no longer reports it
+                # while squeue -h -j "$JOB_ID_KP1x" >/dev/null; do
+                #     # print a dot and sleep
+                #     echo -n "."
+                #     sleep "$WAIT_TIME_LONG"
+                # done
+
+                # echo    # newline after the dots
+                # echo "Job $JOB_ID_KP1x has completed."
+                # echo ""
+            elif [[ $rerun -eq 1 ]]; then
+                echo "Rerun mode is ON. Skipping the check for completed jobs in ${child}."
             fi
 
-            echo "JOB_ID_KP1x: $JOB_ID_KP1x"
-            echo -n "Waiting for job $JOB_ID_KP1x to finish "
-
-            # 2) loop until squeue no longer reports it
-            while squeue -h -j "$JOB_ID_KP1x" >/dev/null; do
-                # print a dot and sleep
-                echo -n "."
-                sleep "$WAIT_TIME_LONG"
-            done
-
-            echo    # newline after the dots
-            echo "Job $JOB_ID_KP1x has completed."
-            echo
 
             # only if rerun is 0, check if the directory has already been processed
             if [[ $rerun -eq 0 ]]; then
                 # Copy and source analysis script
-                cp "${HELP_SCRIPTS_vasp}/data_4_analysis.sh" "${child_abs}/"
+                cp "${HELP_SCRIPTS_vasp}/data_4_analysis.sh" "${KP1x_dir}/"
                 source data_4_analysis.sh
-
-                # Check for average pressure file
-                if [[ ! -f analysis/peavg.out ]]; then
-                    echo "ERROR: analysis/peavg.out not found in ${child}" >&2
-                    exit 1
-                fi
-                # Extract the third field (pressure) from peavg.out
-                P_RUN=$(grep Pressure analysis/peavg.out | awk '{print $3}')
-
-                # create array of P_RUN values
-                P_RUN_array+=("$P_RUN")
-                echo "P_RUN @ $child: $P_RUN GPa"   
-                echo
             fi
+
+            # Check for average pressure file
+            if [[ ! -f analysis/peavg.out ]]; then
+                echo "ERROR: analysis/peavg.out not found in ${child}" >&2
+                exit 1
+            fi
+
+            # Extract the third field (pressure) from peavg.out
+            P_RUN=$(grep Pressure analysis/peavg.out | awk '{print $3}')
+
+            # create array of P_RUN values
+            P_RUN_array+=("$P_RUN")
+            echo "P_RUN @ $child: $P_RUN GPa"   
+            echo ""
             cd $ISOBAR_CALC_dir || exit   
         fi          
     done
@@ -323,7 +303,7 @@ while IFS= read -r -d '' parent; do
 
 done < <(find . -type d -name KP1 -print0)
 
-if [ $counter_P_not_spanned -eq 0 ]; then
+if [[ $counter_P_not_spanned -eq 0 ]]; then
     echo
     echo "========================="
     echo "========================="
@@ -361,9 +341,6 @@ fi
 
 
 
-
-
-
 #--------------------------------------------------------------
 # Loop over every directory named exactly 'KP1'
 #--------------------------------------------------------------
@@ -375,17 +352,13 @@ while IFS= read -r -d '' parent; do
     echo ""
     echo "#----------------------------------------"
     echo "#----------------------------------------"
+    cd "$parent" || exit
 
     KP1_dir=$(pwd)
     V_est_dir=$(dirname "$KP1_dir") # parent directory is V_est_dir
     ISOBAR_T_dir=$(dirname "$V_est_dir") # parent directory is ISOBAR_T_dir
     ISOBAR_T_dir_name=$(basename "$ISOBAR_T_dir") # name of the ISOBAR_T_dir directory
     ISOBAR_CALC_dir__test=$(dirname "$ISOBAR_T_dir") # parent directory is ISOBAR_CALC_test_dir
-    # if ISOBAR_CALC_dir__test is not the same as ISOBAR_CALC_dir, exit
-    if [ "$ISOBAR_CALC_dir__test" != "$ISOBAR_CALC_dir" ]; then
-        echo "ERROR: ISOBAR_CALC_dir__test ($ISOBAR_CALC_dir__test) is not the same as ISOBAR_CALC_dir ($ISOBAR_CALC_dir)"
-        exit 1
-    fi
 
     # Extract TEMP_CHOSEN_ISOBAR from the name of the ISOBAR_T_dir directory (ISOBAR_T_dir_name) -- the format is "T<TEMP_CHOSEN_i>"
     TEMP_CHOSEN_ISOBAR=$(echo "$ISOBAR_T_dir_name" | sed 's/T//g')
@@ -398,19 +371,76 @@ while IFS= read -r -d '' parent; do
     echo "==========================="
     echo ""
 
+    # if ISOBAR_CALC_dir__test is not the same as ISOBAR_CALC_dir, exit
+    if [ "$ISOBAR_CALC_dir__test" != "$ISOBAR_CALC_dir" ]; then
+        echo "ERROR: ISOBAR_CALC_dir__test ($ISOBAR_CALC_dir__test) is not the same as ISOBAR_CALC_dir ($ISOBAR_CALC_dir)"
+        exit 1
+    else
+        echo "ISOBAR_CALC_dir__test ($ISOBAR_CALC_dir__test) is the same as ISOBAR_CALC_dir ($ISOBAR_CALC_dir)"
+    fi
+
+    cd $ISOBAR_CALC_dir || exit
 
     # Iterate over immediate subdirectories beginning with 'KP1'
     for child in "${parent}"/KP1*; do
         if [ -d "${child}" ]; then
             # Enter the child directory
             cd "${child}" || exit # KP1a, KP1b, etc.
-            child_abs=$(pwd)
-            echo " → Entered ${child_abs}"
+            KP1x_dir=$(pwd)
+            
+
+
+            #----------------------------------------------------------
+            # check how many simulations have already been submitted to SLURM by $USER
+            # if this number is greater than 1500 on either the " short" or "vshort" queure, than sleep for another 10 minutes
+            # and then check again
+
+            # Get the number of jobs in the "short" and "vshort" queues
+            sqpmy_test='squeue -o "%.18i %Q %.9q %.8j %.8u %.10a %.2t %.10M %.10L %.6C %R" | grep $USER' #priority rating
+            short_jobs=$(eval $sqpmy_test | grep " short" | wc -l)
+            vshort_jobs=$(eval $sqpmy_test | grep "vshort" | wc -l)
+
+            echo "Checking the job submission levels to normalize..."
+            echo "Current job counts - short: $short_jobs, vshort: $vshort_jobs"
+            echo "Checking every 10 minutes..."
+
+            while true; do
+                # Get the number of jobs in the "short" and "vshort" queues
+                short_jobs=$(eval $sqpmy_test | grep " short" | wc -l)
+                vshort_jobs=$(eval $sqpmy_test | grep "vshort" | wc -l)
+
+                # Print a dot to indicate progress
+                echo -n "."
+
+                # Check if either queue has more than 1500 jobs
+                if (( short_jobs > 1500 || vshort_jobs > 1500 )); then
+                    echo -n "."      # progress dot
+                    sleep $WAIT_TIME_LONG  # Sleep for 10 minutes
+                else
+                    break
+                fi
+            done
+            echo ""
+            echo "Job submission levels are normal (short: $short_jobs, vshort: $vshort_jobs)."
+            echo ""
+            #----------------------------------------------------------
+
+
+
+
+
+
+
+            # check if $child name contains "KP1a", "KP1b", etc., if not exit with error
+            if [[ ! "$child" =~ KP1[a-z] ]]; then
+                echo "ERROR: $child does not match KP1[a-z] pattern. Exiting."
+                exit 1
+            fi
 
             # only if rerun is 0, check if the directory has already been processed
             if [[ $rerun -eq 0 ]]; then
                 # Copy and source analysis script
-                # cp "${HELP_SCRIPTS_vasp}/data_4_analysis.sh" "${child_abs}/"
+                # cp "${HELP_SCRIPTS_vasp}/data_4_analysis.sh" "${KP1x_dir}/"
                 # source data_4_analysis.sh
 
                 # Check for average pressure file
@@ -483,7 +513,8 @@ while IFS= read -r -d '' parent; do
 
             # if rerun is 1, check if the jobs are already completed successfully
             if [[ $rerun -eq 1 ]]; then
-                l_deepmd
+                module purge
+                module load anaconda3/2024.6; conda activate deepmd
                 python ${MLDP_SCRIPTS}/post_recal_rerun.py -ip all -v -ss $INPUT_FILES_DIR/sub_vasp_xtra.sh > log.recal_test 2>&1
                 module purge
                 # wait for log.recal_test to be created
@@ -554,14 +585,15 @@ while IFS= read -r -d '' parent; do
             done
 
             echo "Started hp_calculations in ${child}"
+            echo ""
             # Return to the original driver directory
             cd ${ISOBAR_CALC_dir} || exit
         fi
     done
-    echo
+    echo ""
     echo "++++++++++++++++++++++++++++++"
-    echo
-    echo
+    echo ""
+    echo ""
 done < <(find . -type d -name KP1 -print0)
 
 # Final confirmation message
@@ -572,7 +604,7 @@ echo "################################"
 echo "################################"
 echo "################################"
 echo "Parameter rerun = ${rerun}"
-echo "All ISOBAR VASP jobs started in all KP1/*/hp_calculations directories under ${ISOBAR_CALC_dir}."
+echo "All ISOBAR VASP jobs started in all KP1/*/hp_calculations directories under ${ISOBAR_CALC_dir} by $(date)."
 echo "If you want to rerun the jobs with ALGO = N, run the script again with rerun=1."
 echo "Number of incomplete runs across compositions (ignore if rerun=0): ${counter_incomplete_runs}"
 echo "################################"
