@@ -23,11 +23,15 @@
 #####################################################################################
 #####################################################################################
 
+CURRENT_PROCESS_ID=$$
+echo "Current process ID: $CURRENT_PROCESS_ID"
 
-NUM_JOBS=5 # Number of jobs to be submitted in each call
+
+NUM_JOBS=5 # Number of jobs to be submitted in each call of RUN_VASP_MASTER_extended__SCALEE.sh
 NUM_RESTART_SHIFTS=5 # Number of restart shifts to be attempted in each call until NUM_JOBS is reached
 TOTAL_TIME_STEP_LIMIT=20000 # Total time steps limit for the run
 MINIMUM_TIME_STEP_THRESHOLD=200 # Minimum time steps threshold for the run to be considered successful
+ALGO_SWITCH=1 # Switch to use ALGO = All in INCAR file, default of 1 (on); options: 0 (off), 1 (on)
 
 INITIAL_PERCENTAGE_RESTART_SHIFT=20 # Initial percentage restart shift in percentage
 PERCENTAGE_RESTART_SHIFT_INCREMENT=5 # Percentage increment for restart shift after each attempt
@@ -36,8 +40,11 @@ home_dir=$(pwd)
 
 RUN_DIRNAME=${1:-0}
 
-CUMULATIVE_NUM_JOBS_LIMIT=${2:-10}  # Cumulative total number of jobs limit = NUM_JOBS_i + NUM_JOBS_(i+1) + ... + NUM_JOBS_n, default of 10; options: 10, 20, 30, 40, 50, 60, 70, 80, 90, 100
+CUMULATIVE_NUM_JOBS_LIMIT=${2:-30}  # Cumulative total number of jobs limit = NUM_JOBS_i + NUM_JOBS_(i+1) + ... + NUM_JOBS_n, default of 30; options: 10, 20, 30, 40, 50, 60, 70, 80, 90, 100
 
+
+
+# sed -i 's/ALGO   = F/ALGO   = All/' "SCALEE_6b/INCAR" && sed -i 's/ALGO   = F/ALGO   = All/' "SCALEE_7b/INCAR"
 
 
 module purge
@@ -71,6 +78,7 @@ echo "Initial percentage restart shift: $INITIAL_PERCENTAGE_RESTART_SHIFT%"
 echo "Percentage restart shift increment: $PERCENTAGE_RESTART_SHIFT_INCREMENT%"
 echo "Total time steps limit for the run: $TOTAL_TIME_STEP_LIMIT"
 echo "Minimum time steps threshold for a 'successful' run: $MINIMUM_TIME_STEP_THRESHOLD"
+echo "ALGO switch: $ALGO_SWITCH (1: ALL; 0: default)"
 echo ""
 
 cumulative_num_jobs_submitted=0 # Initialize cumulative number of jobs submitted so far
@@ -79,22 +87,54 @@ current_num_restart_shifts=0 # Initialize current number of restart shifts
 
 if [ "$RUN_DIRNAME" == "0" ]; then
     echo "No RUN_DIRNAME specified"
+
 elif  [ -n "$RUN_DIRNAME" ]; then
 
+    # check if there is $RUN_DIRNAMEa -- if not, cp RUN_DIRNAME to $RUN_DIRNAMEa
+    if [ ! -d "${RUN_DIRNAME}a" ]; then
+        # check how many ${RUN_DIRNAME}a, ... exist -- if just 1, copy RUN_DIRNAME to ${RUN_DIRNAME}a, else throw error
+        existing_dirs=$(ls -d ${RUN_DIRNAME}*/ | wc -l)
+        if [ "$existing_dirs" -gt 1 ]; then
+            echo "Error: More than one run directory exists for $RUN_DIRNAME. But ${RUN_DIRNAME}a does not! Please check the directories."
+            exit 1
+        fi
+        cp -r "$RUN_DIRNAME" "${RUN_DIRNAME}a"
+        echo "${RUN_DIRNAME}a didn't exist. Copied $RUN_DIRNAME to ${RUN_DIRNAME}a"
+    fi
+
+    # check the last run directory, which should be ${RUN_DIRNAME}a, ${RUN_DIRNAME}b, ..., and run: ALGO = All in INCAR file
+    last_run_dirname=$(ls -d ${RUN_DIRNAME}*/ | sort | tail -n 1)
+    echo "Last run directory: $last_run_dirname"
+    # if ALGO_SWITCH is on, modify the INCAR file in ${RUN_DIRNAME}a
+    if [ "$ALGO_SWITCH" -eq 1 ]; then
+        # run this shell command in the new RUN_DIRNAMEa: sed -i 's/ALGO   = F/ALGO   = All/' "SCALEE_6b/INCAR" && sed -i 's/ALGO   = F/ALGO   = All/' "SCALEE_7b/INCAR"
+        sed -i 's/ALGO   = F/ALGO   = All/' "$last_run_dirname/INCAR" && sed -i 's/ALGO   = F/ALGO   = All/' "$last_run_dirname/INCAR"
+        echo "Modified INCAR file in $last_run_dirname for future runs to use ALGO = All if different previously."
+    fi
+    echo ""
 
     while [ $current_num_restart_shifts -lt $NUM_RESTART_SHIFTS ]; do
         # current_percentage_restart_shift=$INITIAL_PERCENTAGE_RESTART_SHIFT + $PERCENTAGE_RESTART_SHIFT_INCREMENT * current_num_restart_shifts
         current_percentage_restart_shift=$((INITIAL_PERCENTAGE_RESTART_SHIFT + PERCENTAGE_RESTART_SHIFT_INCREMENT * current_num_restart_shifts))
 
+        echo ""
         cd "$home_dir" || exit 1
         # run merge_vasp_runs.py in the RUN_DIRNAME
         python $HELP_SCRIPTS_vasp/merge_vasp_runs.py $RUN_DIRNAME
-        echo "Merging VASP runs in directory: $RUN_DIRNAME"
 
         cp $HELP_SCRIPTS_vasp/RUN_VASP/RUN_VASP_MASTER_extended__SCALEE.sh $RUN_DIRNAME/
         cd $RUN_DIRNAME || exit 1
         run_dir=$(pwd)
+        # if current_num_restart_shifts is 0, then create new log.RUN_VASP_MASTER_extended__SCALEE.sh
+        if [ "$current_num_restart_shifts" -eq 0 ]; then
+            touch log.RUN_VASP_MASTER_extended__SCALEE.sh
+            echo "Created new log file: log.RUN_VASP_MASTER_extended__SCALEE.sh"
+        else # add 10 new empty lines
+            for i in {1..10}; do echo "" >> log.RUN_VASP_MASTER_extended__SCALEE.sh; done
+        fi
+        echo "Merged VASP runs in directory: $RUN_DIRNAME"
         echo "Running VASP in directory: $run_dir"
+        echo "Current percentage restart shift: $current_percentage_restart_shift%"
         total_time_steps=$(grep time analysis/peavg.out | awk '{print $5}')
         echo "Total time steps that ${RUN_DIRNAME} has taken so far: $total_time_steps"
         echo ""
@@ -107,14 +147,15 @@ elif  [ -n "$RUN_DIRNAME" ]; then
 
             rm -rf done_RUN_VASP_MASTER_extended__SCALEE  # remove the done file if it exists
 
-            source RUN_VASP_MASTER_extended__SCALEE.sh $NUM_JOBS $RUN_VASP_TIME $RUN_VASP_NODES $current_percentage_restart_shift > log.RUN_VASP_MASTER_extended__SCALEE 2>&1 &
-
-            echo "Submitted RUN_VASP_MASTER_extended__SCALEE.sh with $NUM_JOBS jobs, time: $RUN_VASP_TIME hours, and nodes: $RUN_VASP_NODES."
+            echo "Submitting RUN_VASP_MASTER_extended__SCALEE.sh with $NUM_JOBS jobs, time: $RUN_VASP_TIME hours, and nodes: $RUN_VASP_NODES."
+            source RUN_VASP_MASTER_extended__SCALEE.sh $NUM_JOBS $RUN_VASP_TIME $RUN_VASP_NODES $current_percentage_restart_shift >> log.RUN_VASP_MASTER_extended__SCALEE 2>&1
+            PREVIOUS_JOB_ID=$!  # get the job ID of the last background process
+            echo "JOB_ID: $PREVIOUS_JOB_ID"
             echo "Waiting for the jobs to finish..."
 
             # wait until $run_dir/done_RUN_VASP_MASTER_extended__SCALEE file exists
             while [ ! -f "$run_dir/done_RUN_VASP_MASTER_extended__SCALEE" ]; do
-                sleep 600 # wait for 10 minutes
+                sleep 60 # wait for 1 minute
             done
 
             # cumulative_num_jobs_submitted=NUM_JOBS+cumulative_num_jobs_submitted
@@ -149,7 +190,15 @@ elif  [ -n "$RUN_DIRNAME" ]; then
                 # delete the last run directory
                 cd "$home_dir" || exit 1
                 echo "Deleting the last run directory: $last_run_dirname"
-                rm -rf "$last_run_dirname"
+                # count number of $RUN_DIRNAME<letter> directories
+                num_run_dirs=$(ls -d ${RUN_DIRNAME}*/ | wc -l)
+                # if num_run_dirs is 1, do not delete the last run directory, else do delete it
+                if [ "$num_run_dirs" -lt 3 ]; then
+                    echo "Fewer than 3 run directories exist for $RUN_DIRNAME, not deleting the last one."
+                else
+                    echo "Deleting the last run directory: $last_run_dirname"
+                    rm -rf "$last_run_dirname"
+                fi
                 echo ""
                 echo ""
                 echo ""

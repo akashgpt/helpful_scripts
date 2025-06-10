@@ -561,3 +561,11 @@ find . -type f -path '*/isobar_calc/log.isobar__create_KP1x_hp_calc_eos' -exec g
 
 # find all folders and sub-folders with names that are only numbers and in these folders, delete file "WAVECAR"
 find . -type d ! -name '*[!0-9]*' -exec rm -v {}/WAVECAR \;
+
+
+
+# delete all SCALEE_X directories/sub-directories except those named "SCALEE_0"
+find . -depth -type d -name 'SCALEE_*' ! -name 'SCALEE_0' -exec rm -rf {} + &
+
+# delete all V_est directories/sub-directories
+find . -type d -name "V_est" -exec rm -rf {} + &

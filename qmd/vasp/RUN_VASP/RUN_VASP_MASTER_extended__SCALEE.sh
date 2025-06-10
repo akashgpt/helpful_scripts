@@ -38,7 +38,7 @@ fi
 PERCENTAGE_RESTART_SHIFT=${4:-15} # 15% of the run time steps
 #################################################
 #################################################
-OUTCAR_size_l_limit_MB=10 # 10 MB
+OUTCAR_size_l_limit_MB=9 # 10 MB
 extended_job_flag=-1 # if value=-1 (default), jobs ONLY upto 'z' at max or 26 in number at max; if = 1, jobs ALREADY beyond z, i.e., into the 'aX' zone; if = 0, jobs WILL go beyond z this time.
 #################################################
 #################################################
