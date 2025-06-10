@@ -11,42 +11,7 @@
 
 
 
-# big warning message saying better to do 4 - KP 222 calculations rather than 111
-# echo ""
-# echo ""
-# echo ""
-# echo "#==========================================#"
-# echo "#==========================================#"
-# echo "#==========================================#"
-# echo "WARNING: It is better to do 4 {KP 222} calculations rather than 4 {KP 111} + hp_calculcations"
-# echo "Not sure though ..."
-# echo "Thermal pressure correction is likely larger than a simple external pressure offset between KPOINTS 222 vs 111. Not 100% sure though."
-# echo "#==========================================#"
-# echo "#==========================================#"
-# echo "#==========================================#"
-# echo ""
-# echo ""
-# echo ""
 
-
-
-#-------------------------
-# Simulation parameters
-#-------------------------
-# TEMP_CHOSEN=6500                     # Target temperature (K)
-# PSTRESS_CHOSEN_GPa=250               # Pressure offset (GPa), not used here
-# NBANDS_CHOSEN=784                    # Number of bands: 784 for MgSiO3-He; use 560 for Fe-He
-# POTIM_CHOSEN=0.5                     # MD time step (fs)
-# NPAR_CHOSEN=14                       # Parallelization: cores per node; TIGER3=14, STELLAR=16
-# KPAR_CHOSEN_111=1                    # K-point parallelization for KPOINTS 1×1×1
-# KPAR_CHOSEN_222=4                    # K-point parallelization for KPOINTS 2×2×2
-
-# #-------------------------
-# # Timing controls (in minutes)
-# #-------------------------
-# WAIT_TIME_VLONG=600                  # Very long jobs
-# WAIT_TIME_LONG=60                    # Long jobs
-# WAIT_TIME_SHORT=10                   # Short jobs
 
 
 #######

@@ -447,6 +447,9 @@ if [ $elapsed_block9 -gt 10 ]; then
   echo "WARNING: rsync operations block took $elapsed_block9 seconds!"
 fi
 
+##########################################
+module purge # clear all loaded modules
+##########################################
 
 # Tag time when this script ends
 echo "Done with myshortcuts.sh at $(date)"

@@ -34,6 +34,16 @@ elif [ "$CLUSTER_NAME" == "stellar" ]; then
 	RUN_VASP_NODES=${3:-2} #number of nodes used, default of 2; options: 1, 2, 4, 8
 fi
 
+
+PERCENTAGE_RESTART_SHIFT=${4:-15} # 15% of the run time steps
+#################################################
+#################################################
+OUTCAR_size_l_limit_MB=10 # 10 MB
+extended_job_flag=-1 # if value=-1 (default), jobs ONLY upto 'z' at max or 26 in number at max; if = 1, jobs ALREADY beyond z, i.e., into the 'aX' zone; if = 0, jobs WILL go beyond z this time.
+#################################################
+#################################################
+
+
 echo ""
 echo "========================="
 echo "Cluster name: $CLUSTER_NAME"
@@ -41,21 +51,17 @@ echo "Number of nodes: $RUN_VASP_NODES"
 echo "Number of jobs: $num_jobs"
 echo "Run VASP time: $RUN_VASP_TIME"
 echo "Run VASP directory: $RUN_VASP_DIR"
+echo "Percentage restart shift: $PERCENTAGE_RESTART_SHIFT"
+echo "OUTCAR size limit: $OUTCAR_size_l_limit_MB MB"
+echo "Extended job flag: $extended_job_flag"
 echo "========================="
 echo ""
 
 
 RUN_SCRIPT_FILE="${RUN_VASP_DIR}/RUN_VASP_T${RUN_VASP_TIME}h_N${RUN_VASP_NODES}.sh"
 
-#################################################
-#################################################
-OUTCAR_size_l_limit=34000000 #1E8 Bytes = 34 MB
-# OUTCAR_size_l_limit=100000000 #1E8 Bytes = 100 MB
-# OUTCAR_size_l_limit=100000 #1E5 Bytes = 100 KB
-extended_job_flag=-1 # if value=-1 (default), jobs ONLY upto 'z' at max or 26 in number at max; if = 1, jobs ALREADY beyond z, i.e., into the 'aX' zone; if = 0, jobs WILL go beyond z this time.
-#################################################
-#################################################
-
+#OUTCAR_size_l_limit__Bytes in terms of OUTCAR_size_l_limit_MB
+OUTCAR_size_l_limit__Bytes=$((OUTCAR_size_l_limit_MB * 1024 * 1024)) # convert MB to Bytes
 
 # for converting decimal to ASCII
 chr() {
@@ -126,7 +132,8 @@ if (( $extended_job_flag == 0 )); then
 
 			# check if the last job completed properly by just seeing if OUTCAR is sufficiently big
 			OUTCAR_size=$(stat -c%s OUTCAR)
-			if (( OUTCAR_size < OUTCAR_size_l_limit )); then
+			if (( OUTCAR_size < OUTCAR_size_l_limit__Bytes )); then
+				echo "WARNING: OUTCAR size < $OUTCAR_size_l_limit_MB MB"
 				echo "Seems the job before ${master_id}${letter_old} did not finish correctly. Terminating this script at" `date `
 				break
 			fi
@@ -147,9 +154,8 @@ if (( $extended_job_flag == 0 )); then
 			cd ../"${master_id}${letter}" || exit 1  # Exit if the directory change fails
 			# cp CONTCAR POSCAR
 			run_time_steps=$(grep time analysis/peavg.out | awk '{print $5}')
-			#restart_shift=int(run_time_steps*0.2)
-			restart_shift=$(( run_time_steps * 2 / 10 )) # 20% of the run time steps
-			python $HELP_SCRIPTS_vasp/continue_run_ase.py -r $restart_shift 
+			restart_shift=$(( run_time_steps * PERCENTAGE_RESTART_SHIFT / 100 )) # 20% of the run time steps
+			python $HELP_SCRIPTS_vasp/continue_run_ase.py -r $restart_shift
 			rm WAVECAR
 
 			# if RUN_VASP_TIME > 0, then copy the RUN_VASP.sh file from the master directory
@@ -160,6 +166,7 @@ if (( $extended_job_flag == 0 )); then
 			else
 				echo "Keeping the old RUN_VASP.sh file"
 			fi
+			rm slurm*
 
 			# cp $RUN_SCRIPT_FILE RUN_VASP.sh
 			sbatch RUN_VASP.sh
@@ -186,8 +193,9 @@ if (( $extended_job_flag == 0 )); then
 
 		# check if the last job completed properly by just seeing if OUTCAR is sufficiently big
 		OUTCAR_size=$(stat -c%s OUTCAR)
-		if (( OUTCAR_size < OUTCAR_size_l_limit )); then
+		if (( OUTCAR_size < OUTCAR_size_l_limit__Bytes )); then
 			if (( $letter == a)); then
+				echo "WARNING: OUTCAR size < $OUTCAR_size_l_limit_MB MB"
 				echo "Seems the job before ${master_id}${letter_old} did not finish correctly. Terminating this script at" `date `
 			else
 				echo "Seems the job before ${master_id}a${letter_old} did not finish correctly. Terminating this script at" `date `
@@ -216,7 +224,7 @@ if (( $extended_job_flag == 0 )); then
 		# cp CONTCAR POSCAR
 		run_time_steps=$(grep time analysis/peavg.out | awk '{print $5}')
 		#restart_shift=int(run_time_steps*0.2)
-		restart_shift=$(( run_time_steps * 2 / 10 )) # 20% of the run time steps
+		restart_shift=$(( run_time_steps * PERCENTAGE_RESTART_SHIFT / 100 )) # 20% of the run time steps
 		python $HELP_SCRIPTS_vasp/continue_run_ase.py -r $restart_shift 
 		rm WAVECAR
 		
@@ -228,6 +236,7 @@ if (( $extended_job_flag == 0 )); then
 		else
 			echo "Keeping the old RUN_VASP.sh file"
 		fi
+		rm slurm*
 
 		sbatch RUN_VASP.sh
 		job_id=$(squeue --user=$USER --sort=i --format=%i | tail -n 1 | awk '{print $1}')
@@ -255,7 +264,8 @@ elif (( $extended_job_flag == 1 )); then
 
 		# check if the last job completed properly by just seeing if OUTCAR if sufficiently big
 		OUTCAR_size=$(stat -c%s OUTCAR)
-		if (( OUTCAR_size < OUTCAR_size_l_limit )); then
+		if (( OUTCAR_size < OUTCAR_size_l_limit__Bytes )); then
+			echo "WARNING: OUTCAR size < $OUTCAR_size_l_limit_MB MB"
 			echo "Seems the job before ${master_id}a${letter_old} did not finish correctly. Terminating this script at" `date `
 			break
 		fi
@@ -276,8 +286,7 @@ elif (( $extended_job_flag == 1 )); then
 		cd ../"${master_id}a${letter}" || exit 1  # Exit if the directory change fails
 		# cp CONTCAR POSCAR
 		run_time_steps=$(grep time analysis/peavg.out | awk '{print $5}')
-		#restart_shift=int(run_time_steps*0.2)
-		restart_shift=$(( run_time_steps * 2 / 10 )) # 20% of the run time steps
+		restart_shift=$(( run_time_steps * PERCENTAGE_RESTART_SHIFT / 100 )) # 20% of the run time steps
 		python $HELP_SCRIPTS_vasp/continue_run_ase.py -r $restart_shift 
 		rm WAVECAR
 		
@@ -290,7 +299,7 @@ elif (( $extended_job_flag == 1 )); then
 		else
 			echo "Keeping the old RUN_VASP.sh file"
 		fi
-
+		rm slurm*
 
 		sbatch RUN_VASP.sh
 		job_id=$(squeue --user=$USER --sort=i --format=%i | tail -n 1 | awk '{print $1}')
@@ -318,7 +327,8 @@ elif (( $extended_job_flag == -1 )); then
 
 		# check if the last job completed properly by just seeing if OUTCAR if sufficiently big
 		OUTCAR_size=$(stat -c%s OUTCAR)
-		if (( OUTCAR_size < OUTCAR_size_l_limit )); then
+		if (( OUTCAR_size < OUTCAR_size_l_limit__Bytes )); then
+			echo "WARNING: OUTCAR size < $OUTCAR_size_l_limit_MB MB"
 			echo "Seems the job before ${master_id}${letter_old} did not finish correctly. Terminating this script at" `date `
 			break
 		fi
@@ -339,8 +349,7 @@ elif (( $extended_job_flag == -1 )); then
 		cd ../"${master_id}${letter}" || exit 1  # Exit if the directory change fails
 		# cp CONTCAR POSCAR
 		run_time_steps=$(grep time analysis/peavg.out | awk '{print $5}')
-		#restart_shift=int(run_time_steps*0.2)
-		restart_shift=$(( run_time_steps * 2 / 10 )) # 20% of the run time steps
+		restart_shift=$(( run_time_steps * PERCENTAGE_RESTART_SHIFT / 100 )) # 20% of the run time steps
 		python $HELP_SCRIPTS_vasp/continue_run_ase.py -r $restart_shift
 		rm WAVECAR
 		
@@ -352,7 +361,7 @@ elif (( $extended_job_flag == -1 )); then
 		else
 			echo "Keeping the old RUN_VASP.sh file"
 		fi
-
+		rm slurm*
 
 		sbatch RUN_VASP.sh
 		job_id=$(squeue --user=$USER --sort=i --format=%i | tail -n 1 | awk '{print $1}')

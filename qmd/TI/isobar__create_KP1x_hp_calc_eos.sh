@@ -1,8 +1,8 @@
 #!/bin/bash
 # set -euo pipefail
 
-# Usage: source $HELP_SCRIPTS_TI/create_KP1x_hp_calc_eos.sh > log.create_KP1x_hp_calc_eos 2>&1 &
-#        nohup "$HELP_SCRIPTS_TI/create_KP1x_hp_calc_eos.sh" > log.create_KP1x_hp_calc_eos 2>&1 &
+# Usage: source $HELP_SCRIPTS_TI/isobar__create_KP1x_hp_calc_eos.sh > log.isobar__create_KP1x_hp_calc_eos 2>&1 &
+#        nohup $HELP_SCRIPTS_TI/isobar__create_KP1x_hp_calc_eos.sh > log.isobar__create_KP1x_hp_calc_eos 2>&1 &
 # Author: Akash Gupta
 
 
@@ -34,6 +34,7 @@ echo "PT directory: $PT_dir"
 echo "PT directory name: $PT_dir_name"
 echo "COMPOSITION directory: $COMPOSITION_dir"
 echo "COMPOSITION directory name: $COMPOSITION_dir_name"
+echo "CONFIG directory: $CONFIG_dir"
 echo "ISOBAR_CALC_dir: $ISOBAR_CALC_dir"
 echo ""
 
@@ -96,6 +97,7 @@ echo "------------------------"
 echo "Simulation parameters:"
 echo "TEMP_CHOSEN_ARRAY: ${TEMP_CHOSEN_ARRAY[@]}"
 echo "PSTRESS_CHOSEN_GPa: $PSTRESS_CHOSEN_GPa"
+echo "PSTRESS_CHOSEN: $PSTRESS_CHOSEN (in kBar)"
 echo "NPAR_CHOSEN: $NPAR_CHOSEN (special case for single point calculations)"
 echo "POTIM_CHOSEN: $POTIM_CHOSEN"
 echo "NBANDS_CHOSEN: $NBANDS_CHOSEN"
@@ -138,10 +140,13 @@ while IFS= read -r -d '' parent; do
     ISOBAR_T_dir=$(dirname "$V_est_dir") # parent directory is ISOBAR_T_dir
     ISOBAR_T_dir_name=$(basename "$ISOBAR_T_dir") # name of the ISOBAR_T_dir directory
     ISOBAR_CALC_dir__test=$(dirname "$ISOBAR_T_dir") # parent directory is ISOBAR_CALC_test_dir
+    
     # if ISOBAR_CALC_dir__test is not the same as ISOBAR_CALC_dir, exit
     if [ "$ISOBAR_CALC_dir__test" != "$ISOBAR_CALC_dir" ]; then
         echo "ERROR: ISOBAR_CALC_dir__test ($ISOBAR_CALC_dir__test) is not the same as ISOBAR_CALC_dir ($ISOBAR_CALC_dir)"
         exit 1
+    else
+        echo "ISOBAR_CALC_dir__test ($ISOBAR_CALC_dir__test) is the same as ISOBAR_CALC_dir ($ISOBAR_CALC_dir)"
     fi
 
     # Extract TEMP_CHOSEN_ISOBAR from the name of the ISOBAR_T_dir directory (ISOBAR_T_dir_name) -- the format is "T<TEMP_CHOSEN_i>"
@@ -176,27 +181,13 @@ while IFS= read -r -d '' parent; do
         if [ -d "${child}" ]; then
             # Enter the child directory
             cd "${child}" || exit
-            child_abs=$(pwd)
-            KP1x_dir=$child_abs
-            echo " → Entered ${child_abs}"
+            KP1x_dir=$(pwd)
+            echo " → Entered ${KP1x_dir}"
 
             # # Copy and source analysis script
-            cp "${HELP_SCRIPTS_vasp}/data_4_analysis.sh" "${child_abs}/"
+            cp "${HELP_SCRIPTS_vasp}/data_4_analysis.sh" "${KP1x_dir}/"
             source data_4_analysis.sh
 
-            # # Check for average pressure file
-            # if [[ ! -f analysis/peavg.out ]]; then
-            #     echo "ERROR: analysis/peavg.out not found in ${child}" >&2
-            #     exit 1
-            # fi
-            # # Extract the third field (pressure) from peavg.out
-            # P_RUN=$(grep Pressure analysis/peavg.out | awk '{print $3}')
-
-            # # Run ASE setup (assumed alias/function)
-            # module load anaconda3/2024.6; conda activate ase_env
-            # # Generate high-precision calculations using eos script
-            # python ${HELP_SCRIPTS_vasp}/eos* \
-            #     -p ${P_RUN} -m 0 -e 0.1 -hp 1 -nt 20
 
             #----------------------------------------------------------
             # Now enter hp_calculations for KPOINTS_222 runs
@@ -216,8 +207,13 @@ while IFS= read -r -d '' parent; do
             echo "Number of failed recal frames: $num_failed_recal_frames"
             counter_incomplete_runs=$(($counter_incomplete_runs + $num_failed_recal_frames))
 
-
-
+            echo ""
+            if [ $num_failed_recal_frames -eq 0 ]; then
+                echo "All recal frames completed successfully in ${KP1x_dir}/hp_calculations (num_failed_recal_frames: $num_failed_recal_frames)."
+            else
+                echo "WARNING: Number of failed recal frames in ${KP1x_dir}/hp_calculations: $num_failed_recal_frames"
+            fi
+            echo ""
 
             ##########################################################
             ##########################################################

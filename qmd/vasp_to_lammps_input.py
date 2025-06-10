@@ -2,6 +2,8 @@ from ase.io import read, write
 from ase.data import atomic_masses
 import argparse
 
+# Usage: python $HELP_SCRIPTS/qmd/vasp_to_lammps_input.py --VASP_input POSCAR --LAMMPS_input conf.lmp.ase
+
 # Create an ArgumentParser object to handle command-line arguments
 parser = argparse.ArgumentParser()
 
@@ -23,3 +25,6 @@ atoms.set_masses([atomic_masses[atom.number] for atom in atoms])
 
 # Write the basic LAMMPS data file.
 write(args.LAMMPS_input, atoms, format='lammps-data',specorder=['Mg','Si','O','H','N'],masses=True)
+
+# write wrapped POSCAR_new
+write("POSCAR_ase", atoms, format='vasp', vasp5=True, direct=True)

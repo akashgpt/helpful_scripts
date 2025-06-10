@@ -66,7 +66,7 @@ grep "Pullay stress" OUTCAR | awk '{print $9}' > analysis/evo_pullay_stress.dat
 grep -a "volume of cell :" OUTCAR | awk '{print $5}' > analysis/evo_cell_volume.dat
 sed -i '1,2d' analysis/evo_cell_volume.dat
 
-grep "free  energy" OUTCAR | awk '{print $5}' > analysis/evo_free_energy.dat
+# grep "free  energy" OUTCAR | awk '{print $5}' > analysis/evo_free_energy.dat
 grep ETOTAL OUTCAR | awk '{print $5}' > analysis/evo_total_energy.dat
 grep "free  energy   TOTEN" OUTCAR | awk '{print $5}' > analysis/evo_TOTEN.dat
 grep "energy  without entropy" OUTCAR | awk '{print $4}' > analysis/evo_internal_energy.dat
@@ -76,13 +76,16 @@ grep "(temperature" OUTCAR | sed -E 's/.*temperature[[:space:]]*([0-9]+\.[0-9]+)
 
 # if TI_mode is 1, then
 if [ "$TI_mode" -eq 1 ]; then
-    awk 'NR%2==0' analysis/evo_internal_energy.dat > analysis/temp
+    echo "Given the TI_mode, only keeping the non-scaled energy values from OUTCAR (i.e., not the <SCALED FREE ENERGIE ...> values)."
+    awk 'NR%2==1' analysis/evo_internal_energy.dat > analysis/temp
     mv analysis/temp analysis/evo_internal_energy.dat
-    awk 'NR%2==0' analysis/evo_free_energy.dat > analysis/temp
-    mv analysis/temp analysis/evo_free_energy.dat
-    awk 'NR%2==0' analysis/evo_TOTEN.dat > analysis/temp
+    # awk 'NR%2==0' analysis/evo_free_energy.dat > analysis/temp
+    # mv analysis/temp analysis/evo_free_energy.dat
+    awk 'NR%2==1' analysis/evo_TOTEN.dat > analysis/temp
     mv analysis/temp analysis/evo_TOTEN.dat
 fi
+
+cp analysis/evo_TOTEN.dat analysis/evo_free_energy.dat # for backward compatibility
 
 echo "Sourcing peavg.sh | Make sure to have peavg.sh on your PATH."
 source peavg.sh OUTCAR

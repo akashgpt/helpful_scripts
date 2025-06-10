@@ -540,3 +540,24 @@ cp -r SCALEE_6 SCALEE_6b && cd SCALEE_6b/ && python $HELP_SCRIPTS_vasp/continue_
 # to change the INCAR files in all sub-directories -- TIGER3 to STELLAR
 find . -type f -name 'INCAR' -exec sed -i 's/LANGEVIN_GAMMA = 1.0 1.0 5.0 10.0/LANGEVIN_GAMMA = 1.0 1.0 2.0 10.0/g' {} + && find . -type f -name 'INCAR' -exec sed -i 's/NBANDS = 784/NBANDS = 768/g' {} + && find . -type f -name 'INCAR' -exec sed -i 's/NPAR = 14/NPAR = 12/g' {} +
 find . -type f -name 'INCAR' -exec sed -i 's/NBANDS = 784/NBANDS = 768/g' {} + && find . -type f -name 'INCAR' -exec sed -i 's/NPAR = 14/NPAR = 12/g' {} +
+
+
+
+
+# Delete all WAVECAR files in numbered directories (e.g., those in the hp_calculations directories)
+find . -regextype posix-extended -type f \
+  -regex '.*/[0-9]+/WAVECAR$' -delete
+
+
+
+# to check available nodes in a cluster
+snodes 
+
+
+
+# find if any hp_calc sims are incomplete
+find . -type f -path '*/isobar_calc/log.isobar__create_KP1x_hp_calc_eos' -exec grep -H "Total number of incomplete runs: " {} +
+
+
+# find all folders and sub-folders with names that are only numbers and in these folders, delete file "WAVECAR"
+find . -type d ! -name '*[!0-9]*' -exec rm -v {}/WAVECAR \;

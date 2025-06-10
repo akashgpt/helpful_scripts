@@ -75,6 +75,7 @@ fi
 
 SIGMA_CHOSEN=$(echo "$kB * $TEMP_CHOSEN" | bc -l)  # Gaussian smearing sigma
 
+PSTRESS_CHOSEN=$(echo "$PSTRESS_CHOSEN_GPa * 10" | bc -l)  # Convert GPa to kBar
 
 #-------------------------
 # Print the parameters
@@ -82,7 +83,8 @@ echo "------------------------"
 echo "Simulation parameters:"
 echo "TEMP_CHOSEN: $TEMP_CHOSEN"
 echo "PSTRESS_CHOSEN_GPa: $PSTRESS_CHOSEN_GPa"
-echo "NPAR_CHOSEN: $NPAR_CHOSEN (special case for single point calculations)"
+echo "PSTRESS_CHOSEN: $PSTRESS_CHOSEN (kBar)"
+echo "NPAR_CHOSEN: $NPAR_CHOSEN"
 echo "POTIM_CHOSEN: $POTIM_CHOSEN"
 echo "NBANDS_CHOSEN: $NBANDS_CHOSEN"
 echo "KPAR_CHOSEN_111: $KPAR_CHOSEN_111"
@@ -107,11 +109,9 @@ fi
 
 
 
-echo 
-echo
-echo
-
-
+echo ""
+echo ""
+echo ""
 
 
 # TEMP_CHOSEN_ISOBAR = [TEMP_CHOSEN * (1 - (temp_gap_percentage/100) * i) for i in (range(num_isobar_calculations)/2)] and [TEMP_CHOSEN * (1 + (temp_gap_percentage/100) * i) for i in (range(num_isobar_calculations)/2)]

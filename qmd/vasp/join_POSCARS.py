@@ -6,18 +6,21 @@ from mpl_toolkits.mplot3d import Axes3D
 import argparse
 import os
 
+# Usage: python $HELP_SCRIPTS_vasp/join_POSCARS.py -d1 f1002 -d2 f1001 -do f1003 -f CONTCAR -g 0.05
+# Usage: python $HELP_SCRIPTS_vasp/join_POSCARS.py -d1 g1002 -d2 g1001 -do g1003 -f CONTCAR -g 0.05
+# This script merges two VASP POSCAR files into a single POSCAR file with a specified gap between the two structures.
 
 # Load two POSCAR files
 # dir1 = "f0002"
 # dir2 = "f0004"
 
 # take dir1 and dir2 as input
-parser = argparse.ArgumentParser(description="Estimate volume at target pressure using Birch-Murnaghan EOS.")
+parser = argparse.ArgumentParser(description="Join CONTCARs, etc. to create a joint (2-phase) POSCAR.")
 parser.add_argument("-d1", "--dir1", type=str, required=True, help="directory 1.")
 parser.add_argument("-d2", "--dir2", type=str, required=True, help="directory 2.")
 parser.add_argument("-do", "--dir_out", type=str, default="joint_POSCAR", help="directory out.")
 parser.add_argument("-f", "--file_to_read", type=str, default="CONTCAR", help="file to read, default: CONTCAR.")
-parser.add_argument("-g", "--gap", type=float, default=0.5, help="gap between cells in Å, default: 0.5 Å.")
+parser.add_argument("-g", "--gap", type=float, default=0.25, help="gap between cells in Å, default: 0.25 Å.")
 args = parser.parse_args()
 dir1 = args.dir1
 dir2 = args.dir2
