@@ -28,19 +28,19 @@ echo "Current process ID: $CURRENT_PROCESS_ID"
 
 
 NUM_JOBS=5 # Number of jobs to be submitted in each call of RUN_VASP_MASTER_extended__SCALEE.sh
-NUM_RESTART_SHIFTS=5 # Number of restart shifts to be attempted in each call until NUM_JOBS is reached
+NUM_RESTART_SHIFTS=10 # Number of restart shifts to be attempted in each call until NUM_JOBS is reached
 TOTAL_TIME_STEP_LIMIT=20000 # Total time steps limit for the run
-MINIMUM_TIME_STEP_THRESHOLD=200 # Minimum time steps threshold for the run to be considered successful
+MINIMUM_TIME_STEP_THRESHOLD=190 # Minimum time steps threshold for the run to be considered successful
 ALGO_SWITCH=1 # Switch to use ALGO = All in INCAR file, default of 1 (on); options: 0 (off), 1 (on)
 
 INITIAL_PERCENTAGE_RESTART_SHIFT=20 # Initial percentage restart shift in percentage
-PERCENTAGE_RESTART_SHIFT_INCREMENT=5 # Percentage increment for restart shift after each attempt
+PERCENTAGE_RESTART_SHIFT_INCREMENT=2 # Percentage increment for restart shift after each attempt
 
 home_dir=$(pwd)
 
 RUN_DIRNAME=${1:-0}
 
-CUMULATIVE_NUM_JOBS_LIMIT=${2:-30}  # Cumulative total number of jobs limit = NUM_JOBS_i + NUM_JOBS_(i+1) + ... + NUM_JOBS_n, default of 30; options: 10, 20, 30, 40, 50, 60, 70, 80, 90, 100
+CUMULATIVE_NUM_JOBS_LIMIT=${2:-100}  # Cumulative total number of jobs limit = NUM_JOBS_i + NUM_JOBS_(i+1) + ... + NUM_JOBS_n, default of 30; options: 10, 20, 30, 40, 50, 60, 70, 80, 90, 100
 
 
 
@@ -114,6 +114,9 @@ elif  [ -n "$RUN_DIRNAME" ]; then
     echo ""
 
     while [ $current_num_restart_shifts -lt $NUM_RESTART_SHIFTS ]; do
+        echo "=========================================================="
+        echo "current_num_restart_shifts: $current_num_restart_shifts"
+        echo "=========================================================="
         # current_percentage_restart_shift=$INITIAL_PERCENTAGE_RESTART_SHIFT + $PERCENTAGE_RESTART_SHIFT_INCREMENT * current_num_restart_shifts
         current_percentage_restart_shift=$((INITIAL_PERCENTAGE_RESTART_SHIFT + PERCENTAGE_RESTART_SHIFT_INCREMENT * current_num_restart_shifts))
 
@@ -149,9 +152,12 @@ elif  [ -n "$RUN_DIRNAME" ]; then
 
             echo "Submitting RUN_VASP_MASTER_extended__SCALEE.sh with $NUM_JOBS jobs, time: $RUN_VASP_TIME hours, and nodes: $RUN_VASP_NODES."
             source RUN_VASP_MASTER_extended__SCALEE.sh $NUM_JOBS $RUN_VASP_TIME $RUN_VASP_NODES $current_percentage_restart_shift >> log.RUN_VASP_MASTER_extended__SCALEE 2>&1
-            PREVIOUS_JOB_ID=$!  # get the job ID of the last background process
+            # PREVIOUS_JOB_ID=$!  # get the job ID of the last background process
             echo "JOB_ID: $PREVIOUS_JOB_ID"
             echo "Waiting for the jobs to finish..."
+            echo ""
+            echo ""
+            echo ""
 
             # wait until $run_dir/done_RUN_VASP_MASTER_extended__SCALEE file exists
             while [ ! -f "$run_dir/done_RUN_VASP_MASTER_extended__SCALEE" ]; do

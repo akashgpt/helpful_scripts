@@ -3,7 +3,7 @@
 #SBATCH --job-name=multi_run      # short name for this multi‐run job
 #SBATCH --output=multi_run_%j.out # output file name with job ID
 #SBATCH --error=multi_run_%j.err  # error file name with job ID
-#SBATCH --nodes=16                  # total nodes (4 jobs × 4 nodes each)
+#SBATCH --nodes=64                  # total nodes (4 jobs × 4 nodes each)
 #SBATCH --ntasks-per-node=8       # MPI ranks per node
 #SBATCH --cpus-per-task=7          # threads per rank
 #SBATCH --partition=normal          # partition to run on
@@ -31,27 +31,25 @@ echo "Job ID: $SLURM_JOB_ID"
 echo ""
 
 ##################  Job list  ###########################################
+to_RUN_file="to_RUN_lt_1000"  # the directories that have this file will go into RUN_DIRS
 # list your run‐directories here (or build the list dynamically)
 # e.g., RUN_DIRS=(T10400/SCALEE_0 T11700/SCALEE_0 T14300/SCALEE_0 T15600/SCALEE_0)
-# RUN_DIRS are all the directories that contain the VASP INCAR files
+# find all folders with the file $to_RUN_file and add them to the RUN_DIRS array
 RUN_DIRS=()  # initialize an empty array
-for dir in */; do
-    RUN_DIR_i="$dir/SCALEE_0"
-    if [ -d "$RUN_DIR_i" ] && [ -f "$RUN_DIR_i/INCAR" ]; then
-        # Check if RUN_DIR_i directory exists and contains an INCAR file
-        # Append the directory to the RUN_DIRS array
-        RUN_DIRS=("${RUN_DIRS[@]}" "$RUN_DIR_i")
 
-        # in RUN_DIR_i, in INCAR, exactly replace "NPAR   = 14" to "NPAR   = 8", preserving spaces
-        if [ -f "$RUN_DIR_i/INCAR" ]; then
-            sed -i 's/NPAR   = 14/NPAR   = 8/' "$RUN_DIR_i/INCAR"
-            echo "Updated NPAR in $RUN_DIR_i/INCAR"
-        fi
-    fi
-done
-echo ""
-echo "Run directories: ${RUN_DIRS[@]}"
-echo ""
+while IFS= read -r -d '' dir; do
+    RUN_DIRS+=("$dir")
+done < <(
+    find . -type d -name 'SCALEE_0' \
+            -exec test -f "{}/$to_RUN_file" \; \
+            -print0
+)
+
+# echo ""
+# echo "Run directories: ${RUN_DIRS[@]}"
+# echo ""
+printf '\nRun directories (%d):\n' "${#RUN_DIRS[@]}"
+printf '  %s\n' "${RUN_DIRS[@]}"
 
 ##################  Launch with GNU Parallel  ###########################
 # Explanation:

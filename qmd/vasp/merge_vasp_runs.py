@@ -23,7 +23,9 @@ import shutil
 from ase.io import read, write
 import subprocess
 
-
+# define data_4_analysis.sh script path
+HELP_SCRIPTS_vasp = "/projects/BURROWS/akashgpt/run_scripts/helpful_scripts/qmd/vasp"
+data_4_analysis_script = os.path.join(HELP_SCRIPTS_vasp, 'data_4_analysis.sh')
 
 def merge_runs(base):
     base_dir = base
@@ -131,6 +133,12 @@ def merge_runs(base):
     os.chdir(base_dir)
     # check if data_4_analysis.sh exists
     data_script = 'data_4_analysis.sh'
+    # cp data_4_analysis.sh from data_4_analysis_script
+    if os.path.isfile(data_4_analysis_script):
+        shutil.copy(data_4_analysis_script, data_script)
+        print(f"Updated '{data_4_analysis_script}' to '{data_script}'")
+    else:
+        print(f"Warning: '{data_4_analysis_script}' not found; skipping copy.")
     if os.path.isfile(data_script):
         print(f"Executing '{data_script}' via Bash")
         subprocess.run(['bash', data_script], check=True)

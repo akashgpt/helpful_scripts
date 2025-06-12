@@ -569,3 +569,7 @@ find . -depth -type d -name 'SCALEE_*' ! -name 'SCALEE_0' -exec rm -rf {} + &
 
 # delete all V_est directories/sub-directories
 find . -type d -name "V_est" -exec rm -rf {} + &
+
+
+# to find the average of a certain column in a file
+ awk '/LOOP\+/{sum+=$7; n++} END{if(n) printf "Average = %.6f\n", sum/n; else print "No matches found"}' P50_T3500/32MgSiO3_8He/SCALEE_1/OUTCAR

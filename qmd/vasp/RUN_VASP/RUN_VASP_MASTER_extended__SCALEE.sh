@@ -35,7 +35,11 @@ elif [ "$CLUSTER_NAME" == "stellar" ]; then
 fi
 
 
-PERCENTAGE_RESTART_SHIFT=${4:-15} # 15% of the run time steps
+PERCENTAGE_RESTART_SHIFT=${4:-20} # 15% of the run time steps
+
+# reduce PERCENTAGE_RESTART_SHIFT by 10; i.e. starting from 10%
+PERCENTAGE_RESTART_SHIFT=$(( PERCENTAGE_RESTART_SHIFT - 10 )) ## TEMPORARY
+
 #################################################
 #################################################
 OUTCAR_size_l_limit_MB=9 # 10 MB
