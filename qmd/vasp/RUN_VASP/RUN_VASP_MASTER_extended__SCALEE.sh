@@ -38,7 +38,7 @@ fi
 PERCENTAGE_RESTART_SHIFT=${4:-20} # 15% of the run time steps
 
 # reduce PERCENTAGE_RESTART_SHIFT by 10; i.e. starting from 10%
-PERCENTAGE_RESTART_SHIFT=$(( PERCENTAGE_RESTART_SHIFT - 10 )) ## TEMPORARY
+# PERCENTAGE_RESTART_SHIFT=$(( PERCENTAGE_RESTART_SHIFT - 10 )) ## TEMPORARY
 
 #################################################
 #################################################

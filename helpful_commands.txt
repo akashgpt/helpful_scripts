@@ -500,7 +500,8 @@ sed -i 's/# Pressure in kb; 1 kb = 0.1 GPa/ /g' */INCAR
 # in all files starting with "INCAR" in the current directory and sub-directories, replace "# ; TEEND=13000" with " "
 find . -type f -name 'INCAR*' -exec sed -i 's/# ;   TEEND=13000/ /g' {} +
 find . -type f -name 'input.calc*' -exec sed -i 's/NBANDS_CHOSEN=672/NBANDS_CHOSEN=784/g' {} +
-find . -type f -name 'INCAR*' -exec sed -i 's/LCHARG = .FALSE./LCHARG = .TRUE./g' {} +
+find . -type f -name 'INCAR*' -exec sed -i 's/NPACO  =   104/ /g' {} +
+find . -type f -name 'INCAR*' -exec sed -i 's/APACO  =   10.4/ /g' {} +
 find . -type f -name 'INCAR*' -exec sed -i 's/NPAR = 14/NPAR = 12/g' {} +
 find . -type f -name 'INCAR*' -exec sed -i 's/LCHARG = .TRUE./LCHARG = .FALSE./g' {} +
 find . -type f -name 'INCAR*' -exec sed -i 's/LWAVE = .TRUE./LWAVE = .FALSE./g' {} +
@@ -510,7 +511,9 @@ find . -type f -name 'INCAR*' -exec sed -i 's/NBANDS = 784/NBANDS = 768/g' {} +
 find . -type f -name 'INCAR' -exec sed -i 's/LANGEVIN_GAMMA = 1.0 1.0 5.0 10.0/LANGEVIN_GAMMA = 1.0 1.0 2.0 10.0/g' {} +
 find . -type f -name 'INCAR_relax' -exec sed -i 's/ALGO   = F/ALGO   = N/g' {} +
 find . -type f -name 'RUN_VASP*' -exec sed -i 's/#SBATCH --time=24:05:00/#SBATCH --time=24:00:00/g' {} +
-
+find . -type f -name 'RUN_VASP*' -exec sed -i \
+  's|export PATH=\$PATH:\$HOME/softwares/vasp.6.3.2/bin|export PATH=\$PATH:/scratch/gpfs/BURROWS/akashgpt/softwares/vasp.6.4.3/bin|g' \
+  {} +
 
 
 
@@ -573,3 +576,10 @@ find . -type d -name "V_est" -exec rm -rf {} + &
 
 # to find the average of a certain column in a file
  awk '/LOOP\+/{sum+=$7; n++} END{if(n) printf "Average = %.6f\n", sum/n; else print "No matches found"}' P50_T3500/32MgSiO3_8He/SCALEE_1/OUTCAR
+
+
+# total CPU hours used in the last 30 days
+ sacct -X -u $USER \
+      --starttime="$(date -d '30 days ago' +%F)" \
+      --format=JobID%30,AllocCPUS,ElapsedRAW \
+  | awk 'NR>2 {sec += $2*$3} END {printf "%.2f CPU-hours\n", sec/3600}'

@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Find all folders and sub-folders starting with "SCALEE" and run "source data_analysis.sh" in each
-
+# Also, marks directories with specific conditions such as those that stopped prematurely, e.g., with less than 1000 time steps
 # Usage: nohup $HELP_SCRIPTS_TI/source_all_SCALEE.sh > log.source_all_SCALEE 2>&1 &
 
 # Check if the script is being run from the correct directory

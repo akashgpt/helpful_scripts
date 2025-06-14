@@ -62,8 +62,20 @@ if [ -f $SCRATCH/local_copy__projects/BURROWS/akashgpt/myshortcuts.sh ]; then
 fi
 
 #adding VASP to path
-export VASP_EXEC="$HOME/softwares/vasp.6.3.2/bin"
-export PATH=$PATH:$VASP_EXEC
+# export VASP_EXEC="$HOME/softwares/vasp.6.3.2/bin"
+# export PATH=$PATH:$VASP_EXEC
+# /scratch/gpfs/BURROWS/akashgpt/softwares/vasp.6.4.3/bin
+# export VASP_EXEC="/scratch/gpfs/BURROWS/akashgpt/softwares/vasp.6.4.3/bin"
+# export PATH=$PATH:$VASP_EXEC
+# define the chunk to remove
+old="$HOME/softwares/vasp.6.3.2/bin"
+# 1) remove any “old:” at the front
+PATH=${PATH#"$old:"}
+# 2) remove any “:old” at the end
+PATH=${PATH%":$old"}
+# 3) remove any “:old:” in the middle
+PATH=${PATH//":$old:"/:}
+export PATH
 
 # to edit terminal header look
 # PS1='[\u@\h:\W]\$ '

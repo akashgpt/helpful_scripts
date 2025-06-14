@@ -15,7 +15,7 @@
 # are named <RUN_DIRNAME>a, <RUN_DIRNAME>b, ..., where a, b, ... correspond to the number of
 # simulations run.
 #
-# Usage: source $HELP_SCRIPTS_vasp/RUN_VASP/continue_run__SCALEE.sh <RUN_DIRNAME> <CUMULATIVE_NUM_JOBS_LIMIT> <RUN_VASP_TIME> <RUN_VASP_NODES>
+# Usage: source $HELP_SCRIPTS_vasp/RUN_VASP/continue_run__SCALEE.sh <RUN_DIRNAME> <CUMULATIVE_NUM_JOBS_SUBMITTED_LIMIT> <RUN_VASP_TIME> <RUN_VASP_NODES>
 #        e.g., nohup $HELP_SCRIPTS_vasp/RUN_VASP/continue_run__SCALEE.sh SCALEE_7 > log.continue_run__SCALEE 2>&1 &
 #
 # Author: Akash Gupta
@@ -30,17 +30,18 @@ echo "Current process ID: $CURRENT_PROCESS_ID"
 NUM_JOBS=5 # Number of jobs to be submitted in each call of RUN_VASP_MASTER_extended__SCALEE.sh
 NUM_RESTART_SHIFTS=10 # Number of restart shifts to be attempted in each call until NUM_JOBS is reached
 TOTAL_TIME_STEP_LIMIT=20000 # Total time steps limit for the run
-MINIMUM_TIME_STEP_THRESHOLD=190 # Minimum time steps threshold for the run to be considered successful
+MINIMUM_TIME_STEP_THRESHOLD=200 # Minimum time steps threshold for the run to be considered successful
 ALGO_SWITCH=1 # Switch to use ALGO = All in INCAR file, default of 1 (on); options: 0 (off), 1 (on)
 
 INITIAL_PERCENTAGE_RESTART_SHIFT=20 # Initial percentage restart shift in percentage
-PERCENTAGE_RESTART_SHIFT_INCREMENT=2 # Percentage increment for restart shift after each attempt
+PERCENTAGE_RESTART_SHIFT_INCREMENT=1 # Percentage increment for restart shift after each attempt
 
 home_dir=$(pwd)
 
 RUN_DIRNAME=${1:-0}
 
-CUMULATIVE_NUM_JOBS_LIMIT=${2:-100}  # Cumulative total number of jobs limit = NUM_JOBS_i + NUM_JOBS_(i+1) + ... + NUM_JOBS_n, default of 30; options: 10, 20, 30, 40, 50, 60, 70, 80, 90, 100
+CUMULATIVE_NUM_JOBS_SUBMITTED_LIMIT=${2:-100}  # Cumulative total number of jobs limit SUBMITTED = NUM_JOBS_i + NUM_JOBS_(i+1) + ... + NUM_JOBS_n, default of 30; options: 10, 20, 30, 40, 50, 60, 70, 80, 90, 100
+CUMULATIVE_NUM_JOBS_COMPLETED_LIMIT=${3:-40}  # Cumulative total number of jobs limit COMPLETED = NUM_JOBS_i + NUM_JOBS_(i+1) + ... + NUM_JOBS_n, default of 30; options: 10, 20, 30, 40, 50, 60, 70, 80, 90, 100
 
 
 
@@ -71,7 +72,8 @@ echo "Home directory: $home_dir"
 echo "Run directory name: $RUN_DIRNAME"
 echo "Run VASP time for a single job: $RUN_VASP_TIME"
 echo "Run VASP nodes: $RUN_VASP_NODES"
-echo "Total number of jobs limit: $CUMULATIVE_NUM_JOBS_LIMIT"
+echo "Total number of jobs limit SUBMITTED: $CUMULATIVE_NUM_JOBS_SUBMITTED_LIMIT"
+echo "Total number of jobs limit COMPLETED: $CUMULATIVE_NUM_JOBS_COMPLETED_LIMIT"
 echo "Number of jobs being submitted in each call: $NUM_JOBS"
 echo "Number of restart shifts to be attempted: $NUM_RESTART_SHIFTS"
 echo "Initial percentage restart shift: $INITIAL_PERCENTAGE_RESTART_SHIFT%"
@@ -82,6 +84,7 @@ echo "ALGO switch: $ALGO_SWITCH (1: ALL; 0: default)"
 echo ""
 
 cumulative_num_jobs_submitted=0 # Initialize cumulative number of jobs submitted so far
+cumulative_num_jobs_completed=0 # Initialize cumulative number of jobs completed so far
 current_num_restart_shifts=0 # Initialize current number of restart shifts
 
 
@@ -167,7 +170,9 @@ elif  [ -n "$RUN_DIRNAME" ]; then
             # cumulative_num_jobs_submitted=NUM_JOBS+cumulative_num_jobs_submitted
             cumulative_num_jobs_submitted=$((NUM_JOBS + cumulative_num_jobs_submitted))
             echo "Total number of jobs submitted for so far: $cumulative_num_jobs_submitted"
-            
+
+            cumulative_num_jobs_completed=$(ls -d ${home_dir}/${RUN_DIRNAME}*/ | wc -l)
+            echo "Total number of jobs completed so far: $cumulative_num_jobs_completed"
 
             cd $home_dir || exit 1
 
@@ -225,9 +230,13 @@ elif  [ -n "$RUN_DIRNAME" ]; then
                 echo "Time steps is greater than or equal to 100 for the last run, continuing..."
             fi
 
-            # if cumulative_num_jobs_submitted > CUMULATIVE_NUM_JOBS_LIMIT, exit the loop
-            if [ "$cumulative_num_jobs_submitted" -gt "$CUMULATIVE_NUM_JOBS_LIMIT" ]; then
-                echo "Total number of jobs submitted ($cumulative_num_jobs_submitted) has exceeded the limit ($CUMULATIVE_NUM_JOBS_LIMIT), exiting..."
+            # if cumulative_num_jobs_submitted > CUMULATIVE_NUM_JOBS_SUBMITTED_LIMIT, exit the loop
+            if [ "$cumulative_num_jobs_submitted" -gt "$CUMULATIVE_NUM_JOBS_SUBMITTED_LIMIT" ]; then
+                echo "Total number of jobs submitted ($cumulative_num_jobs_submitted) has exceeded the limit ($CUMULATIVE_NUM_JOBS_SUBMITTED_LIMIT), exiting..."
+                exit 0
+            fi
+            if [ "$cumulative_num_jobs_completed" -gt "$CUMULATIVE_NUM_JOBS_COMPLETED_LIMIT" ]; then
+                echo "Total number of jobs completed ($cumulative_num_jobs_completed) has exceeded the limit ($CUMULATIVE_NUM_JOBS_COMPLETED_LIMIT), exiting..."
                 exit 0
             fi
         done
