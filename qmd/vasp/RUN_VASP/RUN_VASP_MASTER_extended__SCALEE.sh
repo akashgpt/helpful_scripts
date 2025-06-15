@@ -37,6 +37,8 @@ fi
 
 PERCENTAGE_RESTART_SHIFT=${4:-20} # 15% of the run time steps
 
+MINIMUM_TIME_STEP_THRESHOLD=${5:-200} # minimum time step threshold to consider a job as completed; default is 100
+
 # reduce PERCENTAGE_RESTART_SHIFT by 10; i.e. starting from 10%
 # PERCENTAGE_RESTART_SHIFT=$(( PERCENTAGE_RESTART_SHIFT - 10 )) ## TEMPORARY
 
@@ -145,8 +147,8 @@ if (( $extended_job_flag == 0 )); then
 			# check the number of steps taken by the last job
 			source data_4_analysis.sh
 			run_time_steps=$(grep time analysis/peavg.out | awk '{print $5}')
-			if (( run_time_steps < 100 )); then
-				echo "WARNING: run_time_steps < 100"
+			if (( run_time_steps < $MINIMUM_TIME_STEP_THRESHOLD )); then
+				echo "WARNING: run_time_steps < $MINIMUM_TIME_STEP_THRESHOLD"
 				echo "Seems the job before ${master_id}${letter_old} did not finish correctly. Terminating this script at" `date `
 				break
 			fi
@@ -210,8 +212,8 @@ if (( $extended_job_flag == 0 )); then
 		# check the number of steps taken by the last job
 		source data_4_analysis.sh
 		run_time_steps=$(grep time analysis/peavg.out | awk '{print $5}')
-		if (( run_time_steps < 100 )); then
-			echo "WARNING: run_time_steps < 100"
+		if (( run_time_steps < $MINIMUM_TIME_STEP_THRESHOLD )); then
+			echo "WARNING: run_time_steps < $MINIMUM_TIME_STEP_THRESHOLD"
 			echo "Seems the job before ${master_id}${letter_old} did not finish correctly. Terminating this script at" `date `
 			break
 		fi
@@ -277,8 +279,8 @@ elif (( $extended_job_flag == 1 )); then
 		# check the number of steps taken by the last job
 		source data_4_analysis.sh
 		run_time_steps=$(grep time analysis/peavg.out | awk '{print $5}')
-		if (( run_time_steps < 100 )); then
-			echo "WARNING: run_time_steps < 100"
+		if (( run_time_steps < $MINIMUM_TIME_STEP_THRESHOLD )); then
+			echo "WARNING: run_time_steps < $MINIMUM_TIME_STEP_THRESHOLD"
 			echo "Seems the job before ${master_id}${letter_old} did not finish correctly. Terminating this script at" `date `
 			break
 		fi
@@ -340,8 +342,8 @@ elif (( $extended_job_flag == -1 )); then
 		# check the number of steps taken by the last job
 		source data_4_analysis.sh
 		run_time_steps=$(grep time analysis/peavg.out | awk '{print $5}')
-		if (( run_time_steps < 100 )); then
-			echo "WARNING: run_time_steps < 100"
+		if (( run_time_steps < $MINIMUM_TIME_STEP_THRESHOLD )); then
+			echo "WARNING: run_time_steps < $MINIMUM_TIME_STEP_THRESHOLD"
 			echo "Seems the job before ${master_id}${letter_old} did not finish correctly. Terminating this script at" `date `
 			break
 		fi

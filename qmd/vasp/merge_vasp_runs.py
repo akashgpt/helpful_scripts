@@ -3,7 +3,8 @@
 merge_vasp_runs.py
 
 Merges XDATCAR frames, OUTCAR logs, and VASP vasprun.xml files from multiple runs
-(e.g., BASEa, BASEb, BASEc) into a single set of files under the directory BASE.
+(e.g., BASEa, BASEb, BASEc, ... BASEz to BASEaa, BASEab, BASEac, ... BASEaz, to BASEba, BASEbb, and so on)
+into a single set of files under the directory BASE.
 If BASE does not exist, it is bootstrapped by copying BASEa.
 
 Outputs in BASE/:
@@ -46,10 +47,16 @@ def merge_runs(base):
 
 
     # 2) Identify all run directories (BASEa, BASEb, ...)
-    runs = sorted(d for d in glob.glob(base + '?') if os.path.isdir(d))
+    # runs = sorted(d for d in glob.glob(base + '?') if os.path.isdir(d)) # old way
+    candidates = glob.glob(f"{base}[a-z]*")
+    # sort by (suffix_length, full_name)
+    runs = sorted(
+        candidates,
+        key=lambda d: (len(d) - len(base), d)
+    )
     if not runs:
         raise RuntimeError(f"No run directories matching '{base}?' found.")
-    print(f"Merging runs: {runs}")
+    print(f"Merging runs in the order: {runs}")
 
     # 3) Merge XDATCAR trajectories
     frames = []

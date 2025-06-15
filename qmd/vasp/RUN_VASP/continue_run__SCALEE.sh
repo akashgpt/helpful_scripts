@@ -28,19 +28,19 @@ echo "Current process ID: $CURRENT_PROCESS_ID"
 
 
 NUM_JOBS=5 # Number of jobs to be submitted in each call of RUN_VASP_MASTER_extended__SCALEE.sh
-NUM_RESTART_SHIFTS=10 # Number of restart shifts to be attempted in each call until NUM_JOBS is reached
+NUM_RESTART_SHIFTS=50 # Number of restart shifts to be attempted in each call until NUM_JOBS is reached
 TOTAL_TIME_STEP_LIMIT=20000 # Total time steps limit for the run
 MINIMUM_TIME_STEP_THRESHOLD=200 # Minimum time steps threshold for the run to be considered successful
 ALGO_SWITCH=1 # Switch to use ALGO = All in INCAR file, default of 1 (on); options: 0 (off), 1 (on)
 
-INITIAL_PERCENTAGE_RESTART_SHIFT=20 # Initial percentage restart shift in percentage
+INITIAL_PERCENTAGE_RESTART_SHIFT=25 # Initial percentage restart shift in percentage
 PERCENTAGE_RESTART_SHIFT_INCREMENT=1 # Percentage increment for restart shift after each attempt
 
 home_dir=$(pwd)
 
 RUN_DIRNAME=${1:-0}
 
-CUMULATIVE_NUM_JOBS_SUBMITTED_LIMIT=${2:-100}  # Cumulative total number of jobs limit SUBMITTED = NUM_JOBS_i + NUM_JOBS_(i+1) + ... + NUM_JOBS_n, default of 30; options: 10, 20, 30, 40, 50, 60, 70, 80, 90, 100
+CUMULATIVE_NUM_JOBS_SUBMITTED_LIMIT=${2:-200}  # Cumulative total number of jobs limit SUBMITTED = NUM_JOBS_i + NUM_JOBS_(i+1) + ... + NUM_JOBS_n, default of 30; options: 10, 20, 30, 40, 50, 60, 70, 80, 90, 100
 CUMULATIVE_NUM_JOBS_COMPLETED_LIMIT=${3:-40}  # Cumulative total number of jobs limit COMPLETED = NUM_JOBS_i + NUM_JOBS_(i+1) + ... + NUM_JOBS_n, default of 30; options: 10, 20, 30, 40, 50, 60, 70, 80, 90, 100
 
 
@@ -57,12 +57,13 @@ module load anaconda3/2024.6; conda activate ase_env
 CLUSTER_NAME=$(scontrol show config | grep ClusterName | awk '{print $3}')
 if [ "$CLUSTER_NAME" == "tiger3" ]; then
 	RUN_VASP_NODES=${4:-2} #number of nodes used, default of 2; options: 1, 2, 4, 8
-    RUN_VASP_TIME=${3:-5} #time of simulations, default of 24; options: 0.1, 0.5, 4, 8, 12, 24, 48, 72, 96
+    RUN_VASP_TIME=${5:-5} #time of simulations, default of 5; options: 0.1, 0.5, 4, 8, 12, 24, 48, 72, 96
 elif [ "$CLUSTER_NAME" == "della" ]; then
 	RUN_VASP_NODES=${4:-1} #number of nodes used, default of 1; options: 1, 2, 4, 8
+    RUN_VASP_TIME=${5:-24} #time of simulations, default of 24; options: 0.1, 0.5, 4, 8, 12, 24, 48, 72, 96
 elif [ "$CLUSTER_NAME" == "stellar" ]; then
 	RUN_VASP_NODES=${4:-2} #number of nodes used, default of 2; options: 1, 2, 4, 8
-    RUN_VASP_TIME=${3:-24} #time of simulations, default of 24; options: 0.1, 0.5, 4, 8, 12, 24, 48, 72, 96
+    RUN_VASP_TIME=${5:-24} #time of simulations, default of 24; options: 0.1, 0.5, 4, 8, 12, 24, 48, 72, 96
 fi
 
 echo ""
@@ -105,9 +106,50 @@ elif  [ -n "$RUN_DIRNAME" ]; then
         echo "${RUN_DIRNAME}a didn't exist. Copied $RUN_DIRNAME to ${RUN_DIRNAME}a"
     fi
 
-    # check the last run directory, which should be ${RUN_DIRNAME}a, ${RUN_DIRNAME}b, ..., and run: ALGO = All in INCAR file
-    last_run_dirname=$(ls -d ${RUN_DIRNAME}*/ | sort | tail -n 1)
+    # check the last run directory, which should be ${RUN_DIRNAME}a, ${RUN_DIRNAME}b, ..., ${RUN_DIRNAME}z, ${RUN_DIRNAME}aa, ${RUN_DIRNAME}ab, ..., ${RUN_DIRNAME}az, ${RUN_DIRNAME}ba, ${RUN_DIRNAME}bb, ... ${RUN_DIRNAME}bz, ... ${RUN_DIRNAME}zz and run: ALGO = All in INCAR file
+    # last_run_dirname=$(ls -d ${RUN_DIRNAME}*/ | sort | tail -n 1)
+    # 1) ensure non-matching globs disappear instead of staying literal
+    shopt -s nullglob
+
+    # 2) init
+    best_idx=0
+    best_dir=""
+
+    # 3) loop over all matching run dirs
+    for dir in "${RUN_DIRNAME}"*/; do
+    # strip prefix & trailing slash to get just the suffix, e.g. "a", "z", "aa", …
+    suffix="${dir#${RUN_DIRNAME}}"
+    suffix="${suffix%/}"
+
+    # compute base-26 value
+    idx=0
+    for ((i=0; i<${#suffix}; i++)); do
+        ch="${suffix:i:1}"
+        # ascii('a')=97 → we want a→1, b→2, … z→26
+        ascii=$(printf '%d' "'$ch")
+        val=$(( ascii - 96 ))
+        idx=$(( idx*26 + val ))
+    done
+
+    # keep the max
+    if (( idx > best_idx )); then
+        best_idx=$idx
+        best_dir="$dir"
+    fi
+    done
+
+    # 4) error if nothing found
+    if [[ -z $best_dir ]]; then
+    echo "Error: no directories found matching ${RUN_DIRNAME}*" >&2
+    exit 1
+    fi
+
+    # 5) strip trailing slash and print
+    last_run_dirname="${best_dir%/}"
     echo "Last run directory: $last_run_dirname"
+    # echo "Last run directory: $last_run_dirname"
+
+
     # if ALGO_SWITCH is on, modify the INCAR file in ${RUN_DIRNAME}a
     if [ "$ALGO_SWITCH" -eq 1 ]; then
         # run this shell command in the new RUN_DIRNAMEa: sed -i 's/ALGO   = F/ALGO   = All/' "SCALEE_6b/INCAR" && sed -i 's/ALGO   = F/ALGO   = All/' "SCALEE_7b/INCAR"
@@ -131,12 +173,12 @@ elif  [ -n "$RUN_DIRNAME" ]; then
         cp $HELP_SCRIPTS_vasp/RUN_VASP/RUN_VASP_MASTER_extended__SCALEE.sh $RUN_DIRNAME/
         cd $RUN_DIRNAME || exit 1
         run_dir=$(pwd)
-        # if current_num_restart_shifts is 0, then create new log.RUN_VASP_MASTER_extended__SCALEE.sh
+        # if current_num_restart_shifts is 0, then create new log.RUN_VASP_MASTER_extended__SCALEE
         if [ "$current_num_restart_shifts" -eq 0 ]; then
-            touch log.RUN_VASP_MASTER_extended__SCALEE.sh
-            echo "Created new log file: log.RUN_VASP_MASTER_extended__SCALEE.sh"
+            touch log.RUN_VASP_MASTER_extended__SCALEE
+            echo "Created new log file: log.RUN_VASP_MASTER_extended__SCALEE"
         else # add 10 new empty lines
-            for i in {1..10}; do echo "" >> log.RUN_VASP_MASTER_extended__SCALEE.sh; done
+            for i in {1..10}; do echo "" >> log.RUN_VASP_MASTER_extended__SCALEE; done
         fi
         echo "Merged VASP runs in directory: $RUN_DIRNAME"
         echo "Running VASP in directory: $run_dir"
@@ -154,7 +196,7 @@ elif  [ -n "$RUN_DIRNAME" ]; then
             rm -rf done_RUN_VASP_MASTER_extended__SCALEE  # remove the done file if it exists
 
             echo "Submitting RUN_VASP_MASTER_extended__SCALEE.sh with $NUM_JOBS jobs, time: $RUN_VASP_TIME hours, and nodes: $RUN_VASP_NODES."
-            source RUN_VASP_MASTER_extended__SCALEE.sh $NUM_JOBS $RUN_VASP_TIME $RUN_VASP_NODES $current_percentage_restart_shift >> log.RUN_VASP_MASTER_extended__SCALEE 2>&1
+            source RUN_VASP_MASTER_extended__SCALEE.sh $NUM_JOBS $RUN_VASP_TIME $RUN_VASP_NODES $current_percentage_restart_shift $MINIMUM_TIME_STEP_THRESHOLD >> log.RUN_VASP_MASTER_extended__SCALEE 2>&1
             # PREVIOUS_JOB_ID=$!  # get the job ID of the last background process
             echo "JOB_ID: $PREVIOUS_JOB_ID"
             echo "Waiting for the jobs to finish..."
@@ -186,8 +228,49 @@ elif  [ -n "$RUN_DIRNAME" ]; then
             cd "$home_dir" || exit 1
 
             # find the last run RUN_DIRNAME<letter>
-            last_run_dirname=$(ls -d ${RUN_DIRNAME}*/ | sort | tail -n 1)
+            # last_run_dirname=$(ls -d ${RUN_DIRNAME}*/ | sort | tail -n 1)
+            # echo "Last run directory: $last_run_dirname"
+            # 1) ensure non-matching globs disappear instead of staying literal
+            shopt -s nullglob
+
+            # 2) init
+            best_idx=0
+            best_dir=""
+
+            # 3) loop over all matching run dirs
+            for dir in "${RUN_DIRNAME}"*/; do
+            # strip prefix & trailing slash to get just the suffix, e.g. "a", "z", "aa", …
+            suffix="${dir#${RUN_DIRNAME}}"
+            suffix="${suffix%/}"
+
+            # compute base-26 value
+            idx=0
+            for ((i=0; i<${#suffix}; i++)); do
+                ch="${suffix:i:1}"
+                # ascii('a')=97 → we want a→1, b→2, … z→26
+                ascii=$(printf '%d' "'$ch")
+                val=$(( ascii - 96 ))
+                idx=$(( idx*26 + val ))
+            done
+
+            # keep the max
+            if (( idx > best_idx )); then
+                best_idx=$idx
+                best_dir="$dir"
+            fi
+            done
+
+            # 4) error if nothing found
+            if [[ -z $best_dir ]]; then
+            echo "Error: no directories found matching ${RUN_DIRNAME}*" >&2
+            exit 1
+            fi
+
+            # 5) strip trailing slash and print
+            last_run_dirname="${best_dir%/}"
             echo "Last run directory: $last_run_dirname"
+
+
             # change to the last run directory
             cd "$last_run_dirname" || exit 1
             last_run_dir=$(pwd)
@@ -197,7 +280,7 @@ elif  [ -n "$RUN_DIRNAME" ]; then
             echo "Time steps that last_run_dirname took: $time_steps"
             # if time_steps is less than MINIMUM_TIME_STEP_THRESHOLD, exit and print a message
             if [ "$time_steps" -lt $MINIMUM_TIME_STEP_THRESHOLD ]; then
-                echo "Time steps is less than $MINIMUM_TIME_STEP_THRESHOLD for ${last_run_dirname}, exiting..."
+                echo "Time steps less than $MINIMUM_TIME_STEP_THRESHOLD for ${last_run_dirname}, exiting..."
                 # delete the last run directory
                 cd "$home_dir" || exit 1
                 echo "Deleting the last run directory: $last_run_dirname"
@@ -227,7 +310,7 @@ elif  [ -n "$RUN_DIRNAME" ]; then
                 # exit just the loop to change CURRENT_PERCENTAGE_RESTART_SHIFT
                 break
             else
-                echo "Time steps is greater than or equal to 100 for the last run, continuing..."
+                echo "Time steps is greater than or equal to $MINIMUM_TIME_STEP_THRESHOLD for the last run, continuing..."
             fi
 
             # if cumulative_num_jobs_submitted > CUMULATIVE_NUM_JOBS_SUBMITTED_LIMIT, exit the loop
