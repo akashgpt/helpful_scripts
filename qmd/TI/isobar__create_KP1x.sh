@@ -93,7 +93,7 @@ fi
 TEMP_CHOSEN_ARRAY=($(ls -d T* | sed 's/T//g' | sort -n))
 echo "TEMP_CHOSEN_ARRAY: ${TEMP_CHOSEN_ARRAY[@]}"
 
-SIGMA_CHOSEN=$(echo "$kB * $TEMP_CHOSEN" | bc -l)  # Gaussian smearing sigma
+# SIGMA_CHOSEN=$(echo "$kB * $TEMP_CHOSEN" | bc -l)  # Gaussian smearing sigma
 
 PSTRESS_CHOSEN=$(echo "$PSTRESS_CHOSEN_GPa * 10" | bc -l)  # Convert GPa to kBar
 
@@ -145,15 +145,29 @@ while IFS= read -r -d '' parent; do
     ISOBAR_T_dir=$(dirname "$V_est_dir") # parent directory is ISOBAR_T_dir
     ISOBAR_T_dir_name=$(basename "$ISOBAR_T_dir") # name of the ISOBAR_T_dir directory
 
+    # check if $V_est_dir/done_estimating_V exists -- if yes, skip this directory
+    if [ -f "$V_est_dir/done_estimating_V" ]; then
+        echo ""
+        echo "============================"
+        echo "Skipping $V_est_dir as done_estimating_V exists in V_est."
+        echo "============================"
+        echo ""
+        echo ""
+        cd "$ISOBAR_CALC_dir" || exit 1  # Return to ISOBAR_CALC_dir
+        continue
+    fi
+
 
     # Extract TEMP_CHOSEN_ISOBAR from the name of the ISOBAR_T_dir directory (ISOBAR_T_dir_name) -- the format is "T<TEMP_CHOSEN_i>"
     TEMP_CHOSEN_ISOBAR=$(echo "$ISOBAR_T_dir_name" | sed 's/T//g')
+    SIGMA_CHOSEN=$(echo "$kB * $TEMP_CHOSEN_ISOBAR" | bc -l)  # Gaussian smearing sigma
     echo "KP1_dir: $KP1_dir"
     echo "V_est_dir: $V_est_dir"
     echo "ISOBAR_T_dir: $ISOBAR_T_dir"
     echo "ISOBAR_T_dir_name: $ISOBAR_T_dir_name"
     echo "==========================="
     echo "TEMP_CHOSEN_ISOBAR: $TEMP_CHOSEN_ISOBAR"
+    echo "SIGMA_CHOSEN: $SIGMA_CHOSEN"
     echo "==========================="
     echo ""
 

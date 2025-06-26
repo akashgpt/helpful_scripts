@@ -173,11 +173,35 @@ hog_gpu() {
     sreport user topusage start=${start_date} end=now TopCount=${topcount} accounts=${account} -t hourper --tres=gres/gpu;
   fi
 }
+
+
+hog_summary() {
+  # Default values
+  days=${1:-30}
+  useraccount=${2:-$USER}
+  
+  # Calculate the start date based on the provided number of days
+  start_date=$(date -d"${days} days ago" +%D)
+
+  printf "\n"
+  echo "========================================================"
+  echo "Usage Summary for $useraccount since $start_date (last $days days)"
+  echo "========================================================"
+
+  sacct -X -u $USER --starttime=$start_date --format=JobID%30,AllocCPUS,ElapsedRAW \
+  | awk 'NR>2 {sec += $2*$3} END { printf "\nTotal CPU-hours: %.2f\n\n", sec/3600 }'
+
+  sacct -X --starttime=$start_date -u $USER -o NNodes,ElapsedRaw -P \
+  | awk -F'|' '{ sum += $1 * ($2/3600) } END { printf "Total node-hours: %.2f\n\n", sum }'
+}
+
+
 end_block4=$(date +%s)
 elapsed_block4=$(( end_block4 - start_block4 ))
 if [ $elapsed_block4 -gt 10 ]; then
   echo "WARNING: hog/hog_gpu definition block took $elapsed_block4 seconds!"
 fi
+
 
 
 ##########################################

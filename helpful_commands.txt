@@ -579,7 +579,23 @@ find . -type d -name "V_est" -exec rm -rf {} + &
 
 
 # total CPU hours used in the last 30 days
- sacct -X -u $USER \
-      --starttime="$(date -d '30 days ago' +%F)" \
-      --format=JobID%30,AllocCPUS,ElapsedRAW \
-  | awk 'NR>2 {sec += $2*$3} END {printf "%.2f CPU-hours\n", sec/3600}'
+ sacct -X -u $USER --starttime="$(date -d '30 days ago' +%F)" --format=JobID%30,AllocCPUS,ElapsedRAW \
+  | awk 'NR>2 {sec += $2*$3} END { printf "\nTotal CPU-hours: %.2f\n\n", sec/3600 }'
+
+# node hours used in the last 30 days
+sacct -X --starttime="$(date --date="30 days ago" +%Y-%m-%d)" -u $USER -o NNodes,ElapsedRaw -P \
+  | awk -F'|' '{ sum += $1 * ($2/3600) } END { printf "\nTotal node-hours: %.2f\n\n", sum }'
+
+
+
+# Get the run time from the peavg.out files
+grep time SCALEE_6*/analysis/peavg.out && grep time SCALEE_7*/analysis/peavg.out
+nohup $HELP_SCRIPTS_vasp/RUN_VASP/continue_run__SCALEE.sh SCALEE_6 > log.continue_run__SCALEE_6 2>&1 &
+nohup $HELP_SCRIPTS_vasp/RUN_VASP/continue_run__SCALEE.sh SCALEE_7 > log.continue_run__SCALEE_7 2>&1 &
+python $HELP_SCRIPTS_vasp/RUN_VASP/continue_run__rearrange.py -b BASENAME
+
+# delete all WAVECAR/CHGCAR files in all sub-directories that have names that are only numbers
+find . -regextype posix-extended \
+       -type d \
+       -regex '.*/[0-9]+' \
+       -exec rm -f {}/CHGCAR {}/WAVECAR \;

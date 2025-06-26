@@ -121,6 +121,7 @@ else
     exit 1
 fi
 
+counter_incomplete_runs=0
 
 #--------------------------------------------------------------
 # Loop over every directory named exactly 'KP1'
@@ -149,14 +150,28 @@ while IFS= read -r -d '' parent; do
         echo "ISOBAR_CALC_dir__test ($ISOBAR_CALC_dir__test) is the same as ISOBAR_CALC_dir ($ISOBAR_CALC_dir)"
     fi
 
+    # check if $V_est_dir/done_estimating_V exists -- if yes, skip this directory
+    if [ -f "$V_est_dir/done_estimating_V" ]; then
+        echo ""
+        echo "============================"
+        echo "Skipping $V_est_dir as done_estimating_V exists in V_est."
+        echo "============================"
+        echo ""
+        echo ""
+        cd "$ISOBAR_CALC_dir" || exit 1  # Return to ISOBAR_CALC_dir
+        continue
+    fi
+
     # Extract TEMP_CHOSEN_ISOBAR from the name of the ISOBAR_T_dir directory (ISOBAR_T_dir_name) -- the format is "T<TEMP_CHOSEN_i>"
     TEMP_CHOSEN_ISOBAR=$(echo "$ISOBAR_T_dir_name" | sed 's/T//g')
+    SIGMA_CHOSEN=$(echo "$kB * $TEMP_CHOSEN_ISOBAR" | bc -l)  # Gaussian smearing sigma
     echo "KP1_dir: $KP1_dir"
     echo "V_est_dir: $V_est_dir"
     echo "ISOBAR_T_dir: $ISOBAR_T_dir"
     echo "ISOBAR_T_dir_name: $ISOBAR_T_dir_name"
     echo "==========================="
     echo "TEMP_CHOSEN_ISOBAR: $TEMP_CHOSEN_ISOBAR"
+    echo "SIGMA_CHOSEN: $SIGMA_CHOSEN"
     echo "==========================="
     echo ""
 

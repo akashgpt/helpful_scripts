@@ -136,6 +136,19 @@ for dir in */; do
 
     LOCAL_SETUP_dir=$ISOBAR_T_dir/setup_TI
 
+    # # check if $ISOBAR_T_dir/done_SCALEE_0 exists -- if yes, skip this directory
+    if [ -f "$ISOBAR_T_dir/done_SCALEE_0" ]; then
+        echo ""
+        echo "============================"
+        echo "Skipping $ISOBAR_T_dir as done_SCALEE_0 exists."
+        echo "============================"
+        echo ""
+        echo ""
+        cd "$ISOBAR_CALC_dir" || exit 1  # Return to ISOBAR_CALC_dir
+        continue
+    fi
+
+
     # Extract TEMP_CHOSEN_ISOBAR from the name of the ISOBAR_T_dir directory (ISOBAR_T_dir_name) -- the format is "T<TEMP_CHOSEN_i>"
     TEMP_CHOSEN_ISOBAR=$(echo "$ISOBAR_T_dir_name" | sed 's/T//g')
     SIGMA_CHOSEN=$(echo "$kB * $TEMP_CHOSEN_ISOBAR" | bc -l)  # Gaussian smearing sigma

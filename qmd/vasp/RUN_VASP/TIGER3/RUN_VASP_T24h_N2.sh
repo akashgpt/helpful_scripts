@@ -11,9 +11,6 @@
 
 export OMP_NUM_THREADS=$SLURM_CPUS_PER_TASK
 export SRUN_CPUS_PER_TASK=$SLURM_CPUS_PER_TASK
-export PATH=$PATH:/scratch/gpfs/BURROWS/akashgpt/softwares/vasp.6.3.2/bin
-
-module purge
 
 ## Tiger
 #module load intel/19.1/64/19.1.1.217
@@ -26,12 +23,13 @@ module purge
 # module load intel/2021.1.2 intel-mpi/intel/2021.1.1
 
 ## Stellar
+# export PATH=$PATH:$HOME/softwares/vasp.6.3.2/bin
+# module purge
 # module load intel/2021.1 intel-mkl/2021.1.1 intel-mpi/intel/2021.1.1
-# module load intel/2022.2.0
-# module load intel-mpi/intel/2021.7.0
 # module load hdf5/intel-2021.1/intel-mpi/1.10.6
 
 ## Tiger3
+export PATH=$PATH:/scratch/gpfs/BURROWS/akashgpt/softwares/vasp6.4/vasp.6.4.3/bin
 module purge
 module load intel-oneapi/2024.2
 module load intel-mpi/oneapi/2021.13
@@ -39,4 +37,28 @@ module load intel-mkl/2024.2
 module load hdf5/oneapi-2024.2/1.14.4
 
 
-srun vasp_std > log.run_sim
+##############################
+###### Log: log.runsim #######
+# record job id in log.run_sim
+touch running_RUN_VASP
+
+if [ -f log.run_sim ]; then
+    rm log.run_sim
+fi
+echo "Job ID: $SLURM_JOB_ID" > log.run_sim
+echo "# =========================================" >> log.run_sim
+echo "" >> log.run_sim
+
+##############################
+####### CALLING VASP ########
+srun vasp_std >> log.run_sim
+#############################
+
+echo "" >> log.run_sim
+echo "# =========================================" >> log.run_sim
+echo "Job $SLURM_JOB_ID completed at" `date ` >> log.run_sim
+
+rm running_RUN_VASP
+touch done_RUN_VASP
+###### Log: log.runsim #######
+##############################

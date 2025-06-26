@@ -15,8 +15,10 @@
 # are named <RUN_DIRNAME>a, <RUN_DIRNAME>b, ..., where a, b, ... correspond to the number of
 # simulations run.
 #
-# Usage: source $HELP_SCRIPTS_vasp/RUN_VASP/continue_run__SCALEE.sh <RUN_DIRNAME> <CUMULATIVE_NUM_JOBS_SUBMITTED_LIMIT> <RUN_VASP_TIME> <RUN_VASP_NODES>
-#        e.g., nohup $HELP_SCRIPTS_vasp/RUN_VASP/continue_run__SCALEE.sh SCALEE_7 > log.continue_run__SCALEE 2>&1 &
+# Usage: source $HELP_SCRIPTS_vasp/RUN_VASP/continue_run__SCALEE.sh <RUN_DIRNAME> <RESTART_MODE> <RUN_VASP_TIME> <RUN_VASP_NODES> <CUMULATIVE_NUM_JOBS_SUBMITTED_LIMIT>
+#        e.g., nohup bash $HELP_SCRIPTS_vasp/RUN_VASP/continue_run__SCALEE.sh SCALEE_7 > log.continue_run__SCALEE_7 2>&1 &
+#        e.g., nohup bash $HELP_SCRIPTS_vasp/RUN_VASP/continue_run__SCALEE.sh SCALEE_7 5 > log.continue_run__SCALEE_7 2>&1 &
+#        e.g., nohup bash $HELP_SCRIPTS_vasp/RUN_VASP/continue_run__SCALEE.sh SCALEE_7 5 24 > log.continue_run__SCALEE_7 2>&1 &
 #
 # Author: Akash Gupta
 #####################################################################################
@@ -30,18 +32,38 @@ echo "Current process ID: $CURRENT_PROCESS_ID"
 NUM_JOBS=5 # Number of jobs to be submitted in each call of RUN_VASP_MASTER_extended__SCALEE.sh
 NUM_RESTART_SHIFTS=50 # Number of restart shifts to be attempted in each call until NUM_JOBS is reached
 TOTAL_TIME_STEP_LIMIT=20000 # Total time steps limit for the run
-MINIMUM_TIME_STEP_THRESHOLD=200 # Minimum time steps threshold for the run to be considered successful
+MINIMUM_TIME_STEP_THRESHOLD=160 # Minimum time steps threshold for the run to be considered successful
 ALGO_SWITCH=1 # Switch to use ALGO = All in INCAR file, default of 1 (on); options: 0 (off), 1 (on)
 
-INITIAL_PERCENTAGE_RESTART_SHIFT=25 # Initial percentage restart shift in percentage
+INITIAL_PERCENTAGE_RESTART_SHIFT=20 # Initial percentage restart shift in percentage
 PERCENTAGE_RESTART_SHIFT_INCREMENT=1 # Percentage increment for restart shift after each attempt
 
 home_dir=$(pwd)
 
 RUN_DIRNAME=${1:-0}
 
-CUMULATIVE_NUM_JOBS_SUBMITTED_LIMIT=${2:-200}  # Cumulative total number of jobs limit SUBMITTED = NUM_JOBS_i + NUM_JOBS_(i+1) + ... + NUM_JOBS_n, default of 30; options: 10, 20, 30, 40, 50, 60, 70, 80, 90, 100
-CUMULATIVE_NUM_JOBS_COMPLETED_LIMIT=${3:-40}  # Cumulative total number of jobs limit COMPLETED = NUM_JOBS_i + NUM_JOBS_(i+1) + ... + NUM_JOBS_n, default of 30; options: 10, 20, 30, 40, 50, 60, 70, 80, 90, 100
+RESTART_MODE=${2:0} # Run mode, default of 0: initial condition based on RUN_DIRNAME{last_run} (just as usual); 5: initial condition based on shifting SCALEE_5
+# if [ "$RESTART_MODE" -gt 0 ]; then
+#     echo ""
+#     echo "RESTART_MODE: $RESTART_MODE. Changing NUM_JOBS to 1 (if different)."
+#     NUM_JOBS=1
+#     echo ""
+# fi
+
+CLUSTER_NAME=$(scontrol show config | grep ClusterName | awk '{print $3}')
+if [ "$CLUSTER_NAME" == "tiger3" ]; then
+    RUN_VASP_TIME=${3:-5} #time of simulations, default of 5; options: 0.1, 0.5, 4, 8, 12, 24, 48, 72, 96
+	RUN_VASP_NODES=${4:-2} #number of nodes used, default of 2; options: 1, 2, 4, 8
+elif [ "$CLUSTER_NAME" == "della" ]; then
+    RUN_VASP_TIME=${3:-24} #time of simulations, default of 24; options: 0.1, 0.5, 4, 8, 12, 24, 48, 72, 96
+	RUN_VASP_NODES=${4:-1} #number of nodes used, default of 1; options: 1, 2, 4, 8
+elif [ "$CLUSTER_NAME" == "stellar" ]; then
+    RUN_VASP_TIME=${3:-24} #time of simulations, default of 24; options: 0.1, 0.5, 4, 8, 12, 24, 48, 72, 96
+	RUN_VASP_NODES=${4:-2} #number of nodes used, default of 2; options: 1, 2, 4, 8
+fi
+
+CUMULATIVE_NUM_JOBS_SUBMITTED_LIMIT=${5:-200}  # Cumulative total number of jobs limit SUBMITTED = NUM_JOBS_i + NUM_JOBS_(i+1) + ... + NUM_JOBS_n, default of 30; options: 10, 20, 30, 40, 50, 60, 70, 80, 90, 100
+CUMULATIVE_NUM_JOBS_COMPLETED_LIMIT=${6:-40}  # Cumulative total number of jobs limit COMPLETED = NUM_JOBS_i + NUM_JOBS_(i+1) + ... + NUM_JOBS_n, default of 30; options: 10, 20, 30, 40, 50, 60, 70, 80, 90, 100
 
 
 
@@ -54,17 +76,7 @@ module load anaconda3/2024.6; conda activate ase_env
 
 
 
-CLUSTER_NAME=$(scontrol show config | grep ClusterName | awk '{print $3}')
-if [ "$CLUSTER_NAME" == "tiger3" ]; then
-	RUN_VASP_NODES=${4:-2} #number of nodes used, default of 2; options: 1, 2, 4, 8
-    RUN_VASP_TIME=${5:-5} #time of simulations, default of 5; options: 0.1, 0.5, 4, 8, 12, 24, 48, 72, 96
-elif [ "$CLUSTER_NAME" == "della" ]; then
-	RUN_VASP_NODES=${4:-1} #number of nodes used, default of 1; options: 1, 2, 4, 8
-    RUN_VASP_TIME=${5:-24} #time of simulations, default of 24; options: 0.1, 0.5, 4, 8, 12, 24, 48, 72, 96
-elif [ "$CLUSTER_NAME" == "stellar" ]; then
-	RUN_VASP_NODES=${4:-2} #number of nodes used, default of 2; options: 1, 2, 4, 8
-    RUN_VASP_TIME=${5:-24} #time of simulations, default of 24; options: 0.1, 0.5, 4, 8, 12, 24, 48, 72, 96
-fi
+
 
 echo ""
 echo "Current time: $(date)"
@@ -84,10 +96,31 @@ echo "Minimum time steps threshold for a 'successful' run: $MINIMUM_TIME_STEP_TH
 echo "ALGO switch: $ALGO_SWITCH (1: ALL; 0: default)"
 echo ""
 
+
+
+# define exit function to give end time and other counters
+function exit_script {
+    echo ""
+    echo "=========================================================="
+    echo "Exiting script at $(date)"
+    echo "Current process ID: $CURRENT_PROCESS_ID"
+    echo "Total number of Python calls made: $counter_python_calls"
+    echo "Cumulative time spent in Python calls: $cumulative_time_in_python_calls seconds"
+    echo "Cumulative number of jobs submitted so far: $cumulative_num_jobs_submitted"
+    echo "Cumulative number of jobs completed so far: $cumulative_num_jobs_completed"
+    echo "Total number of restart shifts: $current_num_restart_shifts"
+    echo "=========================================================="
+    echo ""
+    exit 0
+}
+
+
 cumulative_num_jobs_submitted=0 # Initialize cumulative number of jobs submitted so far
 cumulative_num_jobs_completed=0 # Initialize cumulative number of jobs completed so far
 current_num_restart_shifts=0 # Initialize current number of restart shifts
 
+counter_python_calls=0 # Initialize counter for Python calls
+cumulative_time_in_python_calls=0 # Initialize cumulative time in Python calls
 
 if [ "$RUN_DIRNAME" == "0" ]; then
     echo "No RUN_DIRNAME specified"
@@ -167,8 +200,18 @@ elif  [ -n "$RUN_DIRNAME" ]; then
 
         echo ""
         cd "$home_dir" || exit 1
+
+        counter_python_calls=$((counter_python_calls + 1))
+        echo "Counter for Python calls: $counter_python_calls"
+        time_start=$(date +%s)  # Start time for the Python call
         # run merge_vasp_runs.py in the RUN_DIRNAME
         python $HELP_SCRIPTS_vasp/merge_vasp_runs.py $RUN_DIRNAME
+        time_end=$(date +%s)  # End time for the Python call
+        time_diff=$((time_end - time_start))  # Calculate the time difference in seconds
+        cumulative_time_in_python_calls=$((cumulative_time_in_python_calls + time_diff))
+        echo "Time taken for the Python call: $time_diff seconds"
+        echo "Cumulative time in Python calls: $cumulative_time_in_python_calls seconds"
+        echo ""
 
         cp $HELP_SCRIPTS_vasp/RUN_VASP/RUN_VASP_MASTER_extended__SCALEE.sh $RUN_DIRNAME/
         cd $RUN_DIRNAME || exit 1
@@ -195,8 +238,14 @@ elif  [ -n "$RUN_DIRNAME" ]; then
 
             rm -rf done_RUN_VASP_MASTER_extended__SCALEE  # remove the done file if it exists
 
-            echo "Submitting RUN_VASP_MASTER_extended__SCALEE.sh with $NUM_JOBS jobs, time: $RUN_VASP_TIME hours, and nodes: $RUN_VASP_NODES."
-            source RUN_VASP_MASTER_extended__SCALEE.sh $NUM_JOBS $RUN_VASP_TIME $RUN_VASP_NODES $current_percentage_restart_shift $MINIMUM_TIME_STEP_THRESHOLD >> log.RUN_VASP_MASTER_extended__SCALEE 2>&1
+            echo "Submitting RUN_VASP_MASTER_extended__SCALEE.sh with $NUM_JOBS jobs, time: $RUN_VASP_TIME hours, and nodes: $RUN_VASP_NODES; @ $(date)."
+            if [ "$RESTART_MODE" -eq 0 ]; then
+                echo "RESTART_MODE is 0: using the last run directory with a restart shift of $current_percentage_restart_shift% as the initial condition."
+                source RUN_VASP_MASTER_extended__SCALEE.sh $NUM_JOBS $RUN_VASP_TIME $RUN_VASP_NODES $current_percentage_restart_shift $MINIMUM_TIME_STEP_THRESHOLD $RESTART_MODE >> log.RUN_VASP_MASTER_extended__SCALEE 2>&1
+            elif [ "$RESTART_MODE" -gt 0 ]; then
+                echo "RESTART_MODE is $RESTART_MODE: using SCALEE_${RESTART_MODE} with a restart shift of $current_percentage_restart_shift% as the initial condition."
+                source RUN_VASP_MASTER_extended__SCALEE.sh $NUM_JOBS $RUN_VASP_TIME $RUN_VASP_NODES $current_percentage_restart_shift $MINIMUM_TIME_STEP_THRESHOLD $RESTART_MODE >> log.RUN_VASP_MASTER_extended__SCALEE 2>&1
+            fi
             # PREVIOUS_JOB_ID=$!  # get the job ID of the last background process
             echo "JOB_ID: $PREVIOUS_JOB_ID"
             echo "Waiting for the jobs to finish..."
@@ -218,9 +267,20 @@ elif  [ -n "$RUN_DIRNAME" ]; then
 
             cd $home_dir || exit 1
 
+            # run the block below when current_num_restart_shifts is a factor of 5 or $NUM_RESTART_SHIFTS
+            # if (( current_num_restart_shifts % 5 == 0 )) || (( current_num_restart_shifts == NUM_RESTART_SHIFTS )); then
             # merge all VASP runs
-            python $HELP_SCRIPTS_vasp/merge_vasp_runs.py $RUN_DIRNAME
             echo "Merging VASP runs in directory: $RUN_DIRNAME"
+            counter_python_calls=$((counter_python_calls + 1))
+            time_start=$(date +%s)  # Start time for the Python call
+            python $HELP_SCRIPTS_vasp/merge_vasp_runs.py $RUN_DIRNAME
+            time_end=$(date +%s)  # End time for the Python call
+            time_diff=$((time_end - time_start))  # Calculate the time difference in seconds
+            cumulative_time_in_python_calls=$((cumulative_time_in_python_calls + time_diff))
+            echo "Time taken for the Python call: $time_diff seconds"
+            echo "Cumulative time in Python calls: $cumulative_time_in_python_calls seconds"
+            echo ""
+            # fi
 
             cd "$run_dir" || exit 1
             total_time_steps=$(grep time analysis/peavg.out | awk '{print $5}')
@@ -304,7 +364,7 @@ elif  [ -n "$RUN_DIRNAME" ]; then
                 # if current_num_restart_shifts is greater than NUM_RESTART_SHIFTS, exit the script
                 if [ "$current_num_restart_shifts" -ge "$NUM_RESTART_SHIFTS" ]; then
                     echo "Current number of restart shifts ($current_num_restart_shifts) has exceeded the limit ($NUM_RESTART_SHIFTS), exiting..."
-                    exit 0
+                    exit_script
                 fi
 
                 # exit just the loop to change CURRENT_PERCENTAGE_RESTART_SHIFT
@@ -316,11 +376,11 @@ elif  [ -n "$RUN_DIRNAME" ]; then
             # if cumulative_num_jobs_submitted > CUMULATIVE_NUM_JOBS_SUBMITTED_LIMIT, exit the loop
             if [ "$cumulative_num_jobs_submitted" -gt "$CUMULATIVE_NUM_JOBS_SUBMITTED_LIMIT" ]; then
                 echo "Total number of jobs submitted ($cumulative_num_jobs_submitted) has exceeded the limit ($CUMULATIVE_NUM_JOBS_SUBMITTED_LIMIT), exiting..."
-                exit 0
+                exit_script
             fi
             if [ "$cumulative_num_jobs_completed" -gt "$CUMULATIVE_NUM_JOBS_COMPLETED_LIMIT" ]; then
                 echo "Total number of jobs completed ($cumulative_num_jobs_completed) has exceeded the limit ($CUMULATIVE_NUM_JOBS_COMPLETED_LIMIT), exiting..."
-                exit 0
+                exit_script
             fi
         done
     done
@@ -329,5 +389,5 @@ fi
 
 module purge
 echo ""
-echo "Current time: $(date)"
 echo "All runs completed. Check individual log files in each run directory."
+exit_script

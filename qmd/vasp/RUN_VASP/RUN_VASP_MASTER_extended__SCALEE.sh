@@ -39,12 +39,14 @@ PERCENTAGE_RESTART_SHIFT=${4:-20} # 15% of the run time steps
 
 MINIMUM_TIME_STEP_THRESHOLD=${5:-200} # minimum time step threshold to consider a job as completed; default is 100
 
+RESTART_MODE=${6:-0} # default of 0: initial condition based on RUN_DIRNAME{last_run} (just as usual); 5: initial condition based on shifting SCALEE_5, ...
+
 # reduce PERCENTAGE_RESTART_SHIFT by 10; i.e. starting from 10%
 # PERCENTAGE_RESTART_SHIFT=$(( PERCENTAGE_RESTART_SHIFT - 10 )) ## TEMPORARY
 
 #################################################
 #################################################
-OUTCAR_size_l_limit_MB=9 # 10 MB
+OUTCAR_size_l_limit_MB=1 # 1 MB
 extended_job_flag=-1 # if value=-1 (default), jobs ONLY upto 'z' at max or 26 in number at max; if = 1, jobs ALREADY beyond z, i.e., into the 'aX' zone; if = 0, jobs WILL go beyond z this time.
 #################################################
 #################################################
@@ -60,6 +62,8 @@ echo "Run VASP directory: $RUN_VASP_DIR"
 echo "Percentage restart shift: $PERCENTAGE_RESTART_SHIFT"
 echo "OUTCAR size limit: $OUTCAR_size_l_limit_MB MB"
 echo "Extended job flag: $extended_job_flag"
+echo "Restart mode: $RESTART_MODE"
+echo "Minimum time step threshold: $MINIMUM_TIME_STEP_THRESHOLD"
 echo "========================="
 echo ""
 
@@ -156,13 +160,24 @@ if (( $extended_job_flag == 0 )); then
 			(( counter+=1 ))
 
 			# make new job directory and submit job
-			cp -r ../"${master_id}${letter_old}" ../"${master_id}${letter}"
+			# if counter is 1 and restart mode > 0
+			if (( counter == 1 && RESTART_MODE > 0 )); then
+				echo "RESTART_MODE is set to ${RESTART_MODE} and counter is $counter. Copying SCALEE_${RESTART_MODE} as the initial condition for the first job."
+				cp -r ../SCALEE_${RESTART_MODE} ../"${master_id}${letter}"
+			else
+				echo "RESTART_MODE is set to ${RESTART_MODE} and counter is $counter. Copying the last job as the initial condition for the next job."
+				cp -r ../"${master_id}${letter_old}" ../"${master_id}${letter}"
+			fi
+			# cp -r ../"${master_id}${letter_old}" ../"${master_id}${letter}"
 			cd ../"${master_id}${letter}" || exit 1  # Exit if the directory change fails
 			# cp CONTCAR POSCAR
 			run_time_steps=$(grep time analysis/peavg.out | awk '{print $5}')
 			restart_shift=$(( run_time_steps * PERCENTAGE_RESTART_SHIFT / 100 )) # 20% of the run time steps
 			python $HELP_SCRIPTS_vasp/continue_run_ase.py -r $restart_shift
 			rm WAVECAR
+
+			# replace the line with "Total time steps" in analysis/peavg.out with "Total time steps = -1" to mark that this is a new job
+			sed -i "s/Total time steps.*/Total time steps = -1/" analysis/peavg.out
 
 			# if RUN_VASP_TIME > 0, then copy the RUN_VASP.sh file from the master directory
 			# else keep the old RUN_VASP.sh file
@@ -172,7 +187,7 @@ if (( $extended_job_flag == 0 )); then
 			else
 				echo "Keeping the old RUN_VASP.sh file"
 			fi
-			rm slurm*
+			rm -f slurm* log* log*
 
 			# cp $RUN_SCRIPT_FILE RUN_VASP.sh
 			sbatch RUN_VASP.sh
@@ -221,11 +236,22 @@ if (( $extended_job_flag == 0 )); then
 		(( counter+=1 ))
 
 		# make new job directory and submit job
-		if (( $letter == a)); then
-			cp -r ../"${master_id}${letter_old}" ../"${master_id}a${letter}"
+		if (( counter == 1 && RESTART_MODE > 0 )); then
+			echo "RESTART_MODE is set to ${RESTART_MODE} and counter is $counter. Copying SCALEE_${RESTART_MODE} as the initial condition for the first job."
+			if (( $letter == a)); then
+				cp -r ../SCALEE_${RESTART_MODE} ../"${master_id}${letter}"
+			else
+				cp -r ../SCALEE_${RESTART_MODE} ../"${master_id}a${letter}"
+			fi
 		else
-			cp -r ../"${master_id}a${letter_old}" ../"${master_id}a${letter}"
+			echo "RESTART_MODE is set to ${RESTART_MODE} and counter is $counter. Copying the last job as the initial condition for the next job."
+			if (( $letter == a)); then
+				cp -r ../"${master_id}${letter_old}" ../"${master_id}a${letter}"
+			else
+				cp -r ../"${master_id}a${letter_old}" ../"${master_id}a${letter}"
+			fi
 		fi
+
 		cd ../"${master_id}a${letter}" || exit 1  # Exit if the directory change fails
 		# cp CONTCAR POSCAR
 		run_time_steps=$(grep time analysis/peavg.out | awk '{print $5}')
@@ -233,6 +259,9 @@ if (( $extended_job_flag == 0 )); then
 		restart_shift=$(( run_time_steps * PERCENTAGE_RESTART_SHIFT / 100 )) # 20% of the run time steps
 		python $HELP_SCRIPTS_vasp/continue_run_ase.py -r $restart_shift 
 		rm WAVECAR
+		
+		# replace the line with "Total time steps" in analysis/peavg.out with "Total time steps = -1" to mark that this is a new job
+		sed -i "s/Total time steps.*/Total time steps = -1/" analysis/peavg.out
 		
 		# if RUN_VASP_TIME > 0, then copy the RUN_VASP.sh file from the master directory
 		# else keep the old RUN_VASP.sh file
@@ -242,7 +271,7 @@ if (( $extended_job_flag == 0 )); then
 		else
 			echo "Keeping the old RUN_VASP.sh file"
 		fi
-		rm slurm*
+		rm -f slurm* log* log*
 
 		sbatch RUN_VASP.sh
 		job_id=$(squeue --user=$USER --sort=i --format=%i | tail -n 1 | awk '{print $1}')
@@ -288,13 +317,25 @@ elif (( $extended_job_flag == 1 )); then
 		(( counter+=1 ))
 
 		# make new job directory and submit job
-		cp -r ../"${master_id}a${letter_old}" ../"${master_id}a${letter}"
+		# cp -r ../"${master_id}a${letter_old}" ../"${master_id}a${letter}"
+		# if counter is 1 and restart mode > 0
+		if (( counter == 1 && RESTART_MODE > 0 )); then
+			echo "RESTART_MODE is set to ${RESTART_MODE} and counter is $counter. Copying SCALEE_${RESTART_MODE} as the initial condition for the first job."
+			cp -r ../SCALEE_${RESTART_MODE} ../"${master_id}a${letter}"
+		else
+			echo "RESTART_MODE is set to ${RESTART_MODE} and counter is $counter. Copying the last job as the initial condition for the next job."
+			cp -r ../"${master_id}a${letter_old}" ../"${master_id}a${letter}"
+		fi
+
 		cd ../"${master_id}a${letter}" || exit 1  # Exit if the directory change fails
 		# cp CONTCAR POSCAR
 		run_time_steps=$(grep time analysis/peavg.out | awk '{print $5}')
 		restart_shift=$(( run_time_steps * PERCENTAGE_RESTART_SHIFT / 100 )) # 20% of the run time steps
 		python $HELP_SCRIPTS_vasp/continue_run_ase.py -r $restart_shift 
 		rm WAVECAR
+		
+		# replace the line with "Total time steps" in analysis/peavg.out with "Total time steps = -1" to mark that this is a new job
+		sed -i "s/Total time steps.*/Total time steps = -1/" analysis/peavg.out
 		
 		
 		# if RUN_VASP_TIME > 0, then copy the RUN_VASP.sh file from the master directory
@@ -305,7 +346,7 @@ elif (( $extended_job_flag == 1 )); then
 		else
 			echo "Keeping the old RUN_VASP.sh file"
 		fi
-		rm slurm*
+		rm -f slurm* log* log*
 
 		sbatch RUN_VASP.sh
 		job_id=$(squeue --user=$USER --sort=i --format=%i | tail -n 1 | awk '{print $1}')
@@ -351,13 +392,25 @@ elif (( $extended_job_flag == -1 )); then
 		(( counter+=1 ))
 
 		# make new job directory and submit job
-		cp -r ../"${master_id}${letter_old}" ../"${master_id}${letter}"
+		# cp -r ../"${master_id}${letter_old}" ../"${master_id}${letter}"
+		# if counter is 1 and restart mode > 0
+		if (( counter == 1 && RESTART_MODE > 0 )); then
+			echo "RESTART_MODE is set to ${RESTART_MODE} and counter is $counter. Copying SCALEE_${RESTART_MODE} as the initial condition for the first job."
+			cp -r ../SCALEE_${RESTART_MODE} ../"${master_id}${letter}"
+		else
+			echo "RESTART_MODE is set to ${RESTART_MODE} and counter is $counter. Copying the last job as the initial condition for the next job."
+			cp -r ../"${master_id}${letter_old}" ../"${master_id}${letter}"
+		fi
+
 		cd ../"${master_id}${letter}" || exit 1  # Exit if the directory change fails
 		# cp CONTCAR POSCAR
 		run_time_steps=$(grep time analysis/peavg.out | awk '{print $5}')
 		restart_shift=$(( run_time_steps * PERCENTAGE_RESTART_SHIFT / 100 )) # 20% of the run time steps
 		python $HELP_SCRIPTS_vasp/continue_run_ase.py -r $restart_shift
 		rm WAVECAR
+
+		# replace the line with "Total time steps" in analysis/peavg.out with "Total time steps = -1" to mark that this is a new job
+		sed -i "s/Total time steps.*/Total time steps = -1/" analysis/peavg.out
 		
 		# if RUN_VASP_TIME > 0, then copy the RUN_VASP.sh file from the master directory
 		# else keep the old RUN_VASP.sh file
@@ -367,7 +420,7 @@ elif (( $extended_job_flag == -1 )); then
 		else
 			echo "Keeping the old RUN_VASP.sh file"
 		fi
-		rm slurm*
+		rm -f slurm* log* log*
 
 		sbatch RUN_VASP.sh
 		job_id=$(squeue --user=$USER --sort=i --format=%i | tail -n 1 | awk '{print $1}')

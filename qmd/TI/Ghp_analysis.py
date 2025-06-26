@@ -23,7 +23,7 @@ import matplotlib.pyplot as plt
 
 
 # parameters
-h_mass    = 1.66054e-27 # kg
+H_mass    = 1.66054e-27 # kg
 ev2j      = 1.60218e-19
 boltz_ev  = 8.61733e-5 #eV/K
 boltz     = boltz_ev*ev2j
@@ -102,14 +102,14 @@ def _energy(atomic_mass, natoms,vol,temp):
     vol          = 20.49*1e-30*natoms
     temp         = 1687
     inverse_temp = 1/boltz/temp
-    thermal_lambda = planck/(2*np.pi*h_mass*atomic_mass/inverse_temp)**.5
+    thermal_lambda = planck/(2*np.pi*H_mass*atomic_mass/inverse_temp)**.5
     F              = -1/inverse_temp*natoms*(np.log(vol/(thermal_lambda**3)/natoms) + 1)
 
     Author: Jie Deng & Haiyang Luo
     """
     vol = vol*1e-30
     inverse_temp = 1/boltz/temp
-    thermal_lambda = planck/(2*np.pi*h_mass*atomic_mass/inverse_temp)**.5
+    thermal_lambda = planck/(2*np.pi*H_mass*atomic_mass/inverse_temp)**.5
     #F              = -1/inverse_temp*natoms*(np.log(vol/(thermal_lambda**3)/natoms) + 1) #Stirling approximation
     F              = -1/inverse_temp*(natoms*np.log(vol/thermal_lambda**3)-scipy.special.gammaln(natoms+1)) #exact equation
     return F/ev2j

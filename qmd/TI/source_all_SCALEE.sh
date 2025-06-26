@@ -14,29 +14,31 @@ echo "======================================================"
 
 pids=()
 
-
-
+# ========================================================
+# run data_analysis.sh in all SCALEE folders
+# =======================================================
+for dir in $(find . -type d -name "SCALEE_0"); do
 # for dir in $(find . -type d -name "SCALEE*"); do
-#     echo ""
-#     if [ -d "$dir" ]; then
-#         # check if OUTCAR file exists
-#         if [ ! -f "$dir/OUTCAR" ]; then
-#             echo "No OUTCAR file found in $dir, skipping..."
-#             continue
-#         fi
-#         echo "Running data_analysis.sh in $dir"
-#         cd "$dir" 
-#         cp $LOCAL_HELP_SCRIPTS/qmd/vasp/data_4_analysis.sh . # from the local "rsync" copy
-#         # cp $parent_dir/data_4_analysis.sh .
-#         # nohup bash data_4_analysis.sh > log.data_4_analysis 2>&1 &
-#         source data_4_analysis.sh > log.data_4_analysis 2>&1 &
-#         pids+=($!)          # $! is the PID of the backgrounded command
-#         cd $parent_dir
-#     else
-#         echo "$dir is not a directory."
-#     fi
-#     echo ""
-# done
+    echo ""
+    if [ -d "$dir" ]; then
+        # check if OUTCAR file exists
+        if [ ! -f "$dir/OUTCAR" ]; then
+            echo "No OUTCAR file found in $dir, skipping..."
+            continue
+        fi
+        echo "Running data_analysis.sh in $dir"
+        cd "$dir" 
+        cp $LOCAL_HELP_SCRIPTS/qmd/vasp/data_4_analysis.sh . # from the local "rsync" copy
+        # cp $parent_dir/data_4_analysis.sh .
+        # nohup bash data_4_analysis.sh > log.data_4_analysis 2>&1 &
+        source data_4_analysis.sh > log.data_4_analysis 2>&1 &
+        pids+=($!)          # $! is the PID of the backgrounded command
+        cd $parent_dir
+    else
+        echo "$dir is not a directory."
+    fi
+    echo ""
+done
 
 echo "======================================================"
 echo "Waiting for all data_analysis.sh scripts to finish..."
@@ -66,8 +68,22 @@ counter_lt_5000=0
 counter_lt_10000=0
 counter_lt_20000=0
 # Again go to all these SCALEE_* directories and run <grep "time" analysis/peavg.out>; along with the directory address
-for dir in $(find . -type d -name "SCALEE*"); do
+for dir in $(find . -type d -name "SCALEE_0"); do
+# for dir in $(find . -type d -name "SCALEE*"); do
     if [ -d "$dir" ]; then
+
+        # if this is SCALEE_0a, SCALEE_0b, etc., skip it
+        if [[ "$dir" =~ SCALEE_0[a-z] ]]; then
+            continue
+        fi
+
+        # make sure grandparent folder is "isobar_calc"
+        grandparent_dir=$(dirname "$(dirname "$dir")")
+        if [ "$(basename "$grandparent_dir")" != "isobar_calc" ]; then
+            # echo "Skipping $dir, grandparent folder is not 'isobar_calc'."
+            continue
+        fi
+
         # echo "Running grep in $dir"
         cd "$dir"
         abs_dir=$(pwd)
@@ -81,6 +97,8 @@ for dir in $(find . -type d -name "SCALEE*"); do
             echo ""
             counter_lt_1000=$((counter_lt_1000 + 1))
             touch $abs_dir/to_RUN__lt_1000
+            # cd ..
+            # cp -r SCALEE_0 SCALEE_0a &
         elif [ "$time_steps" -lt 5000 ]; then
             echo "Warning: time_steps < 5000"
             echo "Directory: $dir"
@@ -88,6 +106,8 @@ for dir in $(find . -type d -name "SCALEE*"); do
             echo ""
             counter_lt_5000=$((counter_lt_5000 + 1))
             touch $abs_dir/to_RUN__1000_to_5000
+            # cd ..
+            # cp -r SCALEE_0 SCALEE_0a &
         elif [ "$time_steps" -lt 10000 ]; then
             echo "Warning: time_steps < 10000"
             echo "Directory: $dir"
@@ -95,6 +115,8 @@ for dir in $(find . -type d -name "SCALEE*"); do
             echo ""
             counter_lt_10000=$((counter_lt_10000 + 1))
             touch $abs_dir/to_RUN__5000_to_10000
+            # cd ..
+            # cp -r SCALEE_0 SCALEE_0a &
         elif [ "$time_steps" -lt 20000 ]; then
             echo "Warning: time_steps < 20000"
             echo "Directory: $dir"
@@ -102,6 +124,8 @@ for dir in $(find . -type d -name "SCALEE*"); do
             echo ""
             counter_lt_20000=$((counter_lt_20000 + 1))
             touch $abs_dir/to_RUN__10000_to_20000
+            # cd ..
+            # cp -r SCALEE_0 SCALEE_0a &
         elif [ -z "$time_steps" ]; then
             echo "Warning: time_steps not found"
             echo "Directory: $dir"
@@ -141,11 +165,11 @@ echo "Directories with time_steps < 10000: $counter_lt_10000"
 echo "Directories with time_steps < 5000: $counter_lt_5000"
 echo "Directories with time_steps < 1000: $counter_lt_1000"
 echo ""
-echo "Directories with 10000 < time_steps < 20000 (touch to_RUN_10000_to_20000): $counter_10000_to_20000"
-echo "Directories with 5000 < time_steps < 10000 (touch to_RUN_5000_to_10000): $counter_5000_to_10000"
-echo "Directories with 1000 < time_steps < 5000 (touch to_RUN_1000_to_5000): $counter_1000_to_5000"
-echo "Directories with time_steps < 1000 (touch to_RUN_lt_1000): $counter_lt_1000"
+echo "Directories with 10000 < time_steps < 20000 (touch to_RUN__10000_to_20000): $counter_10000_to_20000"
+echo "Directories with 5000 < time_steps < 10000 (touch to_RUN__5000_to_10000): $counter_5000_to_10000"
+echo "Directories with 1000 < time_steps < 5000 (touch to_RUN__1000_to_5000): $counter_1000_to_5000"
+echo "Directories with time_steps < 1000 (touch to_RUN__lt_1000): $counter_lt_1000"
 echo ""
-echo "Directories with time_steps not found (touch to_RUN_failed): $counter_failed"
+echo "Directories with time_steps not found (touch to_RUN__failed): $counter_failed"
 echo "======================================================="
 echo ""
