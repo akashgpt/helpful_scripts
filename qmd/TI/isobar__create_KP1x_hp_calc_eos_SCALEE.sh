@@ -151,7 +151,7 @@ for dir in */; do
 
     # Extract TEMP_CHOSEN_ISOBAR from the name of the ISOBAR_T_dir directory (ISOBAR_T_dir_name) -- the format is "T<TEMP_CHOSEN_i>"
     TEMP_CHOSEN_ISOBAR=$(echo "$ISOBAR_T_dir_name" | sed 's/T//g')
-    SIGMA_CHOSEN=$(echo "$kB * $TEMP_CHOSEN_ISOBAR" | bc -l)  # Gaussian smearing sigma
+    SIGMA_CHOSEN_ISOBAR=$(echo "$kB * $TEMP_CHOSEN_ISOBAR" | bc -l)  # Gaussian smearing sigma
     echo "KP1_dir: $KP1_dir"
     echo "V_est_dir: $V_est_dir"
     echo "ISOBAR_T_dir: $ISOBAR_T_dir"
@@ -159,7 +159,7 @@ for dir in */; do
     echo 
     echo "==========================="
     echo "TEMP_CHOSEN_ISOBAR: $TEMP_CHOSEN_ISOBAR"
-    echo "SIGMA_CHOSEN: $SIGMA_CHOSEN"
+    echo "SIGMA_CHOSEN_ISOBAR: $SIGMA_CHOSEN_ISOBAR"
     echo "SCALEE_CHOSEN: $SCALEE_CHOSEN"
     echo "==========================="
     echo ""
@@ -241,7 +241,7 @@ for dir in */; do
 
     # Replace __TEMP_CHOSEN__ and __SIGMA_CHOSEN__ based on the chosen temperature
     sed -i "s/__TEMP_CHOSEN__/${TEMP_CHOSEN_ISOBAR}/" "$SCALEE_0_dir/INCAR"
-    sed -i "s/__SIGMA_CHOSEN__/${SIGMA_CHOSEN}/" "$SCALEE_0_dir/INCAR"
+    sed -i "s/__SIGMA_CHOSEN__/${SIGMA_CHOSEN_ISOBAR}/" "$SCALEE_0_dir/INCAR"
     sed -i "s/__POTIM_CHOSEN__/${POTIM_CHOSEN}/" "$SCALEE_0_dir/INCAR"
 
     # Replace __NPAR_CHOSEN__ with the chosen NPAR

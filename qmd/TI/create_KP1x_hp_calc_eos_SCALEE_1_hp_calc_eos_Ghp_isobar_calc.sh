@@ -73,7 +73,7 @@ else
     exit 1
 fi
 
-SIGMA_CHOSEN=$(echo "$kB * $TEMP_CHOSEN" | bc -l)  # Gaussian smearing sigma
+# SIGMA_CHOSEN=$(echo "$kB * $TEMP_CHOSEN" | bc -l)  # Gaussian smearing sigma
 
 PSTRESS_CHOSEN=$(echo "$PSTRESS_CHOSEN_GPa * 10" | bc -l)  # Convert GPa to kBar
 
@@ -307,8 +307,8 @@ for dir in */; do
 
             # GPa to Kbar
             PSTRESS_CHOSEN=$(echo "$PSTRESS_CHOSEN_GPa * 10" | bc -l)
-            # Calculate SIGMA_CHOSEN based on the chosen temperature
-            SIGMA_CHOSEN=$(echo "$kB * $TEMP_CHOSEN_ISOBAR_i" | bc -l)
+            # Calculate SIGMA_CHOSEN_ISOBAR based on the chosen temperature
+            SIGMA_CHOSEN_ISOBAR=$(echo "$kB * $TEMP_CHOSEN_ISOBAR_i" | bc -l)
 
             # Populate INCAR placeholders
             sed -i "s/__TEMP_CHOSEN__/${TEMP_CHOSEN_ISOBAR_i}/" $TEMP_CHOSEN_ISOBAR_dir/INCAR
@@ -316,7 +316,7 @@ for dir in */; do
             sed -i "s/__POTIM_CHOSEN__/${POTIM_CHOSEN}/" $TEMP_CHOSEN_ISOBAR_dir/INCAR
             sed -i "s/__NPAR_CHOSEN__/${NPAR_CHOSEN}/" $TEMP_CHOSEN_ISOBAR_dir/INCAR
             sed -i "s/__KPAR_CHOSEN__/${KPAR_CHOSEN_111}/" $TEMP_CHOSEN_ISOBAR_dir/INCAR
-            sed -i "s/__SIGMA_CHOSEN__/${SIGMA_CHOSEN}/" $TEMP_CHOSEN_ISOBAR_dir/INCAR
+            sed -i "s/__SIGMA_CHOSEN__/${SIGMA_CHOSEN_ISOBAR}/" $TEMP_CHOSEN_ISOBAR_dir/INCAR
             sed -i "s/__SCALEE_CHOSEN__/${SCALEE_CHOSEN}/" $TEMP_CHOSEN_ISOBAR_dir/INCAR
             sed -i "s/__PSTRESS_CHOSEN__/${PSTRESS_CHOSEN}/" $TEMP_CHOSEN_ISOBAR_dir/INCAR
 

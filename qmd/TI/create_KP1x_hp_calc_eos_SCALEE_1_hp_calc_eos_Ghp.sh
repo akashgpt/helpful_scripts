@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Usage:  source $HELP_SCRIPTS_TI/create_KP1x_hp_calc_eos_SCALEE_1_hp_calc_eos_Ghp.sh > log.create_KP1x_hp_calc_eos_SCALEE_1_hp_calc_eos_Ghp 2>&1 &
-#         nohup $HELP_SCRIPTS_TI/create_KP1x_hp_calc_eos_SCALEE_1_hp_calc_eos_Ghp.sh > log.create_KP1x_hp_calc_eos_SCALEE_1_hp_calc_eos_Ghp 2>&1 &
+#         nohup bash $HELP_SCRIPTS_TI/create_KP1x_hp_calc_eos_SCALEE_1_hp_calc_eos_Ghp.sh > log.create_KP1x_hp_calc_eos_SCALEE_1_hp_calc_eos_Ghp 2>&1 &
 # This script will run the Ghp_analysis.py script in all directories that contain a SCALEE_1 directory.
 # It will run the script in the background and log the output to log.Ghp_analysis.
 # It will also check for errors in the log files and print a message if any errors are found.
@@ -17,8 +17,8 @@ module purge
 module load anaconda3/2024.6; conda activate ase_env
 # for all directories in the current directory, go in and run "nohup python $HELP_SCRIPTS_TI/Ghp_analysis.py > log.Ghp_analysis 2>&1 &"
 for dir in */; do
-    # if directory contains SCALEE_1 directory
-    if [ -d "$dir/SCALEE_1" ]; then
+    # if directory contains SCALEE_2 directory
+    if [ -d "$dir/SCALEE_2" ]; then
         echo "Evaluating $dir"
         cd "$dir" || exit
         # run the command
@@ -35,7 +35,7 @@ echo ""
 wait
 # check if there are any errors in the log files
 for dir in */; do
-    if [ -d "$dir/SCALEE_1" ]; then
+    if [ -d "$dir/SCALEE_2" ]; then
         echo "Checking for errors in $dir"
         if grep -q "ERROR" "$dir/log.Ghp_analysis"; then
             echo "*** 'ERROR' found ***"

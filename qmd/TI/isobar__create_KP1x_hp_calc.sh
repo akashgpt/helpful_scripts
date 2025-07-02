@@ -104,7 +104,7 @@ fi
 TEMP_CHOSEN_ARRAY=($(ls -d T* | sed 's/T//g' | sort -n))
 echo "TEMP_CHOSEN_ARRAY: ${TEMP_CHOSEN_ARRAY[@]}"
 
-SIGMA_CHOSEN=$(echo "$kB * $TEMP_CHOSEN" | bc -l)  # Gaussian smearing sigma
+# SIGMA_CHOSEN=$(echo "$kB * $TEMP_CHOSEN" | bc -l)  # Gaussian smearing sigma
 
 PSTRESS_CHOSEN=$(echo "$PSTRESS_CHOSEN_GPa * 10" | bc -l)  # Convert GPa to kBar
 
@@ -363,21 +363,27 @@ while IFS= read -r -d '' parent; do
 
     # Extract TEMP_CHOSEN_ISOBAR from the name of the ISOBAR_T_dir directory (ISOBAR_T_dir_name) -- the format is "T<TEMP_CHOSEN_i>"
     TEMP_CHOSEN_ISOBAR=$(echo "$ISOBAR_T_dir_name" | sed 's/T//g')
+    SIGMA_CHOSEN_ISOBAR=$(echo "$kB * $TEMP_CHOSEN_ISOBAR" | bc -l)  # Gaussian smearing sigma
     echo "KP1_dir: $KP1_dir"
     echo "V_est_dir: $V_est_dir"
     echo "ISOBAR_T_dir: $ISOBAR_T_dir"
     echo "ISOBAR_T_dir_name: $ISOBAR_T_dir_name"
     echo "==========================="
     echo "TEMP_CHOSEN_ISOBAR: $TEMP_CHOSEN_ISOBAR"
+    echo "SIGMA_CHOSEN_ISOBAR: $SIGMA_CHOSEN_ISOBAR"
     echo "==========================="
     echo ""
 
     # if ISOBAR_CALC_dir__test is not the same as ISOBAR_CALC_dir, exit
     if [ "$ISOBAR_CALC_dir__test" != "$ISOBAR_CALC_dir" ]; then
+        echo ""
         echo "ERROR: ISOBAR_CALC_dir__test ($ISOBAR_CALC_dir__test) is not the same as ISOBAR_CALC_dir ($ISOBAR_CALC_dir)"
+        echo ""
         exit 1
     else
+        echo ""
         echo "ISOBAR_CALC_dir__test ($ISOBAR_CALC_dir__test) is the same as ISOBAR_CALC_dir ($ISOBAR_CALC_dir)"
+        echo ""
     fi
 
     cd $ISOBAR_CALC_dir || exit
@@ -390,6 +396,16 @@ while IFS= read -r -d '' parent; do
             KP1x_dir=$(pwd)
             
 
+            # Check if the parent directory has already been processed "done_hp_calculations" in hp_calculations directory
+            if [[ -f "${KP1x_dir}/hp_calculations/done_hp_calculations" ]]; then
+                echo ""
+                echo "----------------------------------------"
+                echo "Parent directory ${KP1x_dir} has already been processed. Found \"done_hp_calculations\". Skipping."
+                echo "----------------------------------------"
+                echo ""
+                cd $ISOBAR_CALC_dir || exit 1 # Return to ISOBAR_CALC_dir
+                continue
+            fi
 
             #----------------------------------------------------------
             # check how many simulations have already been submitted to SLURM by $USER
@@ -441,8 +457,8 @@ while IFS= read -r -d '' parent; do
             # only if rerun is 0, check if the directory has already been processed
             if [[ $rerun -eq 0 ]]; then
                 # Copy and source analysis script
-                # cp "${HELP_SCRIPTS_vasp}/data_4_analysis.sh" "${KP1x_dir}/"
-                # source data_4_analysis.sh
+                cp "${HELP_SCRIPTS_vasp}/data_4_analysis.sh" "${KP1x_dir}/"
+                source data_4_analysis.sh
 
                 # Check for average pressure file
                 if [[ ! -f analysis/peavg.out ]]; then
@@ -457,8 +473,9 @@ while IFS= read -r -d '' parent; do
                 module load anaconda3/2024.6; conda activate ase_env
                 # Generate high-precision calculations using eos script
                 rm -rf hp_calculations
-                python ${HELP_SCRIPTS_vasp}/eos* -p ${P_RUN} -m 0 -e 0.1 -hp 1 -nt ${N_FRAMES_hp_calculations}
+                python ${HELP_SCRIPTS_vasp}/eos_fit__V_at_P* -p ${P_RUN} -m 0 -e 0.1 -hp 1 -nt ${N_FRAMES_hp_calculations}
                 module purge
+                echo "Executed eos_fit__V_at_P.py in ${child} with P_RUN = ${P_RUN} GPa."
             else
                 echo "Skipping data_4_analysis.sh+eos_fit__V_at_P.py in ${child} as rerun is set to 1."
             fi
@@ -500,7 +517,7 @@ while IFS= read -r -d '' parent; do
             sed -i "s/__POTIM_CHOSEN__/${POTIM_CHOSEN}/" ${hp_calculations_dir}/INCAR
             sed -i "s/__NPAR_CHOSEN__/${NPAR_CHOSEN_SPC}/" ${hp_calculations_dir}/INCAR
             sed -i "s/__KPAR_CHOSEN__/${KPAR_CHOSEN_222}/" ${hp_calculations_dir}/INCAR
-            sed -i "s/__SIGMA_CHOSEN__/${SIGMA_CHOSEN}/" ${hp_calculations_dir}/INCAR
+            sed -i "s/__SIGMA_CHOSEN__/${SIGMA_CHOSEN_ISOBAR}/" ${hp_calculations_dir}/INCAR
             sed -i "s/__SCALEE_CHOSEN__/${SCALEE_CHOSEN}/" ${hp_calculations_dir}/INCAR
 
             # Distribute input files to all subdirectories

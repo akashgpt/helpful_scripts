@@ -364,7 +364,8 @@ while IFS= read -r -d '' parent; do
 
             # if rerun is 1, check if the jobs are already completed successfully
             if [[ $rerun -eq 1 ]]; then
-                l_deepmd
+                module purge
+                module load anaconda3/2024.6; conda activate deepmd
                 python ${MLDP_SCRIPTS}/post_recal_rerun.py -ip all -v -ss $INPUT_FILES_DIR/sub_vasp_xtra.sh > log.recal_test 2>&1
                 module purge
                 # wait for log.recal_test to be created

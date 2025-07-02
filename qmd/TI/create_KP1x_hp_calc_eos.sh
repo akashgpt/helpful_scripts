@@ -135,6 +135,7 @@ else
     exit 1
 fi
 
+counter_incomplete_runs=0
 
 #--------------------------------------------------------------
 # Loop over every directory named exactly 'KP1'
@@ -163,7 +164,7 @@ while IFS= read -r -d '' parent; do
     cd "${PT_dir}" || exit
 
 
-    counter_incomplete_runs=0
+    # counter_incomplete_runs=0
 
     # Iterate over immediate subdirectories beginning with 'KP1'
     for child in "${parent}"/KP1*; do

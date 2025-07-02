@@ -564,19 +564,19 @@ fig.suptitle("Partition Coefficient (K_D) and Weight Distribution Coefficient (D
 # in all plots, add two data points at P500_T9000 0.032 and at P1000_T13000, 1
 ax1.plot("P500_T9000", 0.032, **marker_opts)
 ax1.plot("P500_T9000", 0.07, **marker_opts)
-ax1.plot("P1000_T13000", 1, **marker_opts)
+# ax1.plot("P1000_T13000", 1, **marker_opts)
 ax1.plot("P1000_T13000", 0.32, **marker_opts)
 ax2.plot("P500_T9000", 0.032, **marker_opts)
 ax2.plot("P500_T9000", 0.07, **marker_opts)
-ax2.plot("P1000_T13000", 1, **marker_opts)
+# ax2.plot("P1000_T13000", 1, **marker_opts)
 ax2.plot("P1000_T13000", 0.32, **marker_opts)
 ax3.plot("P500_T9000", 0.032*1.78, **marker_opts)
 ax3.plot("P500_T9000", 0.07*1.78, **marker_opts)
-ax3.plot("P1000_T13000", 1*1.78, **marker_opts)
+# ax3.plot("P1000_T13000", 1*1.78, **marker_opts)
 ax3.plot("P1000_T13000", 0.32*1.78, **marker_opts)
 ax4.plot("P500_T9000", 0.032*1.78, **marker_opts)
 ax4.plot("P500_T9000", 0.07*1.78, **marker_opts)
-ax4.plot("P1000_T13000", 1*1.78, **marker_opts)
+# ax4.plot("P1000_T13000", 1*1.78, **marker_opts)
 ax4.plot("P1000_T13000", 0.32*1.78, **marker_opts)
 
 # 3) Layout & save

@@ -3,6 +3,8 @@
 Estimate chemical potentials and partition coefficients for {secondary_species} in Fe and MgSiO3 systems from TI data.
 Walks through directory structure, parses log.Ghp_analysis files, assembles results into a DataFrame,
 computes mixing fractions, fits linear excess chemical potentials, and adds entropy corrections.
+Partially based on the discussion in the paper Li, et al. 2022 paper, "Primitive noble gases sampled from ocean island basalts cannot be from the Earth's core".
+
 
 Usage: python $HELP_SCRIPTS_TI/estimate_KD.py
 
@@ -25,7 +27,7 @@ MgSiO3_{secondary_species}/
 This script will output a CSV file `all_TI_results.csv` with the following columns:
 Phase, P_T_folder, Config_folder, Target pressure, Target temperature, Atom counts, Atomic masses,
 Unique species, Total # of atoms, G_hp, G_hp_error, G_hp_per_atom, G_hp_per_atom_error,
-HF_ig, TS, Volume (Å³), Volume per atom (Å³), X_{secondary_species}, mu_excess_{secondary_species}, mu_{secondary_species}_TS_term, mu_{secondary_species},
+HF_ig, TS (this is kB*T*S), Volume (Å³), Volume per atom (Å³), X_{secondary_species}, mu_excess_{secondary_species}, mu_{secondary_species}_TS_term, mu_{secondary_species},
 mu_excess_{secondary_species}, mu_{secondary_species}, KD_sil_to_metal, D_wt, a, b, G_hp_per_atom_w_TS, TS_per_atom
 
 Author: Akash Gupta
@@ -195,21 +197,21 @@ for col in scalar_cols:
 if "Target pressure" in df.columns:
     df["Target pressure (GPa)"] = (
         df["Target pressure"]
-          .astype(str)
-          .str.extract(r'([-+]?\d*\.?\d+)', expand=False)
-          .astype(float)
+            .astype(str)
+            .str.extract(r'([-+]?\d*\.?\d+)', expand=False)
+            .astype(float)
     )
 if "Target temperature" in df.columns:
     df["Target temperature (K)"] = (
         df["Target temperature"]
-          .astype(str)
-          .str.extract(r'([-+]?\d*\.?\d+)', expand=False)
-          .astype(float)
+            .astype(str)
+            .str.extract(r'([-+]?\d*\.?\d+)', expand=False)
+            .astype(float)
     )
 
 
 
-# sort all columns wrt "Phase" and "Target Pressure (GPa)"
+# sort all columns wrt "Phase" and "Target pressure (GPa)"
 df.sort_values(by=["Phase", "Target pressure (GPa)"], inplace=True)
 # df.sort_values(by=["Target pressure (GPa)"], inplace=True)
 
@@ -238,6 +240,8 @@ if warn_cols:
 # TS_per_atom = df["TS"] / df["Total # of atoms"]
 df["TS_per_atom"] = df["TS"] / df["Total # of atoms"]
 
+
+print(f"\nWARNING: Check the equations below with Haiyang!!!\n")
 # G_hp_per_atom_w_TS = df["G_hp_per_atom"] + df["TS_per_atom"]
 # for all cases except those with n_{secondary_species} = 0
 for i, row in df.iterrows():
@@ -245,37 +249,47 @@ for i, row in df.iterrows():
         df.at[i, "G_hp_per_atom_w_TS"] = row["G_hp_per_atom"] + row["TS_per_atom"]
     else:
         df.at[i, "G_hp_per_atom_w_TS"] = row["G_hp_per_atom"]
-        df.at[i, "G_hp_per_atom"] = row["G_hp_per_atom"] - row["TS_per_atom"]
+        # df.at[i, "G_hp_per_atom"] = row["G_hp_per_atom"] - row["TS_per_atom"]
+        
 # df["G_hp_per_atom_w_TS"] = df["G_hp_per_atom"] + df["TS_per_atom"]
 
-
+print(f"WARNING: the line above was not commented earlier but I just did it now as I can't figure out why it was added in the first place. It seems to be a mistake though doesn't affect results previous or current in any way.\n\n")
 
 
 # 9) Fit linear excess chemical potential mu_excess = a + b
 # Initialize columns
 df["a"] = np.nan
 df["b"] = np.nan
+df["a_error"] = np.nan
+df["b_error"] = np.nan
 
 # Group by Phase and P_T_folder to fit separate lines
 for (phase, pt), sub in df.groupby(["Phase", "P_T_folder"]):
     x = sub[f"X_{secondary_species}"].values
     y = sub["G_hp_per_atom_w_TS"].values
     if len(x) > 1:
-        slope, intercept = np.polyfit(x, y, 1)
+        coeffs, cov = np.polyfit(x, y, 1, cov=True)  # fit y = a + b*x
+        slope, intercept = coeffs
+        # Calculate the standard error of the slope and intercept
+        slope_error = np.sqrt(cov[0, 0])
+        intercept_error = np.sqrt(cov[1, 1])
+        # error in slope and intercept
     else:
         intercept, slope = np.nan, np.nan
+        slope_error, intercept_error = np.nan, np.nan
     mask = (df["Phase"] == phase) & (df["P_T_folder"] == pt)
     df.loc[mask, "a"] = intercept
     df.loc[mask, "b"] = slope
+    df.loc[mask, "a_error"] = intercept_error
+    df.loc[mask, "b_error"] = slope_error
 
 # Compute mu_excess = a + b (no X_{secondary_species} factor)
 df[f"mu_excess_{secondary_species}"] = df["a"] + df["b"]
 
 # 10) Compute mixing entropy term mu_TS and total mu_{secondary_species}
-
 def compute_mu_TS(row):
     """
-    Compute the TS mixing entropy term for {secondary_species}, using different formulas per phase.
+    Compute the TS term mixing entropy term for {secondary_species}, using different formulas per phase.
     Fe_{secondary_species}: TS = kB * T * ln(X)
     MgSiO3_{secondary_species}: TS = kB * T * ln( X / (5 - 4X) )
     """
@@ -288,8 +302,10 @@ def compute_mu_TS(row):
     if T is None or X < 0:
         return np.nan
     if row["Phase"] == f"Fe_{secondary_species}":
+        # print(f"kB * T * np.log(X) for Fe_{secondary_species} = {kB * T * np.log(X)}")
         return kB * T * np.log(X)
     elif row["Phase"] == f"MgSiO3_{secondary_species}":
+        # print(f"kB * T * np.log(X / (5 - 4 * X)) for MgSiO3_{secondary_species} = {kB * T * np.log(X / (5 - 4 * X))}")
         denom = 5 - 4 * X
         return kB * T * np.log(X / denom)# if denom > 0 else np.nan
     else:
@@ -300,7 +316,8 @@ df[f"mu_{secondary_species}_TS_term"] = df.apply(compute_mu_TS, axis=1)
 df[f"mu_{secondary_species}"] = df[f"mu_excess_{secondary_species}"] + df[f"mu_{secondary_species}_TS_term"]
 
 
-
+# print(f"df summary:\
+# {df.describe()}\n")
 
 
 
@@ -312,12 +329,9 @@ def compute_KD(row):
     # 2) Determine the other phase
     other_phase = f"MgSiO3_{secondary_species}" if phase == f"Fe_{secondary_species}" else f"Fe_{secondary_species}"
     # 3) Grab that phase’s mu_excess_{secondary_species} for the same P_T_folder
-    partner = df.loc[
-        (df["Phase"] == other_phase) &
-        (df["P_T_folder"] == pt),
-        f"mu_excess_{secondary_species}"
-    ]
+    partner = df.loc[(df["Phase"] == other_phase) & (df["P_T_folder"] == pt), f"mu_excess_{secondary_species}"]
 
+    # Determine the multiplier for the exponent based on phase
     if phase == f"Fe_{secondary_species}":
         mult_factor = 1 # to ensure that KD is always for {secondary_species}_{silicate} -> {secondary_species}_{metal}
     else:
@@ -332,11 +346,31 @@ def compute_KD(row):
         return np.nan
     # 5) Compute KD
     # solve for KD = (x/y) such that (x/y) = (1/(5-4*y)) * np.exp(-mult_factor*(row[f"mu_excess_{secondary_species}"] - other_mu) / (kB * T))
-    return (1/5.0) * np.exp(-mult_factor*(row[f"mu_excess_{secondary_species}"] - other_mu) / (kB * T))
+    return (1/5.0) * np.exp(-mult_factor*(row[f"mu_excess_{secondary_species}"] - other_mu) / (kB * T)) # assuming y is ~ 0
 
 # Apply it
 df["KD_sil_to_metal"] = df.apply(compute_KD, axis=1)
 df["D_wt"] = df["KD_sil_to_metal"] * (100/56)
+
+# 11) Print summary of results
+print(f"\nKD_sil_to_metal for {secondary_species} in Fe and MgSiO3 systems:")
+# Loop over each unique (P_T_folder, Phase) combination
+for (folder, phase), sub_df in df.groupby(["P_T_folder", "Phase"]):
+    # grab all non-NaN KD values
+    kd_vals = sub_df["KD_sil_to_metal"].dropna()
+    if not kd_vals.empty:
+        kd0 = kd_vals.iloc[0]
+        mu0 = sub_df[f"mu_excess_{secondary_species}"].iloc[0]
+        print(f"{folder}, Phase={phase}:")
+        print(f"                                KD_sil_to_metal = {kd0:.4f} (mu_excess = {mu0:.4f})")
+    else:
+        print(f"{folder}, Phase={phase}: "
+                "No valid KD_sil_to_metal values found.")
+
+print(f"="*50)
+print(f"Note: It is assumed here that y or X_{secondary_species} in silicates is << 1. If not, multiply K_D and D_wt by (5 / (5-4y)) !")
+print(f"="*50)
+print("")
 
 
 

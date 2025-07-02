@@ -2,7 +2,7 @@
 
 
 # navigate to all isobar_calc directories and run script X.sh
-# Usage: nohup $HELP_SCRIPTS_TI/run_isobar__create.sh > log.run_isobar__create 2>&1 &
+# Usage: nohup bash $HELP_SCRIPTS_TI/run_isobar__create__.sh > log.run_isobar__create__ 2>&1 &
 
 home_dir=$(pwd)
 echo ""
@@ -14,6 +14,7 @@ counter=0
 
 find . -type d -name "isobar_calc" | while read dir; do
     echo "Running script in $dir"
+    counter=$((counter + 1))
 
     (
         cd "$dir" 
@@ -21,14 +22,16 @@ find . -type d -name "isobar_calc" | while read dir; do
         # nohup bash $HELP_SCRIPTS_TI/isobar__create_KP1x_hp_calc_eos.sh > log.isobar__create_KP1x_hp_calc_eos 2>&1 &
         
         # to not run SCALEE sims
-        nohup bash $HELP_SCRIPTS_TI/isobar__create_KP1x_hp_calc_eos_SCALEE.sh 0 > log.isobar__create_KP1x_hp_calc_eos_SCALEE 2>&1 &
+        # nohup bash $HELP_SCRIPTS_TI/isobar__create_KP1x_hp_calc_eos_SCALEE.sh 0 > log.isobar__create_KP1x_hp_calc_eos_SCALEE 2>&1 &
 
         # to run SCALEE sims
         # nohup bash $HELP_SCRIPTS_TI/isobar__create_KP1x_hp_calc_eos_SCALEE.sh 1 > log.isobar__create_KP1x_hp_calc_eos_SCALEE 2>&1 &
 
+        # ... for isobar Ghp analysis
+        nohup bash $LOCAL_HELP_SCRIPTS_TI/isobar__create_KP1x_hp_calc_eos_SCALEE_0_hp_calc_eos_Ghp.sh > log.isobar__create_KP1x_hp_calc_eos_SCALEE_0_hp_calc_eos_Ghp 2>&1 &
+
         echo "Started isobar__create_ ... .sh in $dir"
         echo "Process ID: $!"
-        counter=$((counter + 1))
         echo "Running counter: $counter"
         echo ""
 

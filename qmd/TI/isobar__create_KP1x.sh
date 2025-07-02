@@ -160,14 +160,14 @@ while IFS= read -r -d '' parent; do
 
     # Extract TEMP_CHOSEN_ISOBAR from the name of the ISOBAR_T_dir directory (ISOBAR_T_dir_name) -- the format is "T<TEMP_CHOSEN_i>"
     TEMP_CHOSEN_ISOBAR=$(echo "$ISOBAR_T_dir_name" | sed 's/T//g')
-    SIGMA_CHOSEN=$(echo "$kB * $TEMP_CHOSEN_ISOBAR" | bc -l)  # Gaussian smearing sigma
+    SIGMA_CHOSEN_ISOBAR=$(echo "$kB * $TEMP_CHOSEN_ISOBAR" | bc -l)  # Gaussian smearing sigma
     echo "KP1_dir: $KP1_dir"
     echo "V_est_dir: $V_est_dir"
     echo "ISOBAR_T_dir: $ISOBAR_T_dir"
     echo "ISOBAR_T_dir_name: $ISOBAR_T_dir_name"
     echo "==========================="
     echo "TEMP_CHOSEN_ISOBAR: $TEMP_CHOSEN_ISOBAR"
-    echo "SIGMA_CHOSEN: $SIGMA_CHOSEN"
+    echo "SIGMA_CHOSEN_ISOBAR: $SIGMA_CHOSEN_ISOBAR"
     echo "==========================="
     echo ""
 
@@ -301,7 +301,7 @@ while IFS= read -r -d '' parent; do
             sed -i "s/__POTIM_CHOSEN__/${POTIM_CHOSEN}/" $KP1x_dir/INCAR
             sed -i "s/__NPAR_CHOSEN__/${NPAR_CHOSEN}/" $KP1x_dir/INCAR
             sed -i "s/__KPAR_CHOSEN__/${KPAR_CHOSEN_111}/" $KP1x_dir/INCAR
-            sed -i "s/__SIGMA_CHOSEN__/${SIGMA_CHOSEN}/" $KP1x_dir/INCAR
+            sed -i "s/__SIGMA_CHOSEN__/${SIGMA_CHOSEN_ISOBAR}/" $KP1x_dir/INCAR
             sed -i "s/__SCALEE_CHOSEN__/${SCALEE_CHOSEN}/" $KP1x_dir/INCAR
 
             # Submit the VASP job

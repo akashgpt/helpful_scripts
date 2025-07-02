@@ -6,39 +6,6 @@
 # Author: Akash Gupta
 
 
-# while IFS= read -r -d '' parent; do
-#     # …look for its immediate subdirectories starting with “KP1”
-#     for child in "$parent"/KP1*; do
-#         if [ -d "$child" ]; then
-#         touch "$child/done_KP1x"
-#         # P_RUN=$(grep Pressure analysis/peavg.out  | awk '{print $3}')
-#         # module load anaconda3/2024.6; conda activate ase_env; python $HELP_SCRIPTS_vasp/eos* -p $P_RUN -m 0 -e 0.01 -hp 1
-#         echo "Touched $child/done_KP1x"
-#         fi
-#     done
-# done < <(find . -type d -name KP1 -print0)
-
-
-
-#--------------------------------------------------------------
-# Driver script to set up and launch VASP runs in KP1*/hp_calculations
-#--------------------------------------------------------------
-
-# # Thermostat and MD settings
-# TEMP_CHOSEN=13000            # Target temperature (K)
-# PSTRESS_CHOSEN_GPa=1000     # Pressure offset (GPa), not used here
-# NBANDS_CHOSEN=784            # Number of electronic bands (e.g., 560 for Fe-He; 784 for MgSiO3-He)
-# POTIM_CHOSEN=0.5             # MD timestep (fs)
-# NPAR_CHOSEN=14               # Parallelization: cores/node × nodes (e.g., TIGER3=14, STELLAR=16)
-
-# # K-point parallelization choices
-# KPAR_CHOSEN_111=1            # KPAR for 1×1×1 k-point mesh
-# KPAR_CHOSEN_222=4            # KPAR for 2×2×2 k-point mesh
-
-# # Job wait-time thresholds (mins)
-# WAIT_TIME_VLONG=600          # Very long jobs
-# WAIT_TIME_LONG=60            # Long jobs
-# WAIT_TIME_SHORT=10           # Short jobs
 
 # Scaling parameter for alchemical transformations
 SCALEE_CHOSEN=1.0            # Lambda scaling factor
@@ -51,17 +18,21 @@ kBar_to_GPa=0.1
 # SIGMA_CHOSEN=$(echo "${kB} * ${TEMP_CHOSEN}" | bc -l)
 
 # Save the current working directory for later
-PT_dir=$(pwd)
+ISOBAR_CALC_dir=$(pwd)
+CONFIG_dir=$(dirname "$ISOBAR_CALC_dir") # CONFIG_dir is the parent directory of isobar_calc
+PT_dir=$(dirname "$CONFIG_dir") # PT_dir is the parent directory of CONFIG_dir
 PT_dir_name=$(basename "$PT_dir")
 
 COMPOSITION_dir=$(dirname "$PT_dir")
 COMPOSITION_dir_name=$(basename "$COMPOSITION_dir")
 
 echo "Current time: $(date)"
-echo "Current PT directory: $PT_dir"
-echo "Current PT directory name: $PT_dir_name"
-echo "Current COMPOSITION directory: $COMPOSITION_dir"
-echo "Current COMPOSITION directory name: $COMPOSITION_dir_name"
+echo "PT directory: $PT_dir"
+echo "PT directory name: $PT_dir_name"
+echo "COMPOSITION directory: $COMPOSITION_dir"
+echo "COMPOSITION directory name: $COMPOSITION_dir_name"
+echo "CONFIG directory: $CONFIG_dir"
+echo "ISOBAR_CALC_dir: $ISOBAR_CALC_dir"
 echo ""
 
 
@@ -92,7 +63,21 @@ else
     exit 1
 fi
 
-SIGMA_CHOSEN=$(echo "$kB * $TEMP_CHOSEN" | bc -l)  # Gaussian smearing sigma
+# if TEMP_CHOSEN and PSTRESS_CHOSEN_GPa are not a number, exit
+if ! [[ "$TEMP_CHOSEN" =~ ^[0-9]+([.][0-9]+)?$ ]]; then
+    echo "TEMP_CHOSEN is not a number: $TEMP_CHOSEN. Exiting. Please check the input.calculate_GFE file."
+    exit 1
+fi
+if ! [[ "$PSTRESS_CHOSEN_GPa" =~ ^[0-9]+([.][0-9]+)?$ ]]; then
+    echo "PSTRESS_CHOSEN_GPa is not a number: $PSTRESS_CHOSEN_GPa. Exiting. Please check the input.calculate_GFE file."
+    exit 1
+fi
+
+# Extract TEMP_CHOSEN_ARRAY from the names of the directories in the current directory -- their format is "T<TEMP_CHOSEN_i>"
+TEMP_CHOSEN_ARRAY=($(ls -d T* | sed 's/T//g' | sort -n))
+echo "TEMP_CHOSEN_ARRAY: ${TEMP_CHOSEN_ARRAY[@]}"
+
+PSTRESS_CHOSEN=$(echo "$PSTRESS_CHOSEN_GPa * 10" | bc -l)  # Convert GPa to kBar
 
 
 ########################################
@@ -106,6 +91,7 @@ echo "------------------------"
 echo "Simulation parameters:"
 echo "TEMP_CHOSEN: $TEMP_CHOSEN"
 echo "PSTRESS_CHOSEN_GPa: $PSTRESS_CHOSEN_GPa"
+echo "PSTRESS_CHOSEN: $PSTRESS_CHOSEN (kBar)"
 echo "NPAR_CHOSEN: $NPAR_CHOSEN (special case for single point calculations)"
 echo "POTIM_CHOSEN: $POTIM_CHOSEN"
 echo "NBANDS_CHOSEN: $NBANDS_CHOSEN"
@@ -129,6 +115,7 @@ else
     exit 1
 fi
 
+
 counter_incomplete_runs=0
 
 
@@ -144,19 +131,38 @@ while IFS= read -r -d '' parent; do
     echo "#----------------------------------------"
     echo "#----------------------------------------"
 
+
     cd "${parent}" || exit
     parent_abs=$(pwd)
+    SCALEE_0_dir=$parent_abs
+    echo " → Entered ${SCALEE_0_dir}"
 
-    # if parent_abs has "_0", then skip this instance
-    if [[ "${parent_abs}" == *_0* ]]; then
-        echo "Skipping parent directory with '_0': ${parent_abs}"
-        cd ${PT_dir} || exit
-        continue
-    fi
+    ISOBAR_T_dir=$(dirname "$SCALEE_0_dir")
+    ISOBAR_T_dir_name=$(basename "$ISOBAR_T_dir")
+    ISOBAR_CALC_dir__test=$(dirname "$ISOBAR_T_dir") # parent directory is ISOBAR_CALC_test_dir
+    V_est_dir=$ISOBAR_T_dir/V_est
+    KP1_dir=$V_est_dir/KP1
+
+    LOCAL_SETUP_dir=$ISOBAR_T_dir/setup_TI
+
+
+    # Extract TEMP_CHOSEN_ISOBAR from the name of the ISOBAR_T_dir directory (ISOBAR_T_dir_name) -- the format is "T<TEMP_CHOSEN_i>"
+    TEMP_CHOSEN_ISOBAR=$(echo "$ISOBAR_T_dir_name" | sed 's/T//g')
+    SIGMA_CHOSEN_ISOBAR=$(echo "$kB * $TEMP_CHOSEN_ISOBAR" | bc -l)  # Gaussian smearing sigma
+    echo "KP1_dir: $KP1_dir"
+    echo "V_est_dir: $V_est_dir"
+    echo "ISOBAR_T_dir: $ISOBAR_T_dir"
+    echo "ISOBAR_T_dir_name: $ISOBAR_T_dir_name"
+    echo 
+    echo "==========================="
+    echo "TEMP_CHOSEN_ISOBAR: $TEMP_CHOSEN_ISOBAR"
+    echo "SIGMA_CHOSEN_ISOBAR: $SIGMA_CHOSEN_ISOBAR"
+    echo "==========================="
+    echo ""
 
 
     ######################################################
-    KP1_dir=$(pwd) # SCALEE_1 -- KPOINTS 111 directory (to use the previous script as is)
+    KP1_dir=$(pwd) # SCALEE_0 -- KPOINTS 111 directory (to use the previous script as is)
     ########################################################
     echo " → Entered ${KP1_dir}"
     analysis_KP1_dir=$KP1_dir/analysis
@@ -166,9 +172,9 @@ while IFS= read -r -d '' parent; do
     # create corrected_pressure.dat and corrected_volume.dat files and add the header: "# after KP1, KP1X, hp_calculations"
     mkdir -p "${analysis_KP1_dir}"
     rm -f "${corrected_pressure_file}" "${corrected_volume_file}" "${pressure_correction_file}"
-    echo "# after KP1, KP1X, hp_calculations, SCALEE_1 (in kBar)" > "${corrected_pressure_file}"
-    echo "# after KP1, KP1X, hp_calculations, SCALEE_1 (in kBar)" > "${corrected_volume_file}"
-    echo "# after KP1, KP1X, hp_calculations, SCALEE_1 (in kBar)" > "${pressure_correction_file}"
+    echo "# after KP1, KP1X, hp_calculations, SCALEE_0 (in kBar)" > "${corrected_pressure_file}"
+    echo "# after KP1, KP1X, hp_calculations, SCALEE_0 (in kBar)" > "${corrected_volume_file}"
+    echo "# after KP1, KP1X, hp_calculations, SCALEE_0 (in kBar)" > "${pressure_correction_file}"
     # cd "${PT_dir}" || exit
 
     child=$parent # to make the previous script work, we need to set child to parent
@@ -339,7 +345,7 @@ while IFS= read -r -d '' parent; do
     echo ""
     # echo "Started hp_calculations in ${child}"
     # Return to the original driver directory
-    cd ${PT_dir} || exit
+    cd ${ISOBAR_CALC_dir} || exit
         # fi
     # done
 
@@ -358,7 +364,7 @@ while IFS= read -r -d '' parent; do
     # cd "${PT_dir}" || exit
 
 
-done < <(find . -type d -name SCALEE_1 -print0)
+done < <(find . -type d -name SCALEE_0 -print0)
 
 # Final confirmation message
 echo ""
@@ -367,7 +373,7 @@ echo ""
 echo "################################"
 echo "################################"
 echo "################################"
-echo "'Corrected' pressure updated in all SCALEE_1/analysis directories under ${PT_dir} @ $(date)."
+echo "'Corrected' pressure updated in all SCALEE_1/analysis directories under ${ISOBAR_CALC_dir} @ $(date)."
 echo ""
 echo "Relevant files are: {corrected_pressure.dat, corrected_volume.dat, pressure_correction.dat, diff_external_pressure.dat, (*) avg_diff_external_pressure.dat}"
 echo "*: the most relevant file--avg_diff_external_pressure.dat is the average of the differences between the external pressures in KPOINTS_1 and KPOINTS_2 runs."
@@ -379,3 +385,4 @@ echo "################################"
 echo ""
 echo ""
 echo ""
+

@@ -20,6 +20,7 @@ import pandas as pd
 import numpy as np
 import scipy.special
 import matplotlib.pyplot as plt
+from mc_error import monte_carlo_error # located at $HELP_SCRIPTS/general/mc_error.py
 
 
 # parameters
@@ -346,6 +347,7 @@ def process_all(base_dir="."):
 
     # HF_ig = -503.181 # eV ## needs to be updated
     HF_ig = estimate_IdealGas_Helmholtz_Free_Energy(atomic_masses, atom_counts, volume_cell, T_target)
+    # HF_ig, HF_ig_err = monte_carlo_error(estimate_IdealGas_Helmholtz_Free_Energy, [atomic_masses, atom_counts, volume_cell, T_target], [0.0, 0.0, 0.0, 0.0])
     # # type
     # print(f"type of HF_ig: {type(HF_ig)}")
     # print(f"HF_ig: {HF_ig:.3f} eV")

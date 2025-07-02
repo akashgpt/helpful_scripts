@@ -82,7 +82,7 @@ fi
 TEMP_CHOSEN_ARRAY=($(ls -d T* | sed 's/T//g' | sort -n))
 echo "TEMP_CHOSEN_ARRAY: ${TEMP_CHOSEN_ARRAY[@]}"
 
-SIGMA_CHOSEN=$(echo "$kB * $TEMP_CHOSEN" | bc -l)  # Gaussian smearing sigma
+# SIGMA_CHOSEN=$(echo "$kB * $TEMP_CHOSEN" | bc -l)  # Gaussian smearing sigma
 
 PSTRESS_CHOSEN=$(echo "$PSTRESS_CHOSEN_GPa * 10" | bc -l)  # Convert GPa to kBar
 
@@ -164,14 +164,14 @@ while IFS= read -r -d '' parent; do
 
     # Extract TEMP_CHOSEN_ISOBAR from the name of the ISOBAR_T_dir directory (ISOBAR_T_dir_name) -- the format is "T<TEMP_CHOSEN_i>"
     TEMP_CHOSEN_ISOBAR=$(echo "$ISOBAR_T_dir_name" | sed 's/T//g')
-    SIGMA_CHOSEN=$(echo "$kB * $TEMP_CHOSEN_ISOBAR" | bc -l)  # Gaussian smearing sigma
+    SIGMA_CHOSEN_ISOBAR=$(echo "$kB * $TEMP_CHOSEN_ISOBAR" | bc -l)  # Gaussian smearing sigma
     echo "KP1_dir: $KP1_dir"
     echo "V_est_dir: $V_est_dir"
     echo "ISOBAR_T_dir: $ISOBAR_T_dir"
     echo "ISOBAR_T_dir_name: $ISOBAR_T_dir_name"
     echo "==========================="
     echo "TEMP_CHOSEN_ISOBAR: $TEMP_CHOSEN_ISOBAR"
-    echo "SIGMA_CHOSEN: $SIGMA_CHOSEN"
+    echo "SIGMA_CHOSEN_ISOBAR: $SIGMA_CHOSEN_ISOBAR"
     echo "==========================="
     echo ""
 
@@ -189,7 +189,7 @@ while IFS= read -r -d '' parent; do
     cd "${ISOBAR_CALC_dir}" || exit
 
 
-    counter_incomplete_runs=0
+    # counter_incomplete_runs=0
 
     # Iterate over immediate subdirectories beginning with 'KP1'
     for child in "${parent}"/KP1*; do
