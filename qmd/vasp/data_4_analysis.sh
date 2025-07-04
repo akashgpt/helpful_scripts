@@ -105,6 +105,12 @@ sed -n '11p' $parent_dir/analysis/peavg_numbers.out >> analysis/peavg_summary.ou
 grep ENCUT $parent_dir/INCAR | awk '{print $3}' >> analysis/peavg_summary.out #ENCUT
 grep GGA $parent_dir/INCAR | awk '{print $3}' >> analysis/peavg_summary.out #XC
 grep "TITEL" $parent_dir/POTCAR | awk '{print $4}' >> analysis/peavg_summary.out #POTCAR 
+grep "free  energy   TOTEN" $parent_dir/OUTCAR | tail -n 1 | awk '{print $5}' >> analysis/peavg_summary.out #last free energy TOTEN value -- the only value for single point calculations
+sed -n '16p' $parent_dir/analysis/peavg_numbers.out >> analysis/peavg_summary.out #E-TS_el
+sed -n '17p' $parent_dir/analysis/peavg_numbers.out >> analysis/peavg_summary.out #E-TS_el error
+sed -n '18p' $parent_dir/analysis/peavg_numbers.out >> analysis/peavg_summary.out #S_el
+sed -n '19p' $parent_dir/analysis/peavg_numbers.out >> analysis/peavg_summary.out #S_el error
+sed -n '7p' $parent_dir/analysis/peavg_numbers.out >> analysis/peavg_summary.out #Volume in cm^3/mol-atom
 
 
 

@@ -13,9 +13,9 @@ Outputs in BASE/:
     vasprun.xml (merged XML with appended <calculation> blocks)
 
 Usage:
-    python $HELP_SCRIPTS_vasp/merge_vasp_runs.py BASE
+    python $HELP_SCRIPTS_vasp/merge_vasp_runs.py BASE 
     python $LOCAL_HELP_SCRIPTS/qmd/vasp/merge_vasp_runs.py BASE
-    e.g., python $HELP_SCRIPTS_vasp/merge_vasp_runs.py SCALEE_7
+    python merge_vasp_runs.py SCALEE_7 --run_data_script 
 """
 import os
 import sys
@@ -23,6 +23,30 @@ import glob
 import shutil
 from ase.io import read, write
 import subprocess
+import argparse
+
+
+
+parse = argparse.ArgumentParser(description="Merge VASP runs into a single set of files.")
+# run data_4_analysis.sh script or not
+parse.add_argument('base', type=str, help="Base directory name for merging runs (e.g., SCALEE_7)")
+# add argument for --run_data_script
+parse.add_argument('--run_data_script', "-r", action='store_true', default=1,
+                    help="Run data_4_analysis.sh script after merging (default: 0)")
+args = parse.parse_args()
+
+# get base directory from args
+if not args.base:
+    print("Error: Base directory name is required.")
+    sys.exit(1)
+base = args.base
+# check if base directory exists
+flag_run_data_script = args.run_data_script
+if flag_run_data_script == 1:
+    flag_run_data_script = True
+else:
+    flag_run_data_script = False
+
 
 # define data_4_analysis.sh script path
 HELP_SCRIPTS_vasp = "/projects/BURROWS/akashgpt/run_scripts/helpful_scripts/qmd/vasp"
@@ -136,21 +160,24 @@ def merge_runs(base):
         print("No vasprun.xml found; skipping XML merge.")
 
     # 6) Execute data_4_analysis.sh if present in BASE
-    # go to base directory
-    os.chdir(base_dir)
-    # check if data_4_analysis.sh exists
-    data_script = 'data_4_analysis.sh'
-    # cp data_4_analysis.sh from data_4_analysis_script
-    if os.path.isfile(data_4_analysis_script):
-        shutil.copy(data_4_analysis_script, data_script)
-        print(f"Updated '{data_4_analysis_script}' to '{data_script}'")
-    else:
-        print(f"Warning: '{data_4_analysis_script}' not found; skipping copy.")
-    if os.path.isfile(data_script):
-        print(f"Executing '{data_script}' via Bash")
-        subprocess.run(['bash', data_script], check=True)
-    else:
-        print(f"Warning: '{data_script}' not found; skipping execution.")
+
+    if flag_run_data_script:
+        print(f"flag_run_data_script is set to {flag_run_data_script}, running data_4_analysis.sh script")
+        # go to base directory
+        os.chdir(base_dir)
+        # check if data_4_analysis.sh exists
+        data_script = 'data_4_analysis.sh'
+        # cp data_4_analysis.sh from data_4_analysis_script
+        if os.path.isfile(data_4_analysis_script):
+            shutil.copy(data_4_analysis_script, data_script)
+            print(f"Updated '{data_4_analysis_script}' to '{data_script}'")
+        else:
+            print(f"Warning: '{data_4_analysis_script}' not found; skipping copy.")
+        if os.path.isfile(data_script):
+            print(f"Executing '{data_script}' via Bash")
+            subprocess.run(['bash', data_script], check=True)
+        else:
+            print(f"Warning: '{data_script}' not found; skipping execution.")
 
 
 
