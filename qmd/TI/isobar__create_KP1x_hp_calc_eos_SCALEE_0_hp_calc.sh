@@ -192,6 +192,18 @@ while IFS= read -r -d '' parent; do
         continue
     fi
 
+    # Check if "to_RUN__correction" exists in SCALEE_0_dir and skip if it does
+    if [[ -f "${SCALEE_0_dir}/to_RUN__correction" ]]; then
+        echo ""
+        echo "----------------------------------------"
+        echo "Parent directory ${SCALEE_0_dir} has a file \"to_RUN__correction\". Skipping."
+        echo "----------------------------------------"
+        echo ""
+        cd $ISOBAR_CALC_dir || exit 1 # Return to ISOBAR_CALC_dir
+        continue
+    fi
+
+
 
     # Extract TEMP_CHOSEN_ISOBAR from the name of the ISOBAR_T_dir directory (ISOBAR_T_dir_name) -- the format is "T<TEMP_CHOSEN_i>"
     TEMP_CHOSEN_ISOBAR=$(echo "$ISOBAR_T_dir_name" | sed 's/T//g')

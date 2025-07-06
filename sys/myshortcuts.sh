@@ -357,10 +357,17 @@ export CONDA_SECONDARY_DIR="$SCRATCH/softwares/conda_envs_dir_secondary"
 export HELP_SCRIPTS="$AG_BURROWS/run_scripts/helpful_scripts"
 export LOCAL_HELP_SCRIPTS="$LOCAL_AG_BURROWS/run_scripts/helpful_scripts"
 export HELP_SCRIPTS_qmd="$AG_BURROWS/run_scripts/helpful_scripts/qmd"
+export LOCAL_HELP_SCRIPTS_qmd="$LOCAL_AG_BURROWS/run_scripts/helpful_scripts/qmd"
 export HELP_SCRIPTS_vasp="$AG_BURROWS/run_scripts/helpful_scripts/qmd/vasp"
+export LOCAL_HELP_SCRIPTS_vasp="$LOCAL_AG_BURROWS/run_scripts/helpful_scripts/qmd/vasp"
 export HELP_SCRIPTS_plmd="$AG_BURROWS/run_scripts/helpful_scripts/qmd/plmd"
+export LOCAL_HELP_SCRIPTS_plmd="$LOCAL_AG_BURROWS/run_scripts/helpful_scripts/qmd/plmd"
 export HELP_SCRIPTS_TI="$AG_BURROWS/run_scripts/helpful_scripts/qmd/TI"
+export LOCAL_HELP_SCRIPTS_TI="$LOCAL_AG_BURROWS/run_scripts/helpful_scripts/qmd/TI"
 export HELP_SCRIPTS_DPAL="$AG_BURROWS/run_scripts/helpful_scripts/qmd/DPAL"
+export LOCAL_HELP_SCRIPTS_DPAL="$LOCAL_AG_BURROWS/run_scripts/helpful_scripts/qmd/DPAL"
+export HELP_SCRIPTS_general="$AG_BURROWS/run_scripts/helpful_scripts/general"
+export LOCAL_HELP_SCRIPTS_general="$LOCAL_AG_BURROWS/run_scripts/helpful_scripts/general"
 
 
 
@@ -377,6 +384,9 @@ export PATH=$HOME/local/bin:$PATH # for patchelf
 
 
 export PYTHONPATH=$PYTHONPATH:$LOCAL_AG_BURROWS/misc_libraries/
+export PYTHONPATH=$HELP_SCRIPTS:$PYTHONPATH
+export PYTHONPATH=$HELP_SCRIPTS/general:$PYTHONPATH
+export PYTHONPATH=$LOCAL_HELP_SCRIPTS/general:$PYTHONPATH
 # export PATH=$PATH:$LARS_SCRIPTS_DIR
 # export PATH=$PATH:$JIE_SCRIPTS_DIR
 # export PATH=$PATH:$mldp

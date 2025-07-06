@@ -69,6 +69,8 @@ if os.path.exists(enthalpy_file):
                 P_calc_err = float(line.split()[4])
             if 'Enthalpy' in line and counter_enthalpy < 1:
                 counter_enthalpy += 1
+                print(f"Reading enthalpy from: {enthalpy_file}")
+                print(f"Enthalpy line: {line.strip()}")
                 # Extract the enthalpy value, as the fifth element in the line
                 enthalpy_value = float(line.split()[4])
                 enthalpy_err_value = float(line.split()[6])

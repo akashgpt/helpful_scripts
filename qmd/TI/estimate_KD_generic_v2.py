@@ -44,6 +44,7 @@ import sys
 import argparse
 import os
 from mc_error import monte_carlo_error # located at $HELP_SCRIPTS/general/mc_error.py
+from mc_error import monte_carlo_error_asymmetric # located at $HELP_SCRIPTS/general/mc_error.py
 from scipy.optimize import curve_fit
 
 # Boltzmann constant in eV/K for entropy term
@@ -313,7 +314,7 @@ for (phase, pt), sub in df.groupby(["Phase", "P_T_folder"]):
     df.loc[mask, "slope"] = slope
     df.loc[mask, "intercept_error"] = intercept_error
     df.loc[mask, "slope_error"] = slope_error
-    # print(f"Fitted line for {phase} at {pt}: intercept={intercept:.3f}, slope={slope:.3f}, intercept_error={intercept_error:.3f}, slope_error={slope_error:.3f}")
+
 
     # Compute mu_excess = a + b (no X_{secondary_species} factor)
     fn_mu_excess = lambda slope, intercept: slope + intercept
@@ -321,7 +322,7 @@ for (phase, pt), sub in df.groupby(["Phase", "P_T_folder"]):
     # mu_excess = fn_mu_excess(slope, intercept)  # compute mu_excess
     df.loc[mask, f"mu_excess_{secondary_species}"] = mu_excess
     df.loc[mask, f"mu_excess_{secondary_species}_error"] = mu_excess_error
-    # print(f"Computed mu_excess for {phase} at {pt}: {mu_excess:.3f} ± {mu_excess_error:.3f}")
+
 # # Compute mu_excess = a + b (no X_{secondary_species} factor)
 # fn_mu_excess = lambda slope, intercept: slope + intercept
 # mu_excess, mu_excess_error = monte_carlo_error(fn_mu_excess, [df["slope"], df["intercept"]], [df["slope_error"], df["intercept_error"]])
@@ -347,10 +348,8 @@ def compute_mu_TS(T,X):
     if X == 0:
         return 0.0 # assuming no contribution to TS if X is 0
     if row["Phase"] == f"Fe_{secondary_species}":
-        # print(f"kB * T * np.log(X) for Fe_{secondary_species} = {kB * T * np.log(X)}")
         return kB * T * np.log(X)
     elif row["Phase"] == f"MgSiO3_{secondary_species}":
-        # print(f"kB * T * np.log(X / (5 - 4 * X)) for MgSiO3_{secondary_species} = {kB * T * np.log(X / (5 - 4 * X))}")
         denom = 5 - 4 * X
         return kB * T * np.log(X / denom)# if denom > 0 else np.nan
     else:
@@ -364,41 +363,42 @@ print(f" ############### NOTE: We NEVER USE mu_TS_term or mu for anything -- onl
 for i, row in df.iterrows():
     T = row.get("Target temperature (K)")
     X = row.get(f"X_{secondary_species}", 0)
-    # print(f"Computing mu_TS_term for row {i}: T={T}, X={X} for {secondary_species}, Phase: {row['Phase']}, Config_folder: {row['Config_folder']}")
     # df.at[i, f"mu_{secondary_species}_TS_term"] = compute_mu_TS(T, X)
     mu_TS_term, mu_TS_term_error = monte_carlo_error(compute_mu_TS, [T, X], [0.0, 0.0])  # assuming no error in T and X
     df.at[i, f"mu_{secondary_species}_TS_term"] = mu_TS_term
     df.at[i, f"mu_{secondary_species}_TS_term_error"] = mu_TS_term_error
-    # print(f"Computed mu_TS_term for row {i}: {mu_TS_term:.3f} ± {mu_TS_term_error:.3f}\n")
+
 
     fn_mu = lambda mu_excess, mu_TS_term: mu_excess + mu_TS_term
     mu, mu_error = monte_carlo_error(fn_mu, [row[f"mu_excess_{secondary_species}"], mu_TS_term], [row[f"mu_excess_{secondary_species}_error"], mu_TS_term_error])
     df.at[i, f"mu_{secondary_species}"] = mu
     df.at[i, f"mu_{secondary_species}_error"] = mu_error
 
-# df[f"mu_{secondary_species}"] = df[f"mu_excess_{secondary_species}"] + df[f"mu_{secondary_species}_TS_term"]
 
 
-# print(f"df summary:\
-# {df.describe()}\n")
 
 
 
 # partiction coefficient: (1.78/5) * np.exp(-(mu_excess_{secondary_species}_for_Fe - mu_excess_{secondary_species}_for_MgSiO3) / (kB * T)) for the same P_T_folder
-def compute_KD(row):
+def compute_KD(row,df_evaluate=None):
+    if df_evaluate is None:
+        raise ValueError("df_evaluate must be provided to compute_KD")
     # 1) Identify this row’s phase & P_T group
     phase = row["Phase"]
     pt    = row["P_T_folder"]
+
     # 2) Determine the other phase
     other_phase = f"MgSiO3_{secondary_species}" if phase == f"Fe_{secondary_species}" else f"Fe_{secondary_species}"
+
+    
     # 3) Grab that phase’s mu_excess_{secondary_species} for the same P_T_folder and same temperature
     mask = (
-            (df["Phase"] == other_phase) &
-            (df["P_T_folder"] == pt) &
-            (df["Target temperature (K)"] == row["Target temperature (K)"])
+            (df_evaluate["Phase"] == other_phase) &
+            (df_evaluate["P_T_folder"] == pt) &
+            (df_evaluate["Target temperature (K)"] == row["Target temperature (K)"])
             )
-    partner__mu_excess = df.loc[mask, f"mu_excess_{secondary_species}"]
-    partner__mu_excess_error = df.loc[mask, f"mu_excess_{secondary_species}_error"]
+    partner__mu_excess = df_evaluate.loc[mask, f"mu_excess_{secondary_species}"]
+    partner__mu_excess_error = df_evaluate.loc[mask, f"mu_excess_{secondary_species}_error"]
 
     # Determine the multiplier for the exponent based on phase
     if phase == f"Fe_{secondary_species}":
@@ -414,15 +414,23 @@ def compute_KD(row):
     mu_excess_error = row[f"mu_excess_{secondary_species}_error"]
     if mu_excess is None or np.isnan(mu_excess) or other__mu_excess is None or np.isnan(other__mu_excess):
         return np.nan, np.nan
+
     # 4) Get the temperature (in K)
     T = row["Target temperature (K)"]
     if np.isnan(T) or T <= 0:
         return np.nan
+
     # 5) Compute KD
     # solve for KD = (x/y) such that (x/y) = (1/(5-4*y)) * np.exp(-mult_factor*(row[f"mu_excess_{secondary_species}"] - other__mu_excess) / (kB * T))
     # return (1/5.0) * np.exp(-mult_factor*(row[f"mu_excess_{secondary_species}"] - other__mu_excess) / (kB * T)) # assuming y is ~ 0
     fn_KD = lambda mu_excess, other__mu_excess, T, mult_factor: (1/5.0) * np.exp(-mult_factor * (mu_excess - other__mu_excess) / (kB * T))
     KD, KD_error = monte_carlo_error(fn_KD, [mu_excess, other__mu_excess, T, mult_factor], [mu_excess_error, other__mu_excess_error, 0.0, 0.0])
+    # KD, KD_error, KD_lower, KD_upper = monte_carlo_error_asymmetric(
+    #     fn_KD,
+    #     [mu_excess, other__mu_excess, T, mult_factor],
+    #     [mu_excess-mu_excess_error, other__mu_excess-other__mu_excess_error, T-0.0, mult_factor-0.0],
+    #     [mu_excess+mu_excess_error, other__mu_excess+other__mu_excess_error, T+0.0, mult_factor+0.0],
+    # )
 
     return KD, KD_error
 
@@ -431,7 +439,7 @@ def compute_KD(row):
 df["KD_sil_to_metal"] = np.nan
 df["KD_sil_to_metal_error"] = np.nan
 for i, row in df.iterrows():
-    KD, KD_error = compute_KD(row)
+    KD, KD_error = compute_KD(row, df)
     df.at[i, "KD_sil_to_metal"] = KD
     df.at[i, "KD_sil_to_metal_error"] = KD_error
     # print(f"Computed KD_sil_to_metal for row {i}: {KD:.3f} ± {KD_error:.3f} for {row['Phase']} at {row['P_T_folder']}\n")
@@ -440,21 +448,21 @@ df["D_wt_error"] = df["KD_sil_to_metal_error"] * (100/56)
 
 
 
-# 11) Print summary of results
-print(f"\nKD_sil_to_metal for {secondary_species} in Fe and MgSiO3 systems:")
-# Loop over each unique (P_T_folder, Phase) combination
-for (folder, phase), sub_df in df.groupby(["P_T_folder", "Phase"]):
-    # grab all non-NaN KD values
-    kd_vals = sub_df["KD_sil_to_metal"].dropna()
-    if not kd_vals.empty:
-        kd0 = kd_vals.iloc[0]
-        mu0 = sub_df[f"mu_excess_{secondary_species}"].iloc[0]
-        print(f"{folder}, Phase={phase}:")
-        print(f"                                KD_sil_to_metal = {kd0:.4f} ± {sub_df['KD_sil_to_metal_error'].iloc[0]:.4f} (mu_excess = {mu0:.4f} ± {sub_df[f'mu_excess_{secondary_species}_error'].iloc[0]:.4f})")
-        print(f"                                slope = {sub_df['slope'].iloc[0]:.4f} ± {sub_df['slope_error'].iloc[0]:.4f}, intercept = {sub_df['intercept'].iloc[0]:.4f} ± {sub_df['intercept_error'].iloc[0]:.4f}")
-    else:
-        print(f"{folder}, Phase={phase}: "
-                "No valid KD_sil_to_metal values found.")
+# # 11) Print summary of results
+# print(f"\nKD_sil_to_metal for {secondary_species} in Fe and MgSiO3 systems:")
+# # Loop over each unique (P_T_folder, Phase) combination
+# for (folder, phase), sub_df in df.groupby(["P_T_folder", "Phase"]):
+#     # grab all non-NaN KD values
+#     kd_vals = sub_df["KD_sil_to_metal"].dropna()
+#     if not kd_vals.empty:
+#         kd0 = kd_vals.iloc[0]
+#         mu0 = sub_df[f"mu_excess_{secondary_species}"].iloc[0]
+#         print(f"{folder}, Phase={phase}:")
+#         print(f"                                KD_sil_to_metal = {kd0:.4f} ± {sub_df['KD_sil_to_metal_error'].iloc[0]:.4f} (mu_excess = {mu0:.4f} ± {sub_df[f'mu_excess_{secondary_species}_error'].iloc[0]:.4f})")
+#         # print(f"                                slope = {sub_df['slope'].iloc[0]:.4f} ± {sub_df['slope_error'].iloc[0]:.4f}, intercept = {sub_df['intercept'].iloc[0]:.4f} ± {sub_df['intercept_error'].iloc[0]:.4f}")
+#     else:
+#         print(f"{folder}, Phase={phase}: "
+#                 "No valid KD_sil_to_metal values found.")
 
 
 # exit(0)
@@ -485,23 +493,6 @@ pd.set_option('display.max_colwidth', 200)
 # Update Base directory column: find home_dirname in df["Base directory"] and replace that and everything before it with home_dir
 df["Base directory"] = df["Base directory"].str.replace(f".*{home_dirname}", home_dir, regex=True)
 
-# # print Base directory and all columns
-# # print(f"Base directory: {ROOT_DIRS}")
-print(f"All columns: {df.columns.tolist()}\n")
-
-
-# print(f"df['Base directory']:\n{df['Base directory'].head()}\n")
-
-# exit(0)
-
-
-
-
-# # print unique X_{secondary_species} for each phase
-# unique_X = df.groupby("Phase")[f"X_{secondary_species}"].unique()
-# print(f"Unique X_{secondary_species} values for each phase:")
-# for phase, values in unique_X.items():
-#     print(f"{phase}: {values}")
 
 
 # sort df -- reverserd order of columns
@@ -511,7 +502,7 @@ print(f"All columns: {df.columns.tolist()}\n")
 counter_GH_analysis = 0
 df_superset= pd.DataFrame()
 
-
+counter_err_update=0
 
 
 # Group by Phase and P_T_folder to fit separate lines
@@ -527,16 +518,6 @@ for (phase, pt), df_subset in df.groupby(["Phase", "P_T_folder"]):
 
     ## if PT_dirname P250_T6500, skip
     PT_dirname = PT_dir.name
-    # if PT_dirname.startswith("P250_T6500"):
-    #     print(f"#"*50)
-    #     print("WARNING: TEMPORARY SKIP")
-    #     print(f"*** Skipping {phase} at {pt} as it is in {PT_dirname}. ***")
-    #     print(f"#"*50)
-    #     continue
-
-    # # print df_subset
-    # print(f"Processing {phase} at {pt} with {len(df_subset)} entries.")
-    # print(f"df_subset:\n{df_subset}\n")
 
     # check if there are two GH_analysis.csv files in PT_dir: find . -type f -name "GH_analysis.csv" | wc -l
     num_GH_analysis_files = len(list(PT_dir.glob("**/GH_analysis.csv")))
@@ -544,11 +525,9 @@ for (phase, pt), df_subset in df.groupby(["Phase", "P_T_folder"]):
     if num_GH_analysis_files < 2:
         print(f"*** Skipping {phase} at {pt} as there are not enough GH_analysis.csv files (found {num_GH_analysis_files}). ***\n\n")
         continue
-    else:
-        print(f"Found {num_GH_analysis_files} GH_analysis.csv files.\n\n")
+    # else:
+    #     print(f"Found {num_GH_analysis_files} GH_analysis.csv files.\n\n")
 
-    # print unique df_subset["Base directory"].values
-    # print(f"Unique Base directories:\n{df_subset['Base directory'].unique()}\n")
 
     # for each Base directory, go inside isobar_calc folder if it exists (i.e., <Base_dir>/isobar_calc).
     for CONFIG_base_dir in df_subset["Base directory"]:
@@ -572,25 +551,25 @@ for (phase, pt), df_subset in df.groupby(["Phase", "P_T_folder"]):
             print(f"Skipping {CONFIG_dirname} as it does not contain an isobar_calc directory.\n")
             continue
 
-        print(f"Processing isobar_calc for {CONFIG_dirname} ...")
-        print("="*4)
-        # print mu_{secondary_species}_TS_term for each row in df_base
-        print(f"mu_{secondary_species}_TS_term for {CONFIG_dirname}: {df_base[f'mu_{secondary_species}_TS_term'].values[0]}")
+        print(f"Processing isobar_calc for {CONFIG_dirname} ...\n")
+        # print("="*10)
 
 
         # Make 5 duplicate rows based on all df_base entries, and save this in df_isobar.
         df_isobar = df_base.copy()
         df_isobar = pd.concat([df_isobar] * 4, ignore_index=True) # 4 new ones/isobar + the original
-        # print(f"Created {len(df_isobar)} duplicate rows for isobar_calc processing.")
 
         # make all values nan
         # df_isobar.loc[:, df_isobar.columns != "Config_folder"] = np.nan
 
         # 1) grab only “T…” dirs
         temp_dirs = [
-            d for d in isobar_dir.iterdir()
-            if d.is_dir() and d.name.startswith("T")
-        ]
+                        d for d in isobar_dir.iterdir()
+                        if d.is_dir()
+                        and d.name.startswith("T")
+                        and d.name[1:].isdigit()   # everything after the "T" is numeric
+                    ]
+
 
         # 2) sort by the numeric part after “T”
         def _parse_temp(d: Path) -> float:
@@ -603,7 +582,7 @@ for (phase, pt), df_subset in df.groupby(["Phase", "P_T_folder"]):
         # print(f"Found {len(temp_dirs)} temperature directories in {isobar_dir}.")
 
         GH_analysis_file = isobar_dir / "GH_analysis.csv"
-        print(f"GH_analysis_file: {GH_analysis_file}")
+        # print(f"GH_analysis_file: {GH_analysis_file}")
         if not GH_analysis_file.is_file():
             print(f"Skipping {isobar_dir} as {GH_analysis_file} does not exist.\n\n")
             # make first four rows of df_isobar["mu_excess_{secondary_species}"], mu_excess_{secondary_species}_error, G_hpm G_hp_error, Target temperature (K) = np.nan
@@ -616,11 +595,8 @@ for (phase, pt), df_subset in df.groupby(["Phase", "P_T_folder"]):
 
         counter_GH_analysis += 1
         GH_df = pd.read_csv(GH_analysis_file)
-        # print(f"Heading of GH_analysis.csv:\n{GH_df.head()}\n")
-        # columns
-        # print(f"GH_analysis.csv columns: {GH_df.columns.tolist()}\n")
-        
-        # There, go into each directory beginning with "T". Whatever comes after "T" is the temperature in K.
+
+        # There, go into each directory beginning with "Target temperature (K)". Whatever comes after "Target temperature (K)" is the temperature in K.
         # 3) enumerate and fill your DataFrame
         for idx, temp_dir in enumerate(temp_dirs):
             temp_val = _parse_temp(temp_dir)
@@ -628,9 +604,9 @@ for (phase, pt), df_subset in df.groupby(["Phase", "P_T_folder"]):
                 print(f"Skipping {temp_dir!r}: invalid temperature")
                 continue
 
-            # print(f"Row {idx}: found {temp_dir.name!r} → {temp_val} K")
             # update temperature in df_isobar
             df_isobar.loc[idx, "Target temperature (K)"] = temp_val
+
 
             # calc_type = secondary
             df_isobar.loc[idx, "calc_type"] = "GH"
@@ -656,30 +632,22 @@ for (phase, pt), df_subset in df.groupby(["Phase", "P_T_folder"]):
                 df_isobar.loc[idx, "G_hp_per_atom_w_TS"] = df_isobar.loc[idx, "G_hp_per_atom"]
             df_isobar.loc[idx, "G_hp_per_atom_w_TS_error"] = df_isobar.loc[idx, "G_hp_per_atom_error"]  # assuming no error in TS term
 
-        # print("\n"*2)
+
 
         # sort wrt temperature
         df_isobar.sort_values("Target temperature (K)", inplace=True)
         GH_df.sort_values("T_target", inplace=True)
 
-
-        print(f"counter_GH_analysis = {counter_GH_analysis}")
-        # print(f"df_isobar:\n{df_isobar[['Config_folder', 'G_hp_per_atom', 'G_hp_per_atom_w_TS', 'Target temperature (K)', 'Target pressure (GPa)']]}\n")
-        # print(f"df_GH_analysis:\n{GH_df[['GFE', 'T_target', 'P_target']]}\n")
-
         # append df_isobar to df_isobar_superset
         df_isobar_superset = pd.concat([df_isobar_superset, df_isobar], ignore_index=True)
 
-        print("\n"*4)
+        # print("\n"*4)
 
 
     for temp, sub in df_isobar_superset.groupby("Target temperature (K)"):
         # sort sub by X_{secondary_species}
         sub.sort_values(f"X_{secondary_species}", inplace=True)
-        # size of sub
-        # print(f"Processing temperature {temp} K with {len(sub)} entries for {secondary_species}...")
-        # name of the Config_folder
-        # print(f"Config_folder: {sub['Config_folder'].values}")
+
 
         x = sub[f"X_{secondary_species}"].values
         x_error = x * 0
@@ -687,12 +655,38 @@ for (phase, pt), df_subset in df.groupby(["Phase", "P_T_folder"]):
         y_error = sub["G_hp_per_atom_w_TS_error"].values
         if len(x) > 1:
             slope, intercept = np.polyfit(x, y, 1)#, cov=True)  # fit y = a + b*x
-            # print(f"1: slope={slope}, intercept={intercept}")
+
+
+            if x[0] == x[1]:
+                # if the first two x values are the same, we cannot compute slope and intercept
+                slope, intercept = np.nan, np.nan
+                slope_error, intercept_error = np.nan, np.nan
+                continue
             
             fn_slope = lambda y1, y0, x1, x0: (y1 - y0) / (x1 - x0)  # calculate slope
             slope, slope_error = monte_carlo_error(fn_slope, [y[1], y[0], x[1], x[0]], [y_error[1], y_error[0], x_error[1], x_error[0]])
             fn_intercept = lambda y, slope, x: y - slope * x  # calculate intercept
             intercept, intercept_error = monte_carlo_error(fn_intercept, [y[0], slope, x[0]], [y_error[0], slope_error, x_error[0]])
+
+            # Assuming fractional errors in slope and intercept for Gibbs-Helmholtz analysis are same as that for TI!
+            slope_error_new = slope_error * 0
+            intercept_error_new = intercept_error * 0
+            # grab slope and intercept errors of calc_type=TI, and same P_T_folder, Phase and X_{secondary_species}
+            mask = (df["Phase"] == phase) & (df["P_T_folder"] == pt) & (df["calc_type"] == "TI") & df["Config_folder"].str.contains("_8H")
+            if not df.loc[mask, "slope"].empty and not df.loc[mask, "intercept"].empty and not df.loc[mask, "slope_error"].empty and not df.loc[mask, "intercept_error"].empty:
+                slope_TI = df.loc[mask, "slope"].values[0]
+                intercept_TI = df.loc[mask, "intercept"].values[0]
+                slope_error_TI = df.loc[mask, "slope_error"].values[0]
+                intercept_error_TI = df.loc[mask, "intercept_error"].values[0]
+                slope_error = np.abs((slope_error_TI/slope_TI) * slope)
+                intercept_error = np.abs((intercept_error_TI/intercept_TI) * intercept)
+                counter_err_update += 1
+                print(f"counter_err_update: {counter_err_update} for {phase} at {pt}: slope = {slope:.3f} \\pm {slope_error:.3f}, intercept = {intercept:.3f} \\pm {intercept_error:.3f}\n")
+                print(f"Values used: slope_TI = {slope_TI:.3f}, intercept_TI = {intercept_TI:.3f}, slope_error_TI = {slope_error_TI:.3f}, intercept_error_TI = {intercept_error_TI:.3f}\n")
+                # else:
+                #     slope_error, intercept_error = np.nan, np.nan
+
+
         else:
             intercept, slope = np.nan, np.nan
             slope_error, intercept_error = np.nan, np.nan
@@ -700,7 +694,6 @@ for (phase, pt), df_subset in df.groupby(["Phase", "P_T_folder"]):
         mask = (df_isobar_superset["Target temperature (K)"] == temp)
 
         if temp in df_subset["Target temperature (K)"].values:
-            # print(f"Skipping T={temp} K as it is a primary temperature.")
             continue
         df_isobar_superset.loc[mask, "intercept"] = intercept
         df_isobar_superset.loc[mask, "slope"] = slope
@@ -712,29 +705,13 @@ for (phase, pt), df_subset in df.groupby(["Phase", "P_T_folder"]):
         mu_excess, mu_excess_error = monte_carlo_error(fn_mu_excess, [slope, intercept], [slope_error, intercept_error])
         df_isobar_superset.loc[mask, f"mu_excess_{secondary_species}"] = mu_excess
         df_isobar_superset.loc[mask, f"mu_excess_{secondary_species}_error"] = mu_excess_error
-        # print(f"Computed mu_excess for T={temp} K: {mu_excess:.3f} ± {mu_excess_error:.3f}")
-
-        # # loop through X_{secondary_species} and compute mu_TS_term for each
-        # for X in sub[f"X_{secondary_species}"]:
-        #     T = sub.loc[sub[f"X_{secondary_species}"] == X, "Target temperature (K)"].values[0]
-        #     # X = df_isobar_superset.loc[mask, f"X_{secondary_species}"].values[0]
-        #     Config_folder = sub.loc[sub[f"X_{secondary_species}"] == X, "Config_folder"].values[0]
-        #     # print(f"Computing mu_TS_term for T={T} K, X={X} for {secondary_species}, Config_folder: {Config_folder}")
-        #     mu_TS_term, mu_TS_term_error = monte_carlo_error(compute_mu_TS, [T, X], [0.0, 0.0])  # assuming no error in T and X
-        #     df_isobar_superset.loc[mask, f"mu_{secondary_species}_TS_term"] = mu_TS_term
-        #     df_isobar_superset.loc[mask, f"mu_{secondary_species}_TS_term_error"] = mu_TS_term_error
-
-        # fn_mu = lambda mu_excess, mu_TS_term: mu_excess + mu_TS_term
-        # mu, mu_error = monte_carlo_error(fn_mu, [mu_excess, mu_TS_term], [mu_excess_error, mu_TS_term_error])
-        # df_isobar_superset.loc[mask, f"mu_{secondary_species}"] = mu
-        # df_isobar_superset.loc[mask, f"mu_{secondary_species}_error"] = mu_error
 
 
     # print df_isobar_superset
     # sort wrt Config_folder and then temperature
     df_isobar_superset.sort_values(["Config_folder", "Target temperature (K)"], inplace=True)
     # print(f"df_isobar_superset for {phase} at {pt}:\n{df_isobar_superset[['Config_folder', 'G_hp','G_hp_per_atom', 'G_hp_per_atom_w_TS', 'Target temperature (K)', 'Target pressure (GPa)', f'mu_{secondary_species}', f'mu_{secondary_species}_error']]}\n")
-    print(f"df_isobar_superset for {phase} at {pt}:\n{df_isobar_superset[['Config_folder', 'G_hp','G_hp_per_atom', 'G_hp_per_atom_w_TS', f'mu_excess_{secondary_species}', f'mu_excess_{secondary_species}_error']]}\n")
+    # print(f"df_isobar_superset for {phase} at {pt}:\n{df_isobar_superset[['Config_folder', 'G_hp','G_hp_per_atom', 'G_hp_per_atom_w_TS', f'mu_excess_{secondary_species}', f'mu_excess_{secondary_species}_error']]}\n")
 
 
     # check if df_isobar_superset and df have same columns
@@ -749,34 +726,123 @@ for (phase, pt), df_subset in df.groupby(["Phase", "P_T_folder"]):
     # append df_isobar_superset to df_superset
     df_superset = pd.concat([df_superset, df_isobar_superset], ignore_index=True)
 
-    print("\n"*8)
+    # print("\n"*8)
 
     # exit(0)
 
 
+print(f"\nNOTE: Assuming fractional errors in slope and intercept for Gibbs-Helmholtz analysis are same as that for TI!\n\n")
+
+
+
+
+# narrow down to Config_folder with *_8H*
+df_superset = df_superset[df_superset["Config_folder"].str.contains("_8H")]
+
+
 # run if KD_sil_to_metal and KD_sil_to_metal_error exist in df_superset
-if "KD_sil_to_metal" in df_superset.columns and "KD_sil_to_metal_error" in df_superset.columns:
+# if "KD_sil_to_metal" in df_superset.columns and "KD_sil_to_metal_error" in df_superset.columns:
     # calculate KD, D_wt
-    for i, row in df_superset.iterrows():
-        # print(f"Computing KD_sil_to_metal for row {i}: {row['Phase']} at {row['P_T_folder']}")
-        KD, KD_error = compute_KD(row)
-        df_superset.at[i, "KD_sil_to_metal"] = KD
-        df_superset.at[i, "KD_sil_to_metal_error"] = KD_error
-        # print(f"Computed KD_sil_to_metal for row {i}: {KD:.3f} ± {KD_error:.3f} for {row['Phase']} at {row['P_T_folder']}\n")
-    df_superset["D_wt"] = df_superset["KD_sil_to_metal"] * (100/56)
-    df_superset["D_wt_error"] = df_superset["KD_sil_to_metal_error"] * (100/56)
+for i, row in df_superset.iterrows():
+    KD, KD_error = compute_KD(row, df_superset)
+    # print(f"Computed KD_sil_to_metal for row {i}: {KD:.3f} ± {KD_error:.3f} for {row['Phase']} at {row['P_T_folder']}\n\n")
+    df_superset.at[i, "KD_sil_to_metal"] = KD
+    df_superset.at[i, "KD_sil_to_metal_error"] = KD_error
+df_superset["D_wt"] = df_superset["KD_sil_to_metal"] * (100/56)
+df_superset["D_wt_error"] = df_superset["KD_sil_to_metal_error"] * (100/56)
+
+
 
 
 
 # add df to df_superset
 df_superset = pd.concat([df_superset, df], ignore_index=True)
 
+# narrow down to Config_folder with *_8H*
+df_superset = df_superset[df_superset["Config_folder"].str.contains("_8H")]
 
 
 # sort df_superset by Phase, Config_folder and Target temperature (K)
 df_superset.sort_values(["Phase", "Config_folder", "Target temperature (K)"], inplace=True)
 
+
+
+
+
+
+
+
+
+# 11) Print summary of results
+print(f"\nKD_sil_to_metal for {secondary_species} in Fe and MgSiO3 systems <df_superset>:")
+# Loop over each unique (P_T_folder, Phase) combination
+for (folder, phase), sub_df in df_superset.groupby(["P_T_folder", "Phase"]):
+    # grab all non-NaN KD values
+    kd_vals = sub_df["KD_sil_to_metal"].dropna()
+    # loop through all unique temperatures in sub_df
+    if not kd_vals.empty:
+        for temp, temp_df in sub_df.groupby("Target temperature (K)"):
+            kd0 = temp_df["KD_sil_to_metal"].iloc[0]
+            mu0 = temp_df[f"mu_excess_{secondary_species}"].iloc[0]
+            print(f"{folder}, Phase={phase}, T={temp} K:")
+            print(f"                                KD_sil_to_metal = {kd0:.4f} ± {temp_df['KD_sil_to_metal_error'].iloc[0]:.4f} (mu_excess = {mu0:.4f} ± {temp_df[f'mu_excess_{secondary_species}_error'].iloc[0]:.4f})")
+            # print(f"                                slope = {temp_df['slope'].iloc[0]:.4f} ± {temp_df['slope_error'].iloc[0]:.4f}, intercept = {temp_df['intercept'].iloc[0]:.4f} ± {temp_df['intercept_error'].iloc[0]:.4f}")
+    else:
+        print(f"{folder}, Phase={phase}: "
+                "No valid KD_sil_to_metal values found.")
+
+
+
+
+# create df_selection with P_T_folder, Phase, Target temperature (K), mu_excess, mu_excess_{secondary_species}_error, KD_sil_to_metal, KD_sil_to_metal_error, D_wt, D_wt_error
+df_selection = df_superset[["P_T_folder", "Phase", "Target temperature (K)", f"mu_excess_{secondary_species}", f"mu_excess_{secondary_species}_error", "KD_sil_to_metal", "KD_sil_to_metal_error","Config_folder"]].copy()
+
+# narrow down to Config_folder with *_8H*
+df_selection = df_selection[df_selection["Config_folder"].str.contains("_8H")]
+
+# further narrow down to P50_T3500
+df_selection = df_selection[df_selection["P_T_folder"] == "P50_T3500"]
+
+print("\n\n df_selection:\n")
+# print(f"\n\n{df_selection}\n\n")
+# write
+# df_selection to CSV
+df_selection.to_csv("all_TI_results_selection.csv", index=False)
+print(f"Wrote all_TI_results_selection.csv with {len(df_selection)} rows.\n\n")
+
+
+
+# Save the assembled table to CSV
+pd.set_option("display.width", 200)
+df_superset.to_csv("all_TI_results_superset.csv", index=False)
+print(f"Wrote all_TI_results_superset.csv with {len(df_superset)} rows.")
+
+
+
+
+
+
+
+
+
+
+
+
+
+print("\n"*10)
+print("="*50)
+print(f"Unique temperatures in df_superset ({len(df_superset['Target temperature (K)'].unique())}): {df_superset['Target temperature (K)'].unique()}\n")
+print("="*50)
+print("\n"*10)
+
+
+# print size of df_superset
+print(f"Size of df_superset: {len(df_superset)} rows, {len(df_superset.columns)} columns.\n")
 df_superset_wo_nan = df_superset.dropna(subset=["G_hp_per_atom_w_TS", "mu_excess_" + secondary_species, "mu_excess_" + secondary_species + "_error", "KD_sil_to_metal", "KD_sil_to_metal_error", "D_wt", "D_wt_error"])
+print(f"Size of df_superset_wo_nan: {len(df_superset_wo_nan)} rows, {len(df_superset_wo_nan.columns)} columns.\n")
+
+# print all columns with nan
+print(f"Columns with NaN values in df_superset:\n{df_superset.isna().sum()[df_superset.isna().sum() > 0]}\n")
 
 # print(f"df_superset:\n{df_superset[['Phase','Config_folder','G_hp_per_atom', 'G_hp_per_atom_w_TS', 'Target temperature (K)', 'Target pressure (GPa)', f'mu_excess_{secondary_species}', f'mu_excess_{secondary_species}_error', 'KD_sil_to_metal', 'KD_sil_to_metal_error', 'D_wt', 'D_wt_error']]}\n")
 print(f"df_superset_wo_nan:\n{df_superset_wo_nan[['Phase','Config_folder','G_hp_per_atom', 'G_hp_per_atom_w_TS', 'Target temperature (K)', 'Target pressure (GPa)', f'mu_excess_{secondary_species}', f'mu_excess_{secondary_species}_error', 'KD_sil_to_metal', 'KD_sil_to_metal_error', 'D_wt', 'D_wt_error']]}\n")
@@ -962,27 +1028,7 @@ for phase, sub in df.groupby("Phase"):
         alpha=alpha_map[phase],
         label=phase
     )
-    # print(f"phase = {phase}")
-    # print(f"sub['X_{secondary_species}'] = {sub[f'X_{secondary_species}']}")
-    # print(f"sub['mu_{secondary_species}'] = {sub[f'mu_{secondary_species}']}")
-# # 2) Overlay the fitted lines for each (Phase, P_T_folder)
-# #    We pick the same x-range per folder so the line spans the full data
-# for (phase, pt), sub in df.groupby(["Phase","P_T_folder"]):
-#     a = sub["intercept"].iloc[0]
-#     b = sub["slope"].iloc[0]
-#     # line x from min to max of that subgroup
-#     x_line = np.linspace(sub[f"X_{secondary_species}"].min(), sub[f"X_{secondary_species}"].max(), 200)
-#     # get the original code for this folder, then map→0..N-1 for color lookup
-#     orig_code = folder_cats.cat.categories.get_loc(pt)
-#     mcode     = remap[orig_code]
-#     ax.plot(
-#         x_line, a + b*x_line,
-#         color=cmap(mcode),
-#         linestyle="--",
-#         linewidth=2#,
-#         # label=f"{phase}, {pt} fit"
-#     )
-# 3) Colorbar for the folders
+
 # 3) Colorbar for the folders, shrunk to 70% height and with 50% opacity
 sm = plt.cm.ScalarMappable(cmap=cmap, norm=norm)
 sm.set_array([])
@@ -1002,12 +1048,7 @@ cbar.solids.set_alpha(0.5)
 # relabel
 cbar.ax.set_yticklabels([folder_cats.cat.categories[i] for i in used_codes])
 cbar.set_label("P_T_folder")
-# diagnol cbar labels
-# for label in cbar.ax.get_yticklabels():
-#     label.set_rotation(45)
-#     label.set_horizontalalignment('right')
-#     label.set_verticalalignment('center')
-#     label.set_fontsize(8)
+
 
 # 4) Final styling
 ax.set_xlabel(f"X_{secondary_species}")
@@ -1025,139 +1066,694 @@ plt.savefig(f"X_{secondary_species}_vs_mu_{secondary_species}.png")
 
 
 
-fig, axes = plt.subplots(1, 2, figsize=(10, 6), sharex=True, sharey=True)
-# ax1, ax2, ax3, ax4 = axes.flatten()
-ax2, ax4 = axes.flatten()
+
+
+
+
+
+df = df_superset.copy()
+# narrow down to Config_folder with *_8H*
+df = df[df["Config_folder"].str.contains("_8H")]
+
+
+fig, axes = plt.subplots(2, 1, figsize=(12, 10))#, sharex=True, sharey=True)
+# fig, axes = plt.subplots(1, 2, figsize=(10, 4), sharex=True, sharey=True)
+# ax1, ax_KD, ax3, ax_D_wt = axes.flatten()
+ax_KD, ax_D_wt = axes.flatten()
 
 # 2) Common settings
-# grab the default color cycle
-default_colors = plt.rcParams['axes.prop_cycle'].by_key()['color']
-# create a base color dictionary associated with "P_T_folder" values
-base_color = {
-    "P50_T3500": default_colors[0],
-    "P250_T6500": default_colors[1],
-    "P500_T9000": default_colors[2],
-    "P1000_T13000": default_colors[3]
-}
+from matplotlib.colors import LinearSegmentedColormap
+def pastel_cmap(cmap, factor=0.7, N=256):
+    """
+    Return a pastel version of `cmap` by blending each color toward white.
+    
+    Parameters
+    ----------
+    cmap : Colormap
+        The original colormap (e.g. plt.get_cmap('hot')).
+    factor : float, optional
+        How “pastel” it is: 0 → original, 1 → pure white.  Default 0.7.
+    N : int, optional
+        Number of entries in the colormap.  Default 256.
+    """
+    # sample the original colormap
+    colors = cmap(np.linspace(0, 1, N))
+    # blend RGB channels toward 1.0 (white)
+    colors[:, :3] = colors[:, :3] + (1.0 - colors[:, :3]) * factor
+    # rebuild a new colormap
+    return LinearSegmentedColormap.from_list(f'pastel_{cmap.name}', colors)
+
+# create a colormap based on the temperature range
+temp_min = 1000  # minimum temperature in K
+temp_max = 17000  # maximum temperature in K
+cbar_ticks = [3000, 6000, 9000, 12000, 15000]
+norm = plt.Normalize(
+    vmin=temp_min,
+    vmax=temp_max
+)
+
+hot = plt.get_cmap("hot")
+pastel_hot = pastel_cmap(hot, factor=0.6)   # tweak factor between 0 and 1
+magma = plt.get_cmap("magma")
+pastel_magma = pastel_cmap(magma, factor=0.25)  # tweak factor between 0 and 1
+cmap = pastel_hot
+cmap = pastel_magma  # use pastel magma for the plots
+
+
+
+marker_TI="o"  # marker for TI points
+marker_2phase="s"  # marker for two-phase points
+marker_other_comp_studies=["^", "D", "v", "<", ">"] # array of markers for other studies
+marker_other_expt_studies=["p", "x", "h", "*", "H"]  # array of markers for other experimental studies
+
 marker_opts = dict(marker='o', linestyle='', markersize=10, alpha=0.5)#,color=base_color)
-marker_opts_error = dict(marker='o', linestyle='', markersize=10, alpha=0.5, capsize=3, elinewidth=1)
-marker_opts__others = dict(marker='s', linestyle='', markersize=15, alpha=0.25)
+marker_opts_scatter = dict(linestyle='', s=100, alpha=0.5)#,color=base_color)
+marker_opts_error = dict(linestyle='', markersize=10, alpha=0.5, capsize=3, elinewidth=1)
+marker_opts_scatter__others = dict(linestyle='', s=100, alpha=0.25)#,color=base_color)
+marker_opts_error__others = dict(linestyle='', markersize=5, alpha=0.25, capsize=3, elinewidth=1)
+
 
 x_variable = "Target pressure (GPa)"  # x-axis variable for all plots
 z_variable = "Target temperature (K)"  # z-axis variable for all plots -- color coding
 
-# # --- Panel 1: KD_sil_to_metal (linear) ---
-# ax1.plot(df[x_variable], df["KD_sil_to_metal"], **marker_opts, color=base_color[df["P_T_folder"].iloc[0]])
-# ax1.errorbar(df[x_variable], df["KD_sil_to_metal"], yerr=df["KD_sil_to_metal_error"], **marker_opts_error, color=base_color[df["P_T_folder"].iloc[0]])
-# ax1.set_ylabel("K_D (silicate → metal)")
-# # ax1.set_title("Partition Coefficient (linear)")
-# ax1.grid(True)
-# # remove x-tick labels on top row
-# ax1.tick_params(labelbottom=False)
-
-# # --- Panel 2: D_wt (linear) ---
-# ax3.plot(df[x_variable], df["D_wt"], **marker_opts)
-# ax3.errorbar(df[x_variable], df["D_wt"], yerr=df["D_wt_error"], **marker_opts_error)
-# ax3.set_ylabel("D_wt (silicate → metal)")
-# # ax3.set_title("Distribution Coefficient (linear)")
-# ax3.grid(True)
-# # x label
-# ax3.set_xlabel("P, T")
-# # rotate bottom x-labels
-
 # --- Panel 3: KD_sil_to_metal (log y) ---
-ax2.plot(df[x_variable], df["KD_sil_to_metal"], **marker_opts)
-ax2.errorbar(df[x_variable], df["KD_sil_to_metal"], yerr=df["KD_sil_to_metal_error"], **marker_opts_error)
-ax2.set_yscale("log")
-ax2.set_ylabel("K_D (silicate → metal; log scale)")
-# ax2.set_title("Partition Coefficient (log)")
-ax2.grid(True)
-# ax2.tick_params(labelbottom=False)
-ax2.set_xlabel("Pressure (GPa)")
+# ax_KD.plot(df[x_variable], df["KD_sil_to_metal"], **marker_opts)
+# ax_KD.errorbar(df[x_variable], df["KD_sil_to_metal"], yerr=df["KD_sil_to_metal_error"], **marker_opts_error, color=cmap(norm(df[z_variable])))
+
+
+# 1) Plot the colored points
+sc = ax_KD.scatter(
+    df[x_variable],
+    df["KD_sil_to_metal"],
+    c=df[z_variable],
+    cmap=cmap,
+    norm=norm,
+    **marker_opts_scatter,
+    marker=marker_TI,  # use the TI marker for scatter points
+    label="This study (TI)"
+)
+
+# 2) Draw per-point errorbars with matching colors
+temps  = df[z_variable].values
+colors = cmap(norm(temps))
+
+for x0, y0, err0, c in zip(
+    df[x_variable],
+    df["KD_sil_to_metal"],
+    df["KD_sil_to_metal_error"],
+    colors
+):
+    ax_KD.errorbar(
+        x0, y0,
+        yerr=err0,
+        fmt='none',       # no extra marker
+        ecolor=c,         # single RGBA tuple
+        **marker_opts_error,
+        marker=marker_TI  # use the TI marker for errorbars
+    )
+
+
+
+
 
 
 # --- Panel 4: D_wt (log y) ---
-ax4.plot(df[x_variable], df["D_wt"], **marker_opts)
-ax4.errorbar(df[x_variable], df["D_wt"], yerr=df["D_wt_error"], **marker_opts_error)
-ax4.set_yscale("log")
-ax4.set_ylabel("D_wt (silicate → metal; log scale)")
-# ax4.set_title("Distribution Coefficient (log)")
-ax4.grid(True)
-ax4.set_xlabel("Pressure (GPa)")
 
-# super title
-fig.suptitle(f"Partition Coefficient (K_D) and Weight Distribution Coefficient (D_wt) for {secondary_species} in Fe and MgSiO3. \n Note: Assumption that X_{secondary_species} in silicates is << 1", fontsize=12)
+# 1) Plot the colored points
+sc = ax_D_wt.scatter(
+    df[x_variable],
+    df["D_wt"],
+    c=df[z_variable],
+    cmap=cmap,
+    norm=norm,
+    **marker_opts_scatter,
+    marker=marker_TI,  # use the TI marker for scatter points
+    label="This study (TI)"
+)
+# 2) Draw per-point errorbars with matching colors
+for x0, y0, err0, c in zip(
+    df[x_variable],
+    df["D_wt"],
+    df["D_wt_error"],
+    colors
+):
+    ax_D_wt.errorbar(
+        x0, y0,
+        yerr=err0,
+        fmt='none',       # no extra marker
+        ecolor=c,         # single RGBA tuple
+        **marker_opts_error,
+        marker=marker_TI  # use the TI marker for errorbars
+    )
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 # if secondary_species is "He" -- in all plots, add two data points at P500_T9000 0.032 and at P1000_T13000, 1
 if secondary_species == "He":
-    # ax1.plot(500, 0.032, **marker_opts)
-    # ax1.plot(500, 0.07, **marker_opts)
-    # ax1.plot(1000, 1, **marker_opts)
-    # ax1.plot(1000, 0.32, **marker_opts)
-    ax2.plot(500, 0.032, **marker_opts)
-    ax2.plot(500, 0.07, **marker_opts)
-    # ax2.plot(1000, 1, **marker_opts)
-    ax2.plot(1000, 0.32, **marker_opts)
-    # ax3.plot(500, 0.032*1.78, **marker_opts)
-    # ax3.plot(500, 0.07*1.78, **marker_opts)
-    # ax3.plot(1000, 1*1.78, **marker_opts)
-    # ax3.plot(1000, 0.32*1.78, **marker_opts)
-    ax4.plot(500, 0.032*1.78, **marker_opts)
-    ax4.plot(500, 0.07*1.78, **marker_opts)
-    # ax4.plot(1000, 1*1.78, **marker_opts)
-    ax4.plot(1000, 0.32*1.78, **marker_opts)
+    """ 
+    
+    Two-phase simulations for He in Fe and MgSiO3:
+    dict: data_He__two_phase_simulations
+    P:500, T:9000, KD: 0.032, KD_low: 0.032, KD_high: 0.032
+    P:1000, T:13000, KD: 0.32, KD_low: 0.32, KD_high: 0.32
 
-# previous studies
+    """
+
+    data_He__two_phase_simulations = {
+        "Target pressure (GPa)": [500, 1000],
+        "Target temperature (K)": [9000, 13000],
+        "KD": [0.032, 0.32],
+        "KD_low": [0.032, 0.32],
+        "KD_high": [0.032, 0.32]
+    }
+    # D_wt = KD * (100/56)  # assuming Fe as metal, 56 g/mol
+    data_He__two_phase_simulations["D_wt"] = [kd * (100/56) for kd in data_He__two_phase_simulations["KD"]]
+    data_He__two_phase_simulations["D_wt_low"] = [kd * (100/56) for kd in data_He__two_phase_simulations["KD_low"]]
+    data_He__two_phase_simulations["D_wt_high"] = [kd * (100/56) for kd in data_He__two_phase_simulations["KD_high"]]
+
+    ax_KD.scatter(data_He__two_phase_simulations[x_variable], 
+                    data_He__two_phase_simulations["KD"],
+                    **marker_opts_scatter,
+                    marker=marker_2phase,
+                    c=data_He__two_phase_simulations[z_variable],
+                    cmap=cmap,
+                    norm=norm,
+                    label="This study (2P)")
+    ax_D_wt.scatter(data_He__two_phase_simulations[x_variable], 
+                    data_He__two_phase_simulations["D_wt"],
+                    **marker_opts_scatter,
+                    marker=marker_2phase,
+                    c=data_He__two_phase_simulations[z_variable],
+                    cmap=cmap,
+                    norm=norm,
+                    label="This study (2P)")
+
+# previous computational studies
 if secondary_species == "He":
-    # P50_T3500: 2.6E-3
-    # P135_T4200: 8.7E-4
-    # ax1.plot(50, 2.6E-3, **marker_opts__others, color='red', label="Previous Study: P50_T3500")
-    # ax1.plot(135, 8.7E-4, **marker_opts__others, color='red', label="Previous Study: P135_T4200")
-    ax2.plot(50, 2.6E-3, **marker_opts__others, color='red', label="Previous Study: P50_T3500")
-    ax2.plot(135, 8.7E-4, **marker_opts__others, color='red', label="Previous Study: P135_T4200")
-    # ax3.plot(50, 2.6E-3*1.78, **marker_opts__others, color='red', label="Previous Study: P50_T3500")
-    # ax3.plot(135, 8.7E-4*1.78, **marker_opts__others, color='red', label="Previous Study: P135_T4200")
-    ax4.plot(50, 2.6E-3*1.78, **marker_opts__others, color='red', label="Previous Study: P50_T3500")
-    ax4.plot(135, 8.7E-4*1.78, **marker_opts__others, color='red', label="Previous Study: P135_T4200")
+        
+    """
+    P in GPa, T in K, D_wt in wt% (weight percent)
+
+    Yunguo Li et al. 2022 data 
+    dict: data_He__Li_et_al_2022
+    ignore -- # P:20, T:?, D_wt: 0.0007800604871350279, D_wt_low: 0.0003416077357591995, D_wt_high: 0.0017812663470193448
+    P:50, T:3500, D_wt: 0.0025085161975393296, D_wt_low: 0.001076638661030702, D_wt_high: 0.0059636233165946545
+    P:135, T:4200, D_wt: 0.0008455001765588335, D_wt_low: 0.00027929562959971827, D_wt_high: 0.0025085161975393296
+    
+    Zhang & Yin 2012 data
+    dict: data_He__Zhang_and_Yin_2012
+    P:40, T:3200, D_wt: 0.008921488454390353, D_wt_low: 0.0030070047268396694, D_wt_high: 0.015060610109031605
+
+    Xiong et al. 2020 (corrected) data -- no error known
+    dict: data_He__Xiong_et_al_2020_corrected
+    P:20, T:5000, D_wt: 0.00003439086890726415, D_wt_low: 0.00003439086890726415, D_wt_high: 0.00003439086890726415
+    P:60, T:5000, D_wt: 0.00161063482282789, D_wt_low: 0.00161063482282789, D_wt_high: 0.00161063482282789
+    P:135, T:5000, D_wt: 0.0024094848405521382, D_wt_low: 0.0024094848405521382, D_wt_high: 0.0024094848405521382
+
+    Wang et al. 2022 (corrected) data -- no error known
+    dict: data_He__Wang_et_al_2022_corrected
+    P:20, T:2500, D_wt: 0.00003047649470506126, D_wt_low: 0.00003047649470506126, D_wt_high: 0.00003047649470506126
+    P:40, T:3200, D_wt: 0.0012905866607492368, D_wt_low: 0.0012905866607492368, D_wt_high: 0.0012905866607492368
+    P:60, T:3600, D_wt: 0.0019306977288832535, D_wt_low: 0.0019306977288832535, D_wt_high: 0.0019306977288832535
+    P:135, T:5000, D_wt: 0.17224697497149574, D_wt_low: 0.17224697497149574, D_wt_high: 0.17224697497149574
+
+    Yuan & Steinle-Neumann 2020 data
+    dict: data_He__Yuan_and_Steinle_Neumann_2020
+    P:10, T:3000, D_wt: 10**(-4.73), D_wt_low: 10**(-4.73-0.40), D_wt_high: 10**(-4.73+0.40)
+    P:25, T:3500, D_wt: 10**(-3.48), D_wt_low: 10**(-3.48-0.37), D_wt_high: 10**(-3.48+0.37) 
+    P:40, T:3800, D_wt: 10**(-3.32), D_wt_low: 10**(-3.32-0.28), D_wt_high: 10**(-3.32+0.28)
+    P:50, T:4000, D_wt: 10**(-2.07), D_wt_low: 10**(-2.07-0.29), D_wt_high: 10**(-2.07+0.29)
+    P:80, T:4000, D_wt: 10**(-2.59), D_wt_low: 10**(-2.59-0.26), D_wt_high: 10**(-2.59+0.26)
+    P:130, T:5000, D_wt: 10**(-1.24), D_wt_low: 10**(-1.24-0.20), D_wt_high: 10**(-1.24+0.20)
+
+    """
+
+    data_He__Li_et_al_2022 = {
+        "Target pressure (GPa)": [50, 135],
+        "Target temperature (K)": [3500, 4200],
+        "D_wt": [0.0025085161975393296, 0.0008455001765588335],
+        "D_wt_low": [0.001076638661030702, 0.00027929562959971827],
+        "D_wt_high": [0.0059636233165946545, 0.0025085161975393296],
+        "label": "Yunguo Li et al. 2022"
+    }
+
+    data_He__Zhang_and_Yin_2012 = {
+        "Target pressure (GPa)": [40],
+        "Target temperature (K)": [3200],
+        "D_wt": [0.008921488454390353],
+        "D_wt_low": [0.0030070047268396694],
+        "D_wt_high": [0.015060610109031605],
+        "label": "Zhang & Yin 2012"
+    }
+
+    data_He__Xiong_et_al_2020_corrected = {
+        "Target pressure (GPa)": [20, 60, 135],
+        "Target temperature (K)": [5000, 5000, 5000],
+        "D_wt": [0.00003439086890726415, 0.00161063482282789, 0.0024094848405521382],
+        "D_wt_low": [0.00003439086890726415, 0.00161063482282789, 0.0024094848405521382],
+        "D_wt_high": [0.00003439086890726415, 0.00161063482282789, 0.0024094848405521382],
+        "label": "Xiong et al. 2020 (corrected)"
+    }
+
+    data_He__Wang_et_al_2022_corrected = {
+        "Target pressure (GPa)": [20, 40, 60, 135],
+        "Target temperature (K)": [2500, 3200, 3600, 5000],
+        "D_wt": [0.00003047649470506126, 0.0012905866607492368, 0.0019306977288832535, 0.17224697497149574],
+        "D_wt_low": [0.00003047649470506126, 0.0012905866607492368, 0.0019306977288832535, 0.17224697497149574],
+        "D_wt_high": [0.00003047649470506126, 0.0012905866607492368, 0.0019306977288832535, 0.17224697497149574],
+        "label": "Wang et al. 2022 (corrected)"
+    }
+
+    data_He__Yuan_and_Steinle_Neumann_2020 = {
+        "Target pressure (GPa)": [10, 25, 40, 50, 80, 130],
+        "Target temperature (K)": [3000, 3500, 3800, 4000, 4000, 5000],
+        "D_wt": [10**(-4.73), 10**(-3.48), 10**(-3.32), 10**(-2.07), 10**(-2.59), 10**(-1.24)],
+        "D_wt_low": [10**(-4.73-0.40), 10**(-3.48-0.37), 10**(-3.32-0.28), 10**(-2.07-0.29), 10**(-2.59-0.26), 10**(-1.24-0.20)],
+        "D_wt_high": [10**(-4.73+0.40), 10**(-3.48+0.37), 10**(-3.32+0.28), 10**(-2.07+0.29), 10**(-2.59+0.26), 10**(-1.24+0.20)],
+        "label": "Yuan & Steinle-Neumann 2020"
+    }
+
+    datasets = [
+                data_He__Li_et_al_2022,
+                data_He__Zhang_and_Yin_2012,
+                data_He__Xiong_et_al_2020_corrected,
+                data_He__Wang_et_al_2022_corrected,
+                data_He__Yuan_and_Steinle_Neumann_2020
+                                                        ]
+
+    # calculate KD_sil_to_metal from D_wt (including error) using the formula:
+    # KD_sil_to_metal = D_wt * (56/100)
+    for data in datasets:
+        data["KD_sil_to_metal"] = [d * (56/100) for d in data["D_wt"]]
+        data["KD_sil_to_metal_low"] = [d * (56/100) for d in data["D_wt_low"]]
+        data["KD_sil_to_metal_high"] = [d * (56/100) for d in data["D_wt_high"]]
+
+
+
+
+    # plot the data points
+    for i, (data, marker) in enumerate(zip(datasets, marker_other_comp_studies)):
+        print(f"Plotting data for {data['label']} with marker {marker}")
+        ax_KD.scatter(data[x_variable], data["KD_sil_to_metal"],
+                        c=data[z_variable],
+                        cmap=cmap, norm=norm,
+                        **marker_opts_scatter__others, 
+                        marker=marker_other_comp_studies[i], 
+                        label=data["label"])
+        ax_D_wt.scatter(data[x_variable], data["D_wt"],
+                        c=data[z_variable],
+                        cmap=cmap, norm=norm,
+                        **marker_opts_scatter__others, 
+                        marker=marker_other_comp_studies[i], 
+                        label=data["label"])
+
+        temps = data[z_variable]
+        colors = cmap(norm(temps))
+
+        for x0,y0,y_low,y_high,c in zip(
+            data[x_variable],
+            data["KD_sil_to_metal"],
+            data["KD_sil_to_metal_low"],
+            data["KD_sil_to_metal_high"],
+            colors
+        ):
+            low  = y0 - y_low
+            high = y_high - y0
+
+            # yerr must be shape (2, 1) for one point
+            yerr = [[low], [high]]
+            ax_KD.errorbar(
+                        x0, y0,
+                        yerr=yerr,
+                        fmt='none',  # no extra marker
+                        **marker_opts_error__others,
+                        color=c,
+                        marker=marker_other_comp_studies[i])
+        # D_wt errorbars
+        for x0,y0,y_low,y_high,c in zip(
+            data[x_variable],
+            data["D_wt"],
+            data["D_wt_low"],
+            data["D_wt_high"],
+            colors
+        ):
+            low  = y0 - y_low
+            high = y_high - y0
+
+            # yerr must be shape (2, 1) for one point
+            yerr = [[low], [high]]
+            ax_D_wt.errorbar(
+                        x0, y0,
+                        yerr=yerr,
+                        fmt='none',  # no extra marker
+                        **marker_opts_error__others,
+                        color=c,
+                        marker=marker_other_comp_studies[i])
+
 
 
 if secondary_species == "H":
-    # Luo et al.
-    # P500_T9000: 10**1.4
-    # P1000_T13000: 10**1.8
-    # ax1.plot(500, 10**1.4, **marker_opts__others, color='red', label="Luo et al. P500_T9000")
-    # ax1.plot(1000, 10**1.8, **marker_opts__others, color='red', label="Luo et al. P1000_T13000")
-    ax2.plot(500, 10**1.4, **marker_opts__others, color='red', label="Luo et al. P500_T9000")
-    ax2.plot(1000, 10**1.8, **marker_opts__others, color='red', label="Luo et al. P1000_T13000")
-    # ax3.plot(500, 10**1.4*1.78, **marker_opts__others, color='red', label="Luo et al. P500_T9000")
-    # ax3.plot(1000, 10**1.8*1.78, **marker_opts__others, color='red', label="Luo et al. P1000_T13000")
-    ax4.plot(500, 10**1.4*1.78, **marker_opts__others, color='red', label="Luo et al. P500_T9000")
-    ax4.plot(1000, 10**1.8*1.78, **marker_opts__others, color='red', label="Luo et al. P1000_T13000")
+    """
+    P in GPa, T in K, D_wt in wt% (weight percent)
 
-    # previous study
-    # P50_T3500: 9.1
-    # ax1.plot(50, 9.1, **marker_opts__others, color='blue', label="Previous Study: P50_T3500")
-    ax2.plot(50, 9.1, **marker_opts__others, color='blue', label="Previous Study: P50_T3500")
-    # ax3.plot(50, 9.1*1.78, **marker_opts__others, color='blue', label="Previous Study: P50_T3500")
-    ax4.plot(50, 9.1*1.78, **marker_opts__others, color='blue', label="Previous Study: P50_T3500")
+    Yunguo Li et al. 2022 data 
+    dict: data_H__Li_et_al_2022
+    P: 20, T: 2800, D_wt: 8.726904331596701, D_wt_low: 2.245197139773531, D_wt_high: 34.20189577525205
+    P: 50, T: 3500, D_wt: 9.01980466823185, D_wt_low: 2.972475471559787, D_wt_high: 27.145119399821766
+    P: 90, T: 3900, D_wt: 17.81952229659459, D_wt_low: 6.145121384918334, D_wt_high: 51.6727587608185
+    P: 135, T: 4200, D_wt: 16.006673089593978, D_wt_low: 3.072240409180031, D_wt_high: 83.39633273214913
+
+    Yuan & Steinle-Neumann 2020 data
+    dict: data_H__Yuan_and_Steinle_Neumann_2020
+    P: 20, T: 2500, KD: 10**(0.86), KD_low: 10**(0.86), KD_high: 10**(0.86)
+    P: 40, T: 4000, KD: 10**(1.92), KD_low: 10**(1.92), KD_high: 10**(1.92)
+    P: 130, T: 4000, KD: 10**(4.95), KD_low: 10**(4.95), KD_high: 10**(4.95)
+
+    """
+
+
+
+
+
+
+
+
+
+# previous experimental studies
+if secondary_species == "He":
+        
+    """
+    P in GPa, T in K, D_wt in wt% (weight percent)
+
+    Bouhifd et al. 2013 data
+    dict: data_He__Bouhifd_et_al_2013__CI_FeNi
+    P:1.9, T:2400, D_wt: 1.7 * 1e-3, D_wt_low: (1.7-0.8) * 1e-3, D_wt_high: (1.7+0.8) * 1e-3
+    P: 4.1, T:2400, D_wt: 6.7 * 1e-4, D_wt_low: (6.7-4.1) * 1e-4, D_wt_high: (6.7+4.1) * 1e-4
+    P: 6.1, T:2450, D_wt: 8.0 * 1e-4, D_wt_low: (8.0-4.6) * 1e-4, D_wt_high: (8.0+4.6) * 1e-4
+    P: 8.0, T:2500, D_wt: 3.3 * 1e-3, D_wt_low: (3.3-1.6) * 1e-3, D_wt_high: (3.3+1.6) * 1e-3
+    P: 13.1, T:2600, D_wt: 1.7 * 1e-2, D_wt_low: (1.7-0.7) * 1e-2, D_wt_high: (1.7+0.7) * 1e-2
+
+    dict: data_He__Bouhifd_et_al_2013__CI_Fe
+    P: 6.0, T:2200, D_wt: 6.4 * 1e-4, D_wt_low: (6.4-2.5) * 1e-4, D_wt_high: (6.4+2.5) * 1e-4
+    P: 7.8, T:2200, D_wt: 1.7 * 1e-3, D_wt_low: (1.7-0.8) * 1e-3, D_wt_high: (1.7+0.8) * 1e-3
+    P:10.0, T:2200, D_wt: 8.8 * 1e-3, D_wt_low: (8.8-4.8) * 1e-3, D_wt_high: (8.8+4.8) * 1e-3
+    P:11.3, T:2300, D_wt: 1.0 * 1e-2, D_wt_low: (1.0-0.5) * 1e-2, D_wt_high: (1.0+0.5) * 1e-2
+    P:13.8, T:2450, D_wt: 9.4 * 1e-3, D_wt_low: (9.4-4.8) * 1e-3, D_wt_high: (9.4+4.8) * 1e-3
+
+    dict: data_He__Bouhifd_et_al_2013__CI_FeNiCo
+    P: 7.5, T:2200, D_wt: 2.3 * 1e-3, D_wt_low: (2.3-0.7) * 1e-3, D_wt_high: (2.3+0.7) * 1e-3
+    P:10.0, T:2250, D_wt: 5.3 * 1e-3, D_wt_low: (5.3-2.2) * 1e-3, D_wt_high: (5.3+2.2) * 1e-3
+    P:13.5, T:2350, D_wt: 1.3 * 1e-2, D_wt_low: (1.3-0.5) * 1e-2, D_wt_high: (1.3+0.5) * 1e-2
+    P:15.6, T:2450, D_wt: 6.0 * 1e-3, D_wt_low: (6.0-5.2) * 1e-3, D_wt_high: (6.0+5.2) * 1e-3
+    P:15.8, T:2500, D_wt: 4.7 * 1e-3, D_wt_low: (4.7-4.1) * 1e-3, D_wt_high: (4.7+4.1) * 1e-3
+
+
+    Matsuda et al. 1993 data
+    dict: data_He__Matsuda_et_al_1993 -- no error known
+    P: 0.5, T: 1600+273.15, D_wt: 0.04075005786153117, D_wt_low: 0.04075005786153117, D_wt_high: 0.04075005786153117
+    P: 2, T: 1600+273.15, D_wt: 0.014470898697931086, D_wt_low: 0.014470898697931086, D_wt_high: 0.014470898697931086
+    P: 6, T: 1600+273.15, D_wt: 0.0010752215989857346, D_wt_low: 0.0010752215989857346, D_wt_high: 0.0010752215989857346
+
+
+"""
+
+    data_He__Bouhifd_et_al_2013__CI_FeNi = {
+        "Target pressure (GPa)": [1.9, 4.1, 6.1, 8.0, 13.1],
+        "Target temperature (K)": [2400, 2400, 2450, 2500, 2600],
+        "D_wt": [1.7 * 1e-3, 6.7 * 1e-4, 8.0 * 1e-4, 3.3 * 1e-3, 1.7 * 1e-2],
+        "D_wt_low": [(1.7-0.8) * 1e-3, (6.7-4.1) * 1e-4, (8.0-4.6) * 1e-4, (3.3-1.6) * 1e-3, (1.7-0.7) * 1e-2],
+        "D_wt_high": [(1.7+0.8) * 1e-3, (6.7+4.1) * 1e-4, (8.0+4.6) * 1e-4, (3.3+1.6) * 1e-3, (1.7+0.7) * 1e-2],
+        "label": "Bouhifd et al. 2013 (CI-FeNi)"
+    }
+
+    data_He__Bouhifd_et_al_2013__CI_Fe = {
+        "Target pressure (GPa)": [6.0, 7.8, 10.0, 11.3, 13.8],
+        "Target temperature (K)": [2200, 2200, 2200, 2300, 2450],
+        "D_wt": [6.4 * 1e-4, 1.7 * 1e-3, 8.8 * 1e-3, 1.0 * 1e-2, 9.4 * 1e-3],
+        "D_wt_low": [(6.4-2.5) * 1e-4, (1.7-0.8) * 1e-3, (8.8-4.8) * 1e-3, (1.0-0.5) * 1e-2, (9.4-4.8) * 1e-3],
+        "D_wt_high": [(6.4+2.5) * 1e-4, (1.7+0.8) * 1e-3, (8.8+4.8) * 1e-3, (1.0+0.5) * 1e-2, (9.4+4.8) * 1e-3],
+        "label": "Bouhifd et al. 2013 (CI-Fe)"
+    }
+
+    data_He__Bouhifd_et_al_2013__CI_FeNiCo = {
+        "Target pressure (GPa)": [7.5, 10.0, 13.5, 15.6, 15.8],
+        "Target temperature (K)": [2200, 2250, 2350, 2450, 2500],
+        "D_wt": [2.3 * 1e-3, 5.3 * 1e-3, 1.3 * 1e-2, 6.0 * 1e-3, 4.7 * 1e-3],
+        "D_wt_low": [(2.3-0.7) * 1e-3, (5.3-2.2) * 1e-3, (1.3-0.5) * 1e-2, (6.0-5.2) * 1e-3, (4.7-4.1) * 1e-3],
+        "D_wt_high": [(2.3+0.7) * 1e-3, (5.3+2.2) * 1e-3, (1.3+0.5) * 1e-2, (6.0+5.2) * 1e-3, (4.7+4.1) * 1e-3],
+        "label": "Bouhifd et al. 2013 (CI-FeNiCo)"
+    }
+
+    data_He__Matsuda_et_al_1993 = {
+        "Target pressure (GPa)": [0.5, 2, 6],
+        "Target temperature (K)": [1600+273.15, 1600+273.15, 1600+273.15],
+        "D_wt": [0.04075005786153117, 0.014470898697931086, 0.0010752215989857346],
+        "D_wt_low": [0.04075005786153117, 0.014470898697931086, 0.0010752215989857346],
+        "D_wt_high": [0.04075005786153117, 0.014470898697931086, 0.0010752215989857346],
+        "label": "Matsuda et al. 1993 (Basalt-Fe)"
+    }
+
+    datasets = [
+                data_He__Bouhifd_et_al_2013__CI_FeNi,
+                data_He__Bouhifd_et_al_2013__CI_Fe,
+                data_He__Bouhifd_et_al_2013__CI_FeNiCo,
+                data_He__Matsuda_et_al_1993
+                                                        ]
+
+    # calculate KD_sil_to_metal from D_wt (including error) using the formula:
+    # KD_sil_to_metal = D_wt * (56/100)
+    for data in datasets:
+        data["KD_sil_to_metal"] = [d * (56/100) for d in data["D_wt"]]
+        data["KD_sil_to_metal_low"] = [d * (56/100) for d in data["D_wt_low"]]
+        data["KD_sil_to_metal_high"] = [d * (56/100) for d in data["D_wt_high"]]    
+
+    # plot the data points
+    for i, (data, marker) in enumerate(zip(datasets, marker_other_expt_studies)):
+        print(f"Plotting data for {data['label']} with marker {marker}")
+        ax_KD.scatter(data[x_variable], data["KD_sil_to_metal"],
+                        c=data[z_variable],
+                        cmap=cmap, norm=norm,
+                        **marker_opts_scatter__others, 
+                        marker=marker, 
+                        label=data["label"])
+        ax_D_wt.scatter(data[x_variable], data["D_wt"],
+                        c=data[z_variable],
+                        cmap=cmap, norm=norm,
+                        **marker_opts_scatter__others, 
+                        marker=marker, 
+                        label=data["label"])
+
+        temps = data[z_variable]
+        colors = cmap(norm(temps))
+
+        for x0,y0,y_low,y_high,c in zip(
+            data[x_variable],
+            data["KD_sil_to_metal"],
+            data["KD_sil_to_metal_low"],
+            data["KD_sil_to_metal_high"],
+            colors
+        ):
+            low  = y0 - y_low
+            high = y_high - y0
+
+            # yerr must be shape (2, 1) for one point
+            yerr = [[low], [high]]
+            ax_KD.errorbar(
+                        x0, y0,
+                        yerr=yerr,
+                        fmt='none',  # no extra marker
+                        **marker_opts_error__others,
+                        color=c,
+                        marker=marker)
+        # D_wt errorbars
+        for x0,y0,y_low,y_high,c in zip(
+            data[x_variable],
+            data["D_wt"],
+            data["D_wt_low"],
+            data["D_wt_high"],
+            colors
+        ):
+            low  = y0 - y_low
+            high = y_high - y0
+
+            # yerr must be shape (2, 1) for one point
+            yerr = [[low], [high]]
+            ax_D_wt.errorbar(
+                        x0, y0,
+                        yerr=yerr,
+                        fmt='none',  # no extra marker
+                        **marker_opts_error__others,
+                        color=c,
+                        marker=marker)
+
+elif secondary_species == "H":
+    """
+    P in GPa, T in K, D_wt in wt% (weight percent), KD in dimensionless
+
+    Tagawa et al. 2021 data (HO0.5_{silicate} + 0.5 Fe_{metal} = H_{metal} + 0.5FeO_{silicate})
+    dict: data_H__Tagawa_et_al_2021
+    P: 46, T: 3920, KD: 10**1.32, KD_low: 10**(1.32-0.06), KD_high: 10**(1.32+0.06)
+    P: 48, T: 3450, KD: 10**1.10, KD_low: 10**(1.10-0.06), KD_high: 10**(1.10+0.06)
+    P: 57, T: 3860, KD: 10**1.22, KD_low: 10**(1.22-0.05), KD_high: 10**(1.22+0.05)
+    P: 60, T: 4560, KD: 10**1.37, KD_low: 10**(1.37-0.05), KD_high: 10**(1.37+0.05)
+    P: 47, T: 4230, KD: 10**1.35, KD_low: 10**(1.35-0.06), KD_high: 10**(1.35+0.06)
+    P: 30, T: 3080, KD: 10**1.18, KD_low: 10**(1.18-0.06), KD_high: 10**(1.18+0.06)
+
+    Clesi et al. 2018 data (0.5 H2_{silicate} = H_{metal})
+    dict: data_H__Clesi_et_al_2018
+    P: 5, T: 2245, D_wt: 0.048, D_wt_low: 0.048-0.032, D_wt_high: 0.048+0.032
+    P: 5, T: 2125, D_wt: 0.166, D_wt_low: 0.166-0.081, D_wt_high: 0.166+0.081
+    P: 5, T: 2020, D_wt: 0.181, D_wt_low: 0.181-0.091, D_wt_high: 0.181+0.091
+    P: 10, T: 2375, D_wt: 0.167, D_wt_low: 0.167-0.077, D_wt_high: 0.167+0.077
+    P: 10, T: 2125, D_wt: 0.051, D_wt_low: 0.051-0.017, D_wt_high: 0.051+0.017
+    P: 21, T: 2700, D_wt: 0.34, D_wt_low: 0.34-0.15, D_wt_high: 0.34+0.15
+    P: 5, T: 2240, D_wt: 0.041, D_wt_low: 0.041-0.027, D_wt_high: 0.041+0.027
+    P: 20, T: 2775, D_wt: 0.77, D_wt_low: 0.77-0.32, D_wt_high: 0.77+0.32
+    P: 10, T: 2325, D_wt: 0.044, D_wt_low: 0.044-0.014, D_wt_high: 0.044+0.014
+
+    Malavergne et al. 2018 data 
+    dict: data_H__Malavergne_et_al_2018
+    P -- 10,10,6,1,1,1,1
+    T -- 1873.15,1873.15,2073.15,1873.15,1873.15,1873.15,1673.15
+    D_wt -- 0.50 (10), 0.33 (7), 0.24 (6), 0.22 (6), 0.047 (12), 0.038 (10), 0.045 (12)
+    P: 10, T: 1873.15, D_wt: 0.50, D_wt_low: 0.50-0.10, D_wt_high: 0.50+0.10
+    P: 10, T: 1873.15, D_wt: 0.33, D_wt_low: 0.33-0.07, D_wt_high: 0.33+0.07
+    P: 6, T: 2073.15, D_wt: 0.24, D_wt_low: 0.24-0.06, D_wt_high: 0.24+0.06
+    P: 1, T: 1873.15, D_wt: 0.22, D_wt_low: 0.22-0.06, D_wt_high: 0.22+0.06
+    P: 1, T: 1873.15, D_wt: 0.047, D_wt_low: 0.047-0.012, D_wt_high: 0.047+0.012
+    P: 1, T: 1873.15, D_wt: 0.038, D_wt_low: 0.038-0.010, D_wt_high: 0.038+0.010
+    P: 1, T: 1673.15, D_wt: 0.045, D_wt_low: 0.045-0.012, D_wt_high: 0.045+0.012
+
+    Okuchi 1997 data
+    dict: data_H__Okuchi_1997
+    P: 7.5, T: 1200+273.15, KD: exp**(-3.6), KD_low: exp**(-3.6-0.1), KD_high: exp**(-3.6+0.1)    
+    P: 7.5, T: 1200+273.15, KD: exp**(-3.4), KD_low: exp**(-3.4-0.0), KD_high: exp**(-3.4+0.0)
+    P: 7.5, T: 1300+273.15, KD: exp**(-2.4), KD_low: exp**(-2.4-0.6), KD_high: exp**(-2.4+0.6)
+    P: 7.5, T: 1400+273.15, KD: exp**(-2.0), KD_low: exp**(-2.0-0.0), KD_high: exp**(-2.0+0.0)
+    P: 7.5, T: 1500+273.15, KD: exp**(-1.4), KD_low: exp**(-1.4-0.2), KD_high: exp**(-1.4+0.2)
+    P: 7.5, T: 1500+273.15, KD: exp**(1.5), KD_low: exp**(1.5-0.3), KD_high: exp**(1.5+0.3)
+    P: 7.5, T: 1500+273.15, KD: exp**(-1.5), KD_low: exp**(-1.5-0.2), KD_high: exp**(-1.5+0.2)
+
+
+    """
+
+    ###########################
+
+
+
+
+    print(f"WARNING: Some studies talk about H2, silicate to metal partitioning, and some H, silicate --- we do H also here, how to make sure nothing is getting messed up?")
+
+# show 1 colorbar for both KD and D_wt plots
+# 1) Create a colorbar for the temperature range
+sm = plt.cm.ScalarMappable(cmap=cmap, norm=norm)
+# sm.set_array([])  # only needed for older matplotlib versions
+# 2) Add the colorbar to the figure -- width == width of 1 plot
+cbar = fig.colorbar(sm, ax=[ax_KD, ax_D_wt],
+                    orientation='horizontal',
+                    # fraction=1, pad=0.04,
+                    pad=0.1,  # space between colorbar and plot
+                    ticks=np.linspace(temp_min, temp_max, 5),
+                    location='bottom',  # 'top' or 'bottom'
+                    shrink=1,      # shrink to 80% of the original size
+                    aspect=50,     # thinner bar
+                    )
+cbar.set_label("Temperature (K)")#, rotation=270, labelpad=15)
+# set colorbar ticks to be in K -- 3500, 6500, 9000, 13000, 17000
+cbar.set_ticks(cbar_ticks)
+# cbar.set_ticklabels([f"{int(t)} K" for t in cbar.get_ticks()])
+
+
+
+
 
 # x lim ,  y lim
 if secondary_species == "He":
-    y_min = 1e-4
+    y_min = 1e-5 # 1e-5
     y_max = 1e1
 elif secondary_species == "H":
     y_min = 1e-1
     y_max = 1e3
+ax_KD.set_ylim(y_min, y_max)
+ax_D_wt.set_ylim(y_min, y_max)
 
-# ax1.set_ylim(y_min, y_max)
-ax2.set_ylim(y_min, y_max)
-# ax3.set_ylim(y_min, y_max)
-ax4.set_ylim(y_min, y_max)
+
+
+
+ax_KD.set_yscale("log")
+# ax_KD.set_ylabel(r"K$_D^{rxn: silicate → metal}$")
+ax_KD.set_ylabel(r"K$_D$")
+# ax_KD.set_title("Partition Coefficient (log)")
+ax_KD.grid(True)
+# ax_KD.tick_params(labelbottom=False)
+# ax_KD.set_xlabel("Pressure (GPa)")
+ax_KD.set_xscale("log")
+# ax_KD.set_xlim(left=0,right=200)  # set x-axis limits for better visibility
+
+ax_D_wt.set_yscale("log")
+# ax_D_wt.set_ylabel(r"D$_{wt}^{rxn: silicate → metal}$")
+ax_D_wt.set_ylabel(r"D$_{wt}$")
+# ax_D_wt.set_title("Distribution Coefficient (log)")
+ax_D_wt.grid(True)
+ax_D_wt.set_xlabel("Pressure (GPa)")
+# ax_D_wt.set_xscale("log")
+# ax_D_wt.set_xlim(left=10, right=1100)  # set x-axis limits for better visibility
+
+
+
+# Legend
+# 1) Grab handles & labels from one of your axes
+handles, labels = ax_KD.get_legend_handles_labels()
+
+# 2) Create a single legend on the right side of the figure
+fig.legend(
+    handles,
+    labels,
+    loc='lower center',        # center vertically on the right edge
+    fontsize=8,
+    # borderaxespad=0.1,
+    # bbox_to_anchor=(1.00, 0.5),
+    frameon=False,
+    ncol=3,  # number of columns in the legend
+    # mode='expand',  # 'expand' to fill the space, 'none'
+    labelspacing=1.5,    # default is 0.5; larger → more space
+    handletextpad=1.0,   # default is 0.8; larger → more space between handle & text
+    columnspacing=2.0,   # if you have multiple columns, space between them
+)
+
+# 3) Shrink the subplots to make room for the legend
+# fig.subplots_adjust(right=0.82)  # push the plot area leftward
+
+
+
+
+
+# fig.subplots_adjust(top=0.88)
+
+fig.suptitle(
+    f"Partition Coefficient ($K_D$) and Weight Distribution Coefficient ($D_{{wt}}$) "
+    f"for the reaction {secondary_species}$_{{silicates}}$ $\\rightleftharpoons$ {secondary_species}$_{{metal}}$.\n"
+    f"Note: Assumption that X$_{{{secondary_species},silicates}}$ $\\ll$ 1",
+    fontsize=10#,
+    # y=1.03,            # default ≃0.98, smaller → more gap
+)
 
 
 # 3) Layout & save
-plt.tight_layout()
+# plt.tight_layout(rect=[0, 0, 1, 1.0])
+# plt.tight_layout(rect=[0, 0.03, 1, 0.95])  # adjust layout to make room for the title
 plt.savefig(f"KD_D_wt_vs_P_T.png", dpi=300)
 
 
@@ -1177,7 +1773,9 @@ plt.savefig(f"KD_D_wt_vs_P_T.png", dpi=300)
 
 
 
-
+print("")
+print("="*50)
+print("")
 
 # Create a plot with 4 panels corresponding to data from all rows that correspond each to the 4 unique P_T_folders, showing KD_sil_to_metal vs Target temperature (K)
 
@@ -1185,27 +1783,37 @@ plt.savefig(f"KD_D_wt_vs_P_T.png", dpi=300)
 
 # refine df_superset_wo_nan to those with unique pairs of P_T_folders and Target temperature (K)
 df_plot = df_superset_wo_nan.copy()
-df_plot = df_plot.drop_duplicates(subset=["P_T_folder", "Target temperature (K)"])
+# df_plot = df_plot.drop_duplicates(subset=["P_T_folder", "Target temperature (K)"])
 
 unique_P_T_folders = df_plot["P_T_folder"].unique()
 
 
 fig, axes = plt.subplots(2, 2, figsize=(10, 8))#, sharex=True, sharey=True)
 
+counter = 0
+# iterate over unique P_T_folders
 
 for ith_P_T_folder in unique_P_T_folders:
 
-    # narrow df_plot to the current P_T_folder
-    df_temp = df_plot[df_plot["P_T_folder"] == ith_P_T_folder]
+    counter += 1
+    print(f"Plotting for P_T_folder: {ith_P_T_folder} ({counter}/{len(unique_P_T_folders)})")
 
-    ith_P_T_folder_Pressure = df_temp["Target pressure (GPa)"].iloc[0]
+    # narrow df_plot to the current P_T_folder
+    df_temporary = df_plot[df_plot["P_T_folder"] == ith_P_T_folder]
+
+    # size of df_temporary
+    print(f"Size of df_temporary: {df_temporary.shape}")
+    if counter == 1:
+        print(f"temp@df_temporary:\n{df_temporary["Target temperature (K)"]}")
+
+    ith_P_T_folder_Pressure = df_temporary["Target pressure (GPa)"].iloc[0]
 
     # get the axes for the current P_T_folder
     ax = axes.flatten()[list(unique_P_T_folders).index(ith_P_T_folder)]
 
     # plot KD_sil_to_metal vs Target temperature (K)
-    ax.plot(df_temp["Target temperature (K)"], df_temp["KD_sil_to_metal"], marker='o', linestyle='', markersize=10, alpha=0.5, label=f"{ith_P_T_folder_Pressure} (GPa)")
-    ax.errorbar(df_temp["Target temperature (K)"], df_temp["KD_sil_to_metal"], yerr=df_temp["KD_sil_to_metal_error"], marker='o', linestyle='', markersize=10, alpha=0.5, capsize=3, elinewidth=1)
+    # ax.plot(df_temporary["Target temperature (K)"], df_temporary["KD_sil_to_metal"], marker='o', linestyle='', markersize=10, alpha=0.5, label=f"{ith_P_T_folder_Pressure} (GPa)")
+    ax.errorbar(df_temporary["Target temperature (K)"], df_temporary["KD_sil_to_metal"], yerr=df_temporary["KD_sil_to_metal_error"], marker='o', linestyle='', markersize=10, alpha=0.5, capsize=3, elinewidth=1)
 
     # set y scale to log
     ax.set_yscale("log")
@@ -1227,9 +1835,21 @@ for ith_P_T_folder in unique_P_T_folders:
     ax.grid(True)
 
     # # add a colorbar for Target temperature (K) wrt hotness
-    # scatter = ax.scatter(df_temp["Target Temperature (K)"], df_temp["KD_sil_to_metal"], c=df_temp["Target Temperature (K)"], cmap='hot', norm=plt.Normalize(vmin=df_temp["Target Temperature (K)"].min(), vmax=df_temp["Target Temperature (K)"].max()), alpha=0.5)
+    # scatter = ax.scatter(df_temporary["Target Temperature (K)"], df_temporary["KD_sil_to_metal"], c=df_temporary["Target Temperature (K)"], cmap='hot', norm=plt.Normalize(vmin=df_temporary["Target Temperature (K)"].min(), vmax=df_temporary["Target Temperature (K)"].max()), alpha=0.5)
     # cbar = plt.colorbar(scatter, ax=ax)
     # cbar.set_label("Target temperature (K)")
+
+# x lim ,  y lim
+if secondary_species == "He":
+    y_min = 1e-4 # 1e-5
+    y_max = 1e1
+elif secondary_species == "H":
+    y_min = 1e-1
+    y_max = 1e3
+for ax in axes.flatten():
+    ax.set_ylim(y_min, y_max)
+    # ax.set_xlim(left=0, right=200)  # set x-axis limits for better visibility
+    # ax.set_xscale("log")  # set x-axis to log scale
 
 # adjust layout
 plt.tight_layout()
