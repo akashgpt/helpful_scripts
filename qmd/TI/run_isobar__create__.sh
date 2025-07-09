@@ -27,8 +27,11 @@ find . -type d -name "isobar_calc" | while read dir; do
         # to run SCALEE sims
         # nohup bash $HELP_SCRIPTS_TI/isobar__create_KP1x_hp_calc_eos_SCALEE.sh 1 > log.isobar__create_KP1x_hp_calc_eos_SCALEE 2>&1 &
 
+        # for SCALEE_0 hp_calculations
+        nohup bash $HELP_SCRIPTS_TI/isobar__create_KP1x_hp_calc_eos_SCALEE_0_hp_calc.sh > log.isobar__create_KP1x_hp_calc_eos_SCALEE_0_hp_calc 2>&1 &
+
         # ... for isobar Ghp analysis
-        nohup bash $LOCAL_HELP_SCRIPTS_TI/isobar__create_KP1x_hp_calc_eos_SCALEE_0_hp_calc_eos_Ghp.sh > log.isobar__create_KP1x_hp_calc_eos_SCALEE_0_hp_calc_eos_Ghp 2>&1 &
+        # nohup bash $LOCAL_HELP_SCRIPTS_TI/isobar__create_KP1x_hp_calc_eos_SCALEE_0_hp_calc_eos_Ghp.sh > log.isobar__create_KP1x_hp_calc_eos_SCALEE_0_hp_calc_eos_Ghp 2>&1 &
 
         echo "Started isobar__create_ ... .sh in $dir"
         echo "Process ID: $!"

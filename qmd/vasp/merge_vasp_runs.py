@@ -32,7 +32,7 @@ parse = argparse.ArgumentParser(description="Merge VASP runs into a single set o
 parse.add_argument('base', type=str, help="Base directory name for merging runs (e.g., SCALEE_7)")
 # add argument for --run_data_script
 parse.add_argument('--run_data_script', "-r", action='store_true', default=1,
-                    help="Run data_4_analysis.sh script after merging (default: 0)")
+                    help="Run data_4_analysis.sh script after merging (default: 1, i.e., True)")
 args = parse.parse_args()
 
 # get base directory from args

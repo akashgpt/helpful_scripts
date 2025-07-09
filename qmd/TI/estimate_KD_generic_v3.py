@@ -55,7 +55,7 @@ kB = 8.617333262145e-5
 
 
 SCRIPT_MODE = 1 # >0, only plot; <0, only do analysis; 0: both
-PLOT_MODE=-1 #-1: plot all; 0: do not plot, 1: plot #1, 2: plot #2, 3: plot #3 ...
+PLOT_MODE=7 #-1: plot all; 0: do not plot, 1: plot #1, 2: plot #2, 3: plot #3 ...
 
 
 
@@ -3177,4 +3177,216 @@ if SCRIPT_MODE >= 0: # plot if > 0
         ########################################################
         ########################################################
         ########################################################
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    if PLOT_MODE == 7 or PLOT_MODE < 0:
+
+        ylim_low = 1500
+        ylim_high = 18000
+
+        # low pressure regime < 100 GPa + 5000 K
+        # x = P
+        xlim_low = 0.3
+        xlim_high = 1600
+
+        fig, axes_PT = plt.subplots(1, 1, figsize=(10, 10))
+
+
+        x_variable = "Target pressure (GPa)"  # x-axis variable for all plots
+        y_variable = "Target temperature (K)"  # z-axis variable for all plots -- color coding
+        z_variable = "KD_sil_to_metal"  # z-axis variable for all plots -- color coding
+        z_variable = "log10(KD_sil_to_metal)"  # z-axis variable for all plots -- color coding
+
+
+
+        # create a colormap based on the temperature range
+        if secondary_species == "H":
+            z_min = 1e-2  # minimum temperature in K
+            z_max = 1e3  # maximum temperature in K
+        elif secondary_species == "He":
+            z_min = 1e-5  # minimum temperature in K
+            z_max = 1e0  # maximum temperature in
+        log10_z_min = np.log10(z_min)
+        log10_z_max = np.log10(z_max)
+        # cbar_ticks = [1e-5, 1e-4, 1e-3, 1e-2, 1e-1, 1e0, 1e1, 1e2, 1e3, 1e4, 1e5]
+        # cbar_ticks = [2000, 3000, 4000, 5000]
+        # norm = plt.Normalize(
+        #     vmin=z_min,
+        #     vmax=z_max
+        # )
+        from matplotlib.colors import LogNorm
+        norm = LogNorm(
+            vmin=z_min,
+            vmax=z_max
+        )
+        # norm = LogNorm(vmin=1e-6, vmax=1e5)
+
+        magma = plt.get_cmap("magma")
+        pastel_magma = pastel_cmap(magma, factor=0.25)  # tweak factor between 0 and 1
+        cmap = pastel_magma  # use pastel magma for the plots
+
+
+
+        df_plot = df.copy()
+        sc = axes_PT.scatter(
+            df_plot["Target pressure (GPa)"],
+            df_plot["Target temperature (K)"],
+            c = df_plot["KD_sil_to_metal"],
+            norm = norm,
+            cmap = cmap,
+            **marker_opts_scatter,
+            marker = marker_TI,
+            label  = "This study"
+        )
+
+        # 4) Overlay each computational‐study dict
+        for data, marker in zip(datasets_comp, marker_other_comp_studies):
+            xs = [float(v) for v in data["Target pressure (GPa)"]]
+            ys = [float(v) for v in data["Target temperature (K)"]]
+            zs = [float(v) for v in data["KD_sil_to_metal"]]
+            axes_PT.scatter(
+                xs, ys,
+                c = zs,
+                norm = norm,
+                cmap = cmap,
+                **marker_opts_scatter__others,
+                marker = marker,
+                label  = data.get("label", "Comp. study")
+            )
+
+        # 5) Overlay experimental‐study dicts similarly
+        for data, marker in zip(datasets_expt, marker_other_expt_studies):
+            xs = [float(v) for v in data["Target pressure (GPa)"]]
+            ys = [float(v) for v in data["Target temperature (K)"]]
+            zs = [float(v) for v in data["KD_sil_to_metal"]]
+            axes_PT.scatter(
+                xs, ys,
+                c = zs,
+                norm = norm,
+                cmap = cmap,
+                **marker_opts_scatter__others,
+                marker = marker,
+                label  = data.get("label", "Expt. study")
+            )
+
+
+        cbar = fig.colorbar(
+            sc,
+            ax=axes_PT,
+            orientation="vertical",
+            pad=0.1,
+            shrink=1,
+            aspect=50,
+            ticks=[1e-5,1e-4,1e-3,1e-2,1e-1,1,10,100,1e3,1e4,1e5]
+        )
+        cbar.set_label(r"$K_D$") 
+
+
+
+
+        # # x lim ,  y lim
+        # if secondary_species == "He":
+        #     y_min = 1e-5 # 1e-5
+        #     y_max = 1e1 #1e1
+        # elif secondary_species == "H":
+        #     y_min = 1e-3 #1e-3
+        #     y_max = 1e6
+        # axes_PT.set_ylim(y_min, y_max)
+        
+
+        # axes_PT.set_xlim(xlim_low, xlim_high)
+
+
+
+        axes_PT.set_yscale("log")
+        axes_PT.set_ylabel(r"Temperature (K)")
+        axes_PT.grid(True)
+        # y axis ticks
+        axes_PT.set_yticks([2000, 4000, 8000, 16000])
+        axes_PT.set_yticklabels([r"2000", r"4000", r"8000", r"16000"])
+        # axes_PT.tick_params(labelbottom=False)
+        axes_PT.set_xlabel("Pressure (GPa)")
+        axes_PT.set_xscale("log")
+        axes_PT.set_xticks([1, 10, 100, 1000])
+        axes_PT.set_xticklabels([r"1", r"10", r"100", r"1000"])
+        # axes_PT.set_xlim(left=0,right=200)  # set x-axis limits for better visibility
+
+        axes_PT.set_xlim(xlim_low, xlim_high)
+        axes_PT.set_ylim(ylim_low, ylim_high)
+
+        # Legend
+        # 1) Grab handles & labels from one of your axes
+        handles, labels = axes_PT.get_legend_handles_labels()
+
+        # 2) Create a single legend on the right side of the figure
+        # fig.legend(
+        #     handles,
+        #     labels,
+        #     loc='lower center',        # center vertically on the right edge
+        #     fontsize=8,
+        #     # borderaxespad=0.1,
+        #     # bbox_to_anchor=(1.00, 0.5),
+        #     frameon=False,
+        #     ncol=3,  # number of columns in the legend
+        #     # mode='expand',  # 'expand' to fill the space, 'none'
+        #     labelspacing=1.5,    # default is 0.5; larger → more space
+        #     handletextpad=1.0,   # default is 0.8; larger → more space between handle & text
+        #     columnspacing=2.0,   # if you have multiple columns, space between them
+        # )
+
+        axes_PT.grid(True, which="both", ls="--", alpha=0.3)
+
+
+        axes_PT.legend(frameon=False, fontsize=8,
+                        labelspacing=1.0,    # default is 0.5; larger → more space
+                        handletextpad=1.0)   # default is 0.8; larger → more space between handle & text)
+
+
+        # 3) Shrink the subplots to make room for the legend
+        # fig.subplots_adjust(right=0.82)  # push the plot area leftward
+
+
+
+
+
+        # fig.subplots_adjust(top=0.88)
+
+        fig.suptitle(
+            f"Partitioning of {secondary_species} between silicate and metal as a function of pressure and temperature.\n",
+            fontsize=10#,
+            # y=1.03,            # default ≃0.98, smaller → more gap
+        )
+
+
+        # 3) Layout & save
+        # plt.tight_layout(rect=[0, 0, 1, 1.0])
+        # plt.tight_layout(rect=[0, 0.03, 1, 0.95])  # adjust layout to make room for the title
+        plt.savefig(f"PT_coverage.png", dpi=300)
+
+
 

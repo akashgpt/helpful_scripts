@@ -2,9 +2,9 @@
 # set -euo pipefail
 
 # Usage: 
-# (for new run): source $HELP_SCRIPTS_TI/create_KP1x_hp_calc_eos_SCALEE_1_hp_calc.sh > log.create_KP1x_hp_calc_eos_SCALEE_1_hp_calc 2>&1 &
-# (for new run): nohup $HELP_SCRIPTS_TI/create_KP1x_hp_calc_eos_SCALEE_1_hp_calc.sh > log.create_KP1x_hp_calc_eos_SCALEE_1_hp_calc 2>&1 &
-# (for rerun with same parameters): source $HELP_SCRIPTS_TI/create_KP1x_hp_calc_eos_SCALEE_1_hp_calc.sh 1 > log.create_KP1x_hp_calc_eos_SCALEE_1_hp_calc 2>&1 &
+# (for new run): source $HELP_SCRIPTS_TI/isobar__create_KP1x_hp_calc_eos_SCALEE_0_hp_calc.sh > log.isobar__create_KP1x_hp_calc_eos_SCALEE_0_hp_calc 2>&1 &
+# (for new run): nohup bash $HELP_SCRIPTS_TI/isobar__create_KP1x_hp_calc_eos_SCALEE_0_hp_calc.sh > log.isobar__create_KP1x_hp_calc_eos_SCALEE_0_hp_calc 2>&1 &
+# (for rerun with same parameters): source $HELP_SCRIPTS_TI/isobar__create_KP1x_hp_calc_eos_SCALEE_0_hp_calc.sh 1 > log.isobar__create_KP1x_hp_calc_eos_SCALEE_0_hp_calc 2>&1 &
 # Author: Akash Gupta
 
 
