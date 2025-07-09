@@ -19,6 +19,7 @@
 #        e.g., nohup bash $HELP_SCRIPTS_vasp/RUN_VASP/continue_run__SCALEE.sh SCALEE_7 > log.continue_run__SCALEE_7 2>&1 &
 #        e.g., nohup bash $HELP_SCRIPTS_vasp/RUN_VASP/continue_run__SCALEE.sh SCALEE_7 5 > log.continue_run__SCALEE_7 2>&1 &
 #        e.g., nohup bash $HELP_SCRIPTS_vasp/RUN_VASP/continue_run__SCALEE.sh SCALEE_7 5 24 > log.continue_run__SCALEE_7 2>&1 &
+#        e.g., nohup bash $HELP_SCRIPTS_vasp/RUN_VASP/continue_run__SCALEE.sh SCALEE_7 0 24 > log.continue_run__SCALEE_7 2>&1 &
 #
 # Author: Akash Gupta
 #####################################################################################
@@ -42,7 +43,8 @@ home_dir=$(pwd)
 
 RUN_DIRNAME=${1:-0}
 
-RESTART_MODE=${2:0} # Run mode, default of 0: initial condition based on RUN_DIRNAME{last_run} (just as usual); 5: initial condition based on shifting SCALEE_5
+RESTART_MODE=${2:0} # Run mode, default of 0: initial condition based on RUN_DIRNAME{last_run} (just as usual); 
+                    # 5: initial condition based on shifting SCALEE_5
 # if [ "$RESTART_MODE" -gt 0 ]; then
 #     echo ""
 #     echo "RESTART_MODE: $RESTART_MODE. Changing NUM_JOBS to 1 (if different)."

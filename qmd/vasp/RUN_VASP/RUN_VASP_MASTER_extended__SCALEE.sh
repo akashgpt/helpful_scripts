@@ -54,6 +54,7 @@ extended_job_flag=-1 # if value=-1 (default), jobs ONLY upto 'z' at max or 26 in
 
 echo ""
 echo "========================="
+echo "Time: $(date)"
 echo "Cluster name: $CLUSTER_NAME"
 echo "Number of nodes: $RUN_VASP_NODES"
 echo "Number of jobs: $num_jobs"
