@@ -165,6 +165,7 @@ if (( $extended_job_flag == 0 )); then
 			if (( counter == 1 && RESTART_MODE > 0 )); then
 				echo "RESTART_MODE is set to ${RESTART_MODE} and counter is $counter. Copying SCALEE_${RESTART_MODE} as the initial condition for the first job."
 				cp -r ../SCALEE_${RESTART_MODE} ../"${master_id}${letter}"
+				cp -r ../"${master_id}${letter_old}"/INCAR ../"${master_id}${letter}"
 			else
 				echo "RESTART_MODE is set to ${RESTART_MODE} and counter is $counter. Copying the last job as the initial condition for the next job."
 				cp -r ../"${master_id}${letter_old}" ../"${master_id}${letter}"
@@ -323,6 +324,7 @@ elif (( $extended_job_flag == 1 )); then
 		if (( counter == 1 && RESTART_MODE > 0 )); then
 			echo "RESTART_MODE is set to ${RESTART_MODE} and counter is $counter. Copying SCALEE_${RESTART_MODE} as the initial condition for the first job."
 			cp -r ../SCALEE_${RESTART_MODE} ../"${master_id}a${letter}"
+			cp -r ../"${master_id}${letter_old}"/INCAR ../"${master_id}${letter}"
 		else
 			echo "RESTART_MODE is set to ${RESTART_MODE} and counter is $counter. Copying the last job as the initial condition for the next job."
 			cp -r ../"${master_id}a${letter_old}" ../"${master_id}a${letter}"
@@ -398,6 +400,7 @@ elif (( $extended_job_flag == -1 )); then
 		if (( counter == 1 && RESTART_MODE > 0 )); then
 			echo "RESTART_MODE is set to ${RESTART_MODE} and counter is $counter. Copying SCALEE_${RESTART_MODE} as the initial condition for the first job."
 			cp -r ../SCALEE_${RESTART_MODE} ../"${master_id}${letter}"
+			cp -r ../"${master_id}${letter_old}"/INCAR ../"${master_id}${letter}"
 		else
 			echo "RESTART_MODE is set to ${RESTART_MODE} and counter is $counter. Copying the last job as the initial condition for the next job."
 			cp -r ../"${master_id}${letter_old}" ../"${master_id}${letter}"
