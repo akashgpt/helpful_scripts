@@ -8,6 +8,15 @@
 # Author: Akash Gupta                                                      #
 ############################################################################
 
+# echo process ID of this script
+echo ""
+echo ""
+echo ""
+echo "+++++++++++++++++++++++++++++++"
+echo "Process ID: $$"
+echo "+++++++++++++++++++++++++++++++"
+echo ""
+
 master_id=$(basename "$PWD") 
 base_dir=$(pwd)
 
@@ -76,12 +85,12 @@ OUTCAR_size_l_limit__Bytes=$((OUTCAR_size_l_limit_MB * 1024 * 1024)) # convert M
 
 # for converting decimal to ASCII
 chr() {
-  printf \\$(printf '%03o' $1)
+	printf \\$(printf '%03o' $1)
 }
 
 # for converting ASCII to decimal
 ord() {
-  printf '%d' "'$1"
+	printf '%d' "'$1"
 }
 
 
@@ -132,7 +141,10 @@ counter=0
 first_letter=$(chr 97)
 last_letter=$(chr 122)
 
-
+# echo extended_job_flag
+echo ""
+echo "extended_job_flag: $extended_job_flag"
+echo ""
 
 # start new jobs
 
@@ -165,10 +177,20 @@ if (( $extended_job_flag == 0 )); then
 			if (( counter == 1 && RESTART_MODE > 0 )); then
 				echo "RESTART_MODE is set to ${RESTART_MODE} and counter is $counter. Copying SCALEE_${RESTART_MODE} as the initial condition for the first job."
 				cp -r ../SCALEE_${RESTART_MODE} ../"${master_id}${letter}"
-				cp ../"${master_id}${letter_old}"/INCAR ../"${master_id}${letter}"/
+				cp ../"${master_id}${letter_old}"/INCAR ../"${master_id}${letter}"/ || {
+					echo "INCAR file not found in ${master_id}${letter_old}. Exiting."
+					exit 1
+				}
 			else
 				echo "RESTART_MODE is set to ${RESTART_MODE} and counter is $counter. Copying the last job as the initial condition for the next job."
 				cp -r ../"${master_id}${letter_old}" ../"${master_id}${letter}"
+				# if $master_id includes "SCALEE", then cp ../"${master_id}$"/INCAR ../"${master_id}${letter}"/
+				if [[ $master_id == SCALEE* ]]; then
+					cp ../"${master_id}${letter_old}"/INCAR ../"${master_id}${letter}"/ || {
+						echo "INCAR file not found in ${master_id}${letter_old}. Exiting."
+						exit 1
+					}
+				fi
 			fi
 			# cp -r ../"${master_id}${letter_old}" ../"${master_id}${letter}"
 			cd ../"${master_id}${letter}" || exit 1  # Exit if the directory change fails
@@ -241,18 +263,32 @@ if (( $extended_job_flag == 0 )); then
 		if (( counter == 1 && RESTART_MODE > 0 )); then
 			echo "RESTART_MODE is set to ${RESTART_MODE} and counter is $counter. Copying SCALEE_${RESTART_MODE} as the initial condition for the first job."
 			if (( $letter == a)); then
-				cp -r ../SCALEE_${RESTART_MODE} ../"${master_id}${letter}"
-				cp ../"${master_id}${letter_old}"/INCAR ../"${master_id}${letter}"/
+				cp -r ../SCALEE_${RESTART_MODE} ../"${master_id}a${letter}"
+				cp ../"${master_id}${letter_old}"/INCAR ../"${master_id}a${letter}"/ || {
+					echo "INCAR file not found in ${master_id}${letter_old}. Exiting."
+					exit 1
+				}
 			else
 				cp -r ../SCALEE_${RESTART_MODE} ../"${master_id}a${letter}"
-				cp ../"${master_id}a${letter_old}"/INCAR ../"${master_id}a${letter}"
+				cp ../"${master_id}a${letter_old}"/INCAR ../"${master_id}a${letter}" || {
+					echo "INCAR file not found in ${master_id}a${letter_old}. Exiting."
+					exit 1
+				}
 			fi
 		else
 			echo "RESTART_MODE is set to ${RESTART_MODE} and counter is $counter. Copying the last job as the initial condition for the next job."
 			if (( $letter == a)); then
 				cp -r ../"${master_id}${letter_old}" ../"${master_id}a${letter}"
+				# if $master_id includes "SCALEE", then cp ../"${master_id}$"/INCAR ../"${master_id}${letter}"/
+				if [[ $master_id == SCALEE* ]]; then
+					cp ../"${master_id}${letter_old}"/INCAR ../"${master_id}a${letter}"/
+				fi
 			else
 				cp -r ../"${master_id}a${letter_old}" ../"${master_id}a${letter}"
+				# if $master_id includes "SCALEE", then cp ../"${master_id}$"/INCAR ../"${master_id}${letter}"/
+				if [[ $master_id == SCALEE* ]]; then
+					cp ../"${master_id}a${letter_old}"/INCAR ../"${master_id}a${letter}"/
+				fi
 			fi
 		fi
 
@@ -326,10 +362,20 @@ elif (( $extended_job_flag == 1 )); then
 		if (( counter == 1 && RESTART_MODE > 0 )); then
 			echo "RESTART_MODE is set to ${RESTART_MODE} and counter is $counter. Copying SCALEE_${RESTART_MODE} as the initial condition for the first job."
 			cp -r ../SCALEE_${RESTART_MODE} ../"${master_id}a${letter}"
-			cp ../"${master_id}${letter_old}"/INCAR ../"${master_id}${letter}"
+			cp ../"${master_id}a${letter_old}"/INCAR ../"${master_id}a${letter}"/ || {
+				echo "INCAR file not found in ${master_id}a${letter_old}. Exiting."
+				exit 1
+			}
 		else
 			echo "RESTART_MODE is set to ${RESTART_MODE} and counter is $counter. Copying the last job as the initial condition for the next job."
 			cp -r ../"${master_id}a${letter_old}" ../"${master_id}a${letter}"
+			# if $master_id includes "SCALEE", then cp ../"${master_id}$"/INCAR ../"${master_id}${letter}"/
+			if [[ $master_id == SCALEE* ]]; then
+				cp ../"${master_id}a${letter_old}"/INCAR ../"${master_id}a${letter}"/ || {
+					echo "INCAR file not found in ${master_id}a${letter_old}. Exiting."
+					exit 1
+				}
+			fi
 		fi
 
 		cd ../"${master_id}a${letter}" || exit 1  # Exit if the directory change fails
@@ -402,10 +448,20 @@ elif (( $extended_job_flag == -1 )); then
 		if (( counter == 1 && RESTART_MODE > 0 )); then
 			echo "RESTART_MODE is set to ${RESTART_MODE} and counter is $counter. Copying SCALEE_${RESTART_MODE} as the initial condition for the first job."
 			cp -r ../SCALEE_${RESTART_MODE} ../"${master_id}${letter}"
-			cp ../"${master_id}${letter_old}"/INCAR ../"${master_id}${letter}"
+			cp ../"${master_id}${letter_old}"/INCAR ../"${master_id}${letter}" || {
+				echo "INCAR file not found in ${master_id}${letter_old}. Exiting."
+				exit 1
+			}
 		else
 			echo "RESTART_MODE is set to ${RESTART_MODE} and counter is $counter. Copying the last job as the initial condition for the next job."
 			cp -r ../"${master_id}${letter_old}" ../"${master_id}${letter}"
+			# if $master_id includes "SCALEE", then cp ../"${master_id}$"/INCAR ../"${master_id}${letter}"/
+			if [[ $master_id == SCALEE* ]]; then
+				cp ../"${master_id}${letter_old}"/INCAR ../"${master_id}${letter}"/ || {
+					echo "INCAR file not found in ${master_id}${letter_old}. Exiting."
+					exit 1
+				}
+			fi
 		fi
 
 		cd ../"${master_id}${letter}" || exit 1  # Exit if the directory change fails

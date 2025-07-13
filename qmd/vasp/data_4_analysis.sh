@@ -15,11 +15,12 @@ parent_dir_name=$(basename "$parent_dir")
 
 
 # module purge
+MSD_python_file="${SCRATCH}/qmd_data/H2O_H2/sim_data_convergence/crystalline_or_not/run_scripts/msd_calc_v2.py"
+ENV_for_MSD="module load anaconda3/2024.6; conda activate mda_env"
 # echo $ENV_for_MSD > setting_env.sh #for mda analysis and the "bc" command required for peavg.sh
 # source setting_env.sh
 # rm setting_env.sh
-# MSD_python_file="${SCRATCH}/qmd_data/H2O_H2/sim_data_convergence/crystalline_or_not/run_scripts/msd_calc_v2.py"
-# ENV_for_MSD="module load anaconda3/2024.6; conda activate mda_env"
+
 
 
 echo "################################"
@@ -115,12 +116,12 @@ sed -n '7p' $parent_dir/analysis/peavg_numbers.out >> analysis/peavg_summary.out
 
 
 ######################################
-# echo "Running MSD calculation ..."
-echo "Diffusion calculation deactivated."
+echo "Running MSD calculation ..."
+# echo "Diffusion calculation deactivated."
 # Diffusion calculcation
-# cp $MSD_python_file .
-# python msd_calc_v2.py
-# module purge
+cp $MSD_python_file .
+python msd_calc_v2.py
+module purge
 ######################################
 
 
