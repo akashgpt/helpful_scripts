@@ -1,3 +1,11 @@
+#! /usr/bin/env python3
+# -*- coding: utf-8 -*-
+# This script calculates the Mean Square Displacement (MSD) for different atom types in a molecular dynamics simulation.
+# It uses the MDAnalysis library to analyze the trajectory data and compute the MSD.
+# The results are plotted and saved, and the diffusion coefficients are calculated and stored in a text file in the analysis directory.
+
+# Usage: 
+
 # Define the main project directory
 
 AG_GLOBAL = "/projects/BURROWS/akashgpt"

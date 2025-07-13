@@ -15,11 +15,10 @@ parent_dir_name=$(basename "$parent_dir")
 
 
 # module purge
-MSD_python_file="${SCRATCH}/qmd_data/H2O_H2/sim_data_convergence/crystalline_or_not/run_scripts/msd_calc_v2.py"
+MSD_python_file="${LOCAL_HELP_SCRIPTS_vasp}/msd_calc_v3.py"
 ENV_for_MSD="module load anaconda3/2024.6; conda activate mda_env"
-# echo $ENV_for_MSD > setting_env.sh #for mda analysis and the "bc" command required for peavg.sh
-# source setting_env.sh
-# rm setting_env.sh
+echo $ENV_for_MSD > setting_env.sh #for mda analysis and the "bc" command required for peavg.sh
+
 
 
 
@@ -113,16 +112,6 @@ sed -n '18p' $parent_dir/analysis/peavg_numbers.out >> analysis/peavg_summary.ou
 sed -n '19p' $parent_dir/analysis/peavg_numbers.out >> analysis/peavg_summary.out #S_el error
 sed -n '7p' $parent_dir/analysis/peavg_numbers.out >> analysis/peavg_summary.out #Volume in cm^3/mol-atom
 
-
-
-######################################
-echo "Running MSD calculation ..."
-# echo "Diffusion calculation deactivated."
-# Diffusion calculcation
-cp $MSD_python_file .
-python msd_calc_v2.py
-module purge
-######################################
 
 
 
@@ -300,6 +289,29 @@ with open("analysis/log.plot_evo_data", "w") as log_file:
     log_file.write(f"Mean Temperature: {np.mean(stat_mean_temp):.2f} +/- {np.std(stat_mean_temp):.2f} K\n")
 
 EOF
+
+
+
+
+
+
+
+
+
+
+######################################
+echo "Running MSD calculation ..."
+# echo "Diffusion calculation deactivated."
+# Diffusion calculcation
+module purge
+source setting_env.sh
+rm setting_env.sh
+cp $MSD_python_file .
+python msd_calc_v3.py
+module purge
+######################################
+
+
 
 
 
