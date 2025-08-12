@@ -298,20 +298,26 @@ EOF
 
 
 
-
+echo ""
 ######################################
-echo "Running MSD calculation ..."
-# echo "Diffusion calculation deactivated."
-# Diffusion calculcation
-module purge
-source setting_env.sh
-rm setting_env.sh
-cp $MSD_python_file .
-python msd_calc_v3.py
-module purge
+# # if TI_mode=0
+# if [ "$TI_mode" -eq 0 ]; then
+#     echo "Running MSD calculation ..."
+#     # echo "Diffusion calculation deactivated."
+#     # Diffusion calculcation
+#     module purge
+#     source setting_env.sh
+#     cp $MSD_python_file .
+#     python msd_calc_v3.py
+#     module purge
+# else
+#     echo "Diffusion calculation deactivated."
+# fi
 ######################################
-
-
+echo ""
+rm -f msd_calc_v3.py setting_env.sh
+echo "Diffusion calculation deactivated."
+echo ""
 
 
 

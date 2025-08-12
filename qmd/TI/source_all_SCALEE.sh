@@ -23,11 +23,11 @@ pids=()
 # ========================================================
 # ========================================================
 
-KEYWORD_TO_EVALUATE="SCALEE_1" # or "SCALEE_0" if you want to run it in SCALEE_0 directories
+KEYWORD_TO_EVALUATE="SCALEE_7" # or "SCALEE_0" if you want to run it in SCALEE_0 directories
 
 mode_data_4_analysis=1 # 0: don't run data_4_analysis.sh everywhere, 1: run
 mode_track=1 # 0: don't track, 1: track how long all sims ran 
-mode_restart_extend=1 # 0: don't extend, 1: extend the simulations (if SCALEE_0b last, create SCALEE_0c, etc.)
+mode_restart_extend=0 # 0: don't extend, 1: extend the simulations (if SCALEE_0b last, create SCALEE_0c, etc.)
 ENABLE_CREATION=false # if true, create directories and copy contents; if false, just print what would be done
 
 # ========================================================

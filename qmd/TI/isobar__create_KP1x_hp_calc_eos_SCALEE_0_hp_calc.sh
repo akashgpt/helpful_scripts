@@ -192,14 +192,14 @@ while IFS= read -r -d '' parent; do
         continue
     fi
 
-    # Check if "to_RUN__correction" exists in SCALEE_0_dir and skip if it does
-    if [[ -f "${SCALEE_0_dir}/to_RUN__correction" ]]; then
+    # Check if "to_RUN__correction" or "to_RUN__hp_calc" exists in SCALEE_0_dir and skip if it does not
+    if [[ ! -f "${SCALEE_0_dir}/to_RUN__correction" && ! -f "${SCALEE_0_dir}/to_RUN__hp_calc" ]]; then
         echo ""
         echo "----------------------------------------"
-        echo "Parent directory ${SCALEE_0_dir} has a file \"to_RUN__correction\". Skipping."
+        echo "Parent directory ${SCALEE_0_dir} does NOT have a file \"to_RUN__correction\" or \"to_RUN__hp_calc\". Skipping."
         echo "----------------------------------------"
         echo ""
-        cd $ISOBAR_CALC_dir || exit 1 # Return to ISOBAR_CALC_dir
+        cd "$ISOBAR_CALC_dir" || exit 1 # Return to ISOBAR_CALC_dir
         continue
     fi
 

@@ -362,6 +362,7 @@ elif (( $extended_job_flag == 1 )); then
 		if (( counter == 1 && RESTART_MODE > 0 )); then
 			echo "RESTART_MODE is set to ${RESTART_MODE} and counter is $counter. Copying SCALEE_${RESTART_MODE} as the initial condition for the first job."
 			cp -r ../SCALEE_${RESTART_MODE} ../"${master_id}a${letter}"
+			# if $master_id == SCALEE_7, replace "SCALEE =" line with "SCALEE = ${RESTART_MODE}"
 			cp ../"${master_id}a${letter_old}"/INCAR ../"${master_id}a${letter}"/ || {
 				echo "INCAR file not found in ${master_id}a${letter_old}. Exiting."
 				exit 1

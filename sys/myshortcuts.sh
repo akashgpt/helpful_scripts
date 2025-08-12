@@ -196,6 +196,18 @@ hog_summary() {
 }
 
 
+
+# # Function to list all running scripts for the current user
+myscripts() {
+  echo "Your running scripts:"
+  ps -u "$USER" -o pid,cmd --sort=cmd \
+    | grep -E '\.sh\b|\.py\b|\.pl\b|\.R\b' \
+    | grep -v grep
+}
+
+
+
+
 end_block4=$(date +%s)
 elapsed_block4=$(( end_block4 - start_block4 ))
 if [ $elapsed_block4 -gt 10 ]; then
@@ -283,6 +295,7 @@ fi
 alias l_dp_plmd='module load anaconda3/2024.6; conda activate dp_plmd_09' #STELLAR | DELLA
 alias l_mda='module load anaconda3/2024.6; conda activate mda_env' #TIGER3 | STELLAR | DELLA
 alias l_asap='module load anaconda3/2024.6; conda activate asap'
+alias l_pysr='module load anaconda3/2024.10; conda activate pysr_env' # TIGER3
 
 if [[ $CLUSTER == "STELLAR" ]]; then
   alias l_qmda='module load anaconda3/2024.6; conda activate qmda' #STELLAR
@@ -386,7 +399,7 @@ export PATH=$HOME/local/bin:$PATH # for patchelf
 export PYTHONPATH=$PYTHONPATH:$LOCAL_AG_BURROWS/misc_libraries/
 export PYTHONPATH=$HELP_SCRIPTS:$PYTHONPATH
 export PYTHONPATH=$HELP_SCRIPTS/general:$PYTHONPATH
-export PYTHONPATH=$LOCAL_HELP_SCRIPTS/general:$PYTHONPATH
+# export PYTHONPATH=$LOCAL_HELP_SCRIPTS/general:$PYTHONPATH
 # export PATH=$PATH:$LARS_SCRIPTS_DIR
 # export PATH=$PATH:$JIE_SCRIPTS_DIR
 # export PATH=$PATH:$mldp

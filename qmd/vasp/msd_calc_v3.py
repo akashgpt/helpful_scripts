@@ -55,6 +55,7 @@ dt_sim = incar['POTIM'] * 1.0E-3  # Set timestep in ps
 os.system(f'python {AG_GLOBAL}/misc_libraries/XDATCAR_toolkit/XDATCAR_toolkit.py -p -t {incar["POTIM"]} --pbc')
 u_unwrapped = mda.Universe("XDATCAR.pdb", dt=dt_sim)
 
+
 ################################################################
 u_ref = u_unwrapped
 ################################################################
@@ -144,5 +145,12 @@ ax1.yaxis.set_tick_params(labelsize=12)
 
 # Save the plot
 fig.tight_layout(rect=[0, 0, 1, 0.95])
-fig.savefig("MSD_combined.jpg", dpi=300, bbox_inches='tight')
+diffusion_fig_path = os.path.join(runID_dir_analysis, "MSD_plot.jpg")
+fig.savefig(diffusion_fig_path, dpi=300, bbox_inches='tight')
 plt.show()
+
+
+# delete the XDATCAR.pdb file to save space
+if exists("XDATCAR.pdb"):
+    os.remove("XDATCAR.pdb")
+    print("Deleted XDATCAR.pdb file to save space.")

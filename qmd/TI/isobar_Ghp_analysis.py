@@ -265,6 +265,10 @@ CONFIG_data['H_over_T2_err']   = sigmas
 
 
 
+## NOTE: remove all entries with T_target == 10400, 7200, 5200
+CONFIG_data = CONFIG_data[~CONFIG_data['T_target'].isin([10400, 7200, 5200])].reset_index(drop=True)
+print(f"\n\nNOTE: Removed entries with T_target == 10400, 7200, 5200. Likely crystalline Fe at these T/Ps.\n\n")
+
 
 
 
