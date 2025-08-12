@@ -743,8 +743,8 @@ def monte_carlo_error_asymmetric_w_io_bounds_vectorized_outputs(
     input_bounds=None,       # None, (L,U) or shape (n_vars,2)
     output_bounds=None,      # None, (low,high) or list/array shape (M,2)
     batch_size=None,
-    max_input_resample_factor=100000000,
-    max_output_resample_factor=200000000,
+    max_input_resample_factor=10000000,
+    max_output_resample_factor=20000000,
     return_ci=False,
     return_samples=False,
     return_rates=False,
