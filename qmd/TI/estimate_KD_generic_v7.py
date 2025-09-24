@@ -40,6 +40,7 @@ Author: Akash Gupta
 import re
 import ast
 from pathlib import Path
+from matplotlib.collections import PathCollection
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
@@ -64,10 +65,11 @@ epsilon = 1e-10  # small value to avoid division by zero
 num_array_X=100  # number of points in the log-spaced array for X_{secondary_species}
 max_array_X=0.2 #100/109  # maximum value of X_{secondary_species} (corresponds to a wt fraction of 0.1)
 
-SCRIPT_MODE = 1 # >0, only plot; <0, only do analysis; 0: both
-PLOT_MODE=8 #-1: plot all; 0: do not plot, 1: plot #1, 2: plot #2, 3: plot #3 ...
-TEMPERATURES_TO_REMOVE = [10400, 7200, 5200]  # temperatures to remove from the final DataFrame
-
+SCRIPT_MODE             = 1 # >0, only plot; <0, only do analysis; 0: both
+PLOT_MODE               = 21 # 21 #-1: plot all; 0: do not plot, 1: plot #1, 2: plot #2, 3: plot #3 ...
+TEMPERATURES_TO_REMOVE  = [10400, 7200, 5200]  # temperatures to remove from the final DataFrame
+FIT_MODE                = 0 # 1: plot fit to data; 0: do not plot fit
+H_STOICH_MODE           = 1 # 2: calculate for H2, 1: calculate for H
 
 
 
@@ -1787,7 +1789,9 @@ if SCRIPT_MODE >= 0: # plot if > 0
         norm,
         markers,
         marker_opts_scatter,
-        marker_opts_error
+        marker_opts_error,
+        x_low=None,
+        x_high=None
     ):
         """
         Plot experimental study data on two axes: partition coefficient and distribution coefficient.
@@ -1819,76 +1823,108 @@ if SCRIPT_MODE >= 0: # plot if > 0
             Keyword args for scatter (e.g., linestyle, s, alpha).
         marker_opts_error : dict
             Keyword args for errorbar (e.g., linewidth, capsize, alpha).
+        x_low : float, optional
+            Lower limit for x-axis based data
+        x_high : float, optional
+            Upper limit for x-axis based data
         """
-
+        # print(f"\n\nMaster: x_min: {x_low}, x_max: {x_high}")
         for data, marker in zip(datasets, markers):
             # Scatter KD_sil_to_metal
             # var  = df[z_variable].values
-            x_vals = data[x_variable]
-            temps  = np.array(data[z_variable], float)
+            # print(f"x_min: {x_low}, x_max: {x_high}")
+            x_vals = np.asarray(data[x_variable])
+            temps  = np.array(data[z_variable], float)  
+            KD = np.array(data["KD_sil_to_metal"], float)
+            KD_low = np.array(data["KD_sil_to_metal_low"], float)
+            KD_high = np.array(data["KD_sil_to_metal_high"], float)
+            D_wt = np.array(data["D_wt"], float)
+            D_wt_low = np.array(data["D_wt_low"], float)
+            D_wt_high = np.array(data["D_wt_high"], float)
+
+            if x_low is not None:
+                mask = np.asarray(x_vals) > x_low
+            if x_high is not None:
+                mask = np.asarray(x_vals) < x_high
+
+            if 'mask' in locals():
+                x_vals = x_vals[mask]
+                temps = temps[mask]
+                KD = KD[mask]
+                KD_low = KD_low[mask]
+                KD_high = KD_high[mask]
+                D_wt = D_wt[mask]
+                D_wt_low = D_wt_low[mask]
+                D_wt_high = D_wt_high[mask]
+
             colors = cmap(norm(temps))
 
-            fn_ax_KD.scatter(
-                x_vals,
-                data["KD_sil_to_metal"],
-                color=colors,
-                **marker_opts_scatter,
-                marker=marker,
-                label=data["label"]
-            )
 
-            # print value of alpha from marker_opts_scatter
-            # print(f"Alpha: {alpha} for dataset {data['label']} with marker {marker}")
+            if x_vals.size > 0:
 
-            # Error bars for KD_sil_to_metal
-            for x0, y0, y_low, y_high, c in zip(
-                x_vals,
-                data["KD_sil_to_metal"],
-                data["KD_sil_to_metal_low"],
-                data["KD_sil_to_metal_high"],
-                colors
-            ):
-                low = y0 - y_low
-                high = y_high - y0
-                yerr = [[low], [high]]  # shape (2,1)
-                fn_ax_KD.errorbar(
-                    x0, y0,
-                    yerr=yerr,
-                    fmt='none',
-                    **marker_opts_error,
-                    ecolor=c
+                fn_ax_KD.scatter(
+                    x_vals,
+                    KD,
+                    color=colors,
+                    **marker_opts_scatter,
+                    marker=marker,
+                    label=data["label"],
+                    # rasterized=True
+                )
+
+                # print value of alpha from marker_opts_scatter
+                # print(f"Alpha: {alpha} for dataset {data['label']} with marker {marker}")
+
+                # Error bars for KD_sil_to_metal
+                for x0, y0, y_low, y_high, color in zip(
+                    x_vals,
+                    KD,
+                    KD_low,
+                    KD_high,
+                    colors
+                ):
+                    low = y0 - y_low
+                    high = y_high - y0
+                    yerr = [[low], [high]]  # shape (2,1)
+                    fn_ax_KD.errorbar(
+                        x0, y0,
+                        yerr=yerr,
+                        fmt='none',
+                        **marker_opts_error,
+                        ecolor=color
+                    )
+
+
+                # Scatter D_wt
+                fn_ax_D_wt.scatter(
+                    x_vals,
+                    D_wt,
+                    color=colors,
+                    **marker_opts_scatter,
+                    marker=marker,
+                    # label=data["label"],
+                    # rasterized=True
                 )
 
 
-            # Scatter D_wt
-            fn_ax_D_wt.scatter(
-                x_vals,
-                data["D_wt"],
-                color=colors,
-                **marker_opts_scatter,
-                marker=marker,
-                label=data["label"]
-            )
-
-
-            # Error bars for D_wt
-            for x0, y0, y_low, y_high, c in zip(
-                x_vals,
-                data["D_wt"],
-                data["D_wt_low"],
-                data["D_wt_high"],
-                colors
-            ):
-                low = y0 - y_low
-                high = y_high - y0
-                yerr = [[low], [high]]
-                fn_ax_D_wt.errorbar(
-                    x0, y0,
-                    yerr=yerr,
-                    fmt='none',
-                    **marker_opts_error,
-                    ecolor=c
-                )
+                # Error bars for D_wt
+                for x0, y0, y_low, y_high, color in zip(
+                    x_vals,
+                    D_wt,
+                    D_wt_low,
+                    D_wt_high,
+                    colors
+                ):
+                    low = y0 - y_low
+                    high = y_high - y0
+                    yerr = [[low], [high]]
+                    fn_ax_D_wt.errorbar(
+                        x0, y0,
+                        yerr=yerr,
+                        fmt='none',
+                        **marker_opts_error,
+                        ecolor=color
+                    )
 
     # Usage example:
     # plot_studies(
@@ -1903,6 +1939,39 @@ if SCRIPT_MODE >= 0: # plot if > 0
     #     marker_opts_scatter__others,
     #     marker_opts_error__others
     # )
+    ############################################
+    ############################################
+    ############################################
+
+
+
+    def _extract_col(src, col):
+        """Return 1-D float array for the given column from a DataFrame/Series/dict; None if missing."""
+        try:
+            if isinstance(src, pd.DataFrame):
+                arr = src[col].to_numpy()
+            elif isinstance(src, pd.Series):
+                val = src[col]
+                arr = np.array([val]) if np.isscalar(val) else np.asarray(val)
+            else:  # dict-like / numpy structured / etc.
+                val = src[col]
+                arr = np.array([val]) if np.isscalar(val) else np.asarray(val)
+        except (KeyError, AttributeError):
+            raise KeyError(col)
+        return np.asarray(arr, dtype=float).ravel()
+
+    def _concat_cols(sources, col):
+        parts = []
+        for s in sources:
+            a = _extract_col(s, col)
+            if a is not None and a.size > 0:
+                parts.append(a)
+        return (np.concatenate(parts) if parts else np.array([], dtype=float))
+
+
+
+
+
     ############################################
     ############################################
     ############################################
@@ -2041,6 +2110,12 @@ if SCRIPT_MODE >= 0: # plot if > 0
         P:60, T:5000, D_wt: 0.00161063482282789, D_wt_low: 0.00161063482282789, D_wt_high: 0.00161063482282789
         P:135, T:5000, D_wt: 0.0024094848405521382, D_wt_low: 0.0024094848405521382, D_wt_high: 0.0024094848405521382
 
+        Xiong et al. 2020 data -- original
+        dict: data_He__Xiong_et_al_2020
+        P:20, T:5000, D_wt: 5.8E-3, D_wt_low: (5.8-1.7)E-3, D_wt_high: (5.8+1.7)E-3
+        P:60, T:5000, D_wt: 2.3E-2, D_wt_low: (2.3-1.1)E-2, D_wt_high: (2.3+1.1)E-2
+        P:135, T:5000, D_wt: 1.4E-2, D_wt_low: (1.4-0.4)E-2, D_wt_high: (1.4+0.4)E-2
+
         Wang et al. 2022 (corrected) data -- no error known
         dict: data_He__Wang_et_al_2022_corrected
         P:20, T:2500, D_wt: 0.00003047649470506126, D_wt_low: 0.00003047649470506126, D_wt_high: 0.00003047649470506126
@@ -2048,8 +2123,20 @@ if SCRIPT_MODE >= 0: # plot if > 0
         P:60, T:3600, D_wt: 0.0019306977288832535, D_wt_low: 0.0019306977288832535, D_wt_high: 0.0019306977288832535
         P:135, T:5000, D_wt: 0.17224697497149574, D_wt_low: 0.17224697497149574, D_wt_high: 0.17224697497149574
 
-        Yuan & Steinle-Neumann 2020 data
-        dict: data_He__Yuan_and_Steinle_Neumann_2020
+        Wang et al. 2022 data -- original
+        dict: data_He__Wang_et_al_2022
+        P:10, T:2300, D_wt: 8.40E-4, D_wt_low: (8.40-3.90)E-4, D_wt_high: (8.40+3.90)E-4
+        P:20, T:2500, D_wt: 9.11E-4, D_wt_low: (9.11-3.54)E-4, D_wt_high: (9.11+3.54)E-4
+        P:20, T:4000, D_wt: 1.89E-2, D_wt_low: (1.89-0.63)E-2, D_wt_high: (1.89+0.63)E-2
+        P:20, T:5000, D_wt: 4.92E-2, D_wt_low: (4.92-1.57)E-2, D_wt_high: (4.92+1.57)E-2
+        P:40, T:3200, D_wt: 6.04E-3, D_wt_low: (6.04-2.33)E-3, D_wt_high: (6.04+2.33)E-3
+        P:60, T:3600, D_wt: 7.26E-3, D_wt_low: (7.26-2.68)E-3, D_wt_high: (7.26+2.68)E-3
+        P:80, T:4000, D_wt: 1.72E-2, D_wt_low: (1.72-0.70)E-2, D_wt_high: (1.72+0.70)E-2
+        P:110, T:4500, D_wt: 2.69E-2, D_wt_low: (2.69-1.08)E-2, D_wt_high: (2.69+1.08)E-2
+        P:135, T:5000, D_wt: 6.87E-2, D_wt_low: (6.87-2.42)E-2, D_wt_high: (6.87+2.42)E-2
+
+        Yuan & Steinle-Neumann 2021 data
+        dict: data_He__Yuan_and_Steinle_Neumann_2021
         P:10, T:3000, D_wt: 10**(-4.73), D_wt_low: 10**(-4.73-0.40), D_wt_high: 10**(-4.73+0.40)
         P:25, T:3500, D_wt: 10**(-3.48), D_wt_low: 10**(-3.48-0.37), D_wt_high: 10**(-3.48+0.37) 
         P:40, T:3800, D_wt: 10**(-3.32), D_wt_low: 10**(-3.32-0.28), D_wt_high: 10**(-3.32+0.28)
@@ -2065,7 +2152,7 @@ if SCRIPT_MODE >= 0: # plot if > 0
             "D_wt": [0.0025085161975393296, 0.0008455001765588335],
             "D_wt_low": [0.001076638661030702, 0.00027929562959971827],
             "D_wt_high": [0.0059636233165946545, 0.0025085161975393296],
-            "label": "Yunguo Li et al. 2022"
+            "label": "Li et al. 2022"
         }
 
         data_He__Zhang_and_Yin_2012 = {
@@ -2074,7 +2161,7 @@ if SCRIPT_MODE >= 0: # plot if > 0
             "D_wt": [0.008921488454390353],
             "D_wt_low": [0.0030070047268396694],
             "D_wt_high": [0.015060610109031605],
-            "label": "Zhang & Yin 2012"
+            "label": r"Zhang \& Yin 2012"
         }
 
         data_He__Xiong_et_al_2020_corrected = {
@@ -2086,6 +2173,15 @@ if SCRIPT_MODE >= 0: # plot if > 0
             "label": "Xiong et al. 2020 (corrected)"
         }
 
+        data_He__Xiong_et_al_2020 = {
+            "Target pressure (GPa)": [20, 60, 135],
+            "Target temperature (K)": [5000, 5000, 5000],
+            "D_wt": [5.8E-3, 2.3E-2, 1.4E-2],
+            "D_wt_low": [(5.8-1.7)*1E-3, (2.3-1.1)*1E-2, (1.4-0.4)*1E-2],
+            "D_wt_high": [(5.8+1.7)*1E-3, (2.3+1.1)*1E-2, (1.4+0.4)*1E-2],
+            "label": "Xiong et al. 2020"
+        }
+
         data_He__Wang_et_al_2022_corrected = {
             "Target pressure (GPa)": [20, 40, 60, 135],
             "Target temperature (K)": [2500, 3200, 3600, 5000],
@@ -2095,21 +2191,32 @@ if SCRIPT_MODE >= 0: # plot if > 0
             "label": "Wang et al. 2022 (corrected)"
         }
 
-        data_He__Yuan_and_Steinle_Neumann_2020 = {
+        data_He__Wang_et_al_2022 = {
+            "Target pressure (GPa)": [10,   20,   20,   20,   40,   60,   80,   110,   135],
+            "Target temperature (K)": [2300, 2500, 4000, 5000, 3200, 3600, 4000, 4500, 5000],
+            "D_wt":        [8.40e-4,        9.11e-4,        1.89e-2,        4.92e-2,        6.04e-3,        7.26e-3,        1.72e-2,        2.69e-2,        6.87e-2],
+            "D_wt_low":    [(8.40-3.90)*1e-4, (9.11-3.54)*1e-4, (1.89-0.63)*1e-2, (4.92-1.57)*1e-2, (6.04-2.33)*1e-3, (7.26-2.68)*1e-3, (1.72-0.70)*1e-2, (2.69-1.08)*1e-2, (6.87-2.42)*1e-2],
+            "D_wt_high":   [(8.40+3.90)*1e-4, (9.11+3.54)*1e-4, (1.89+0.63)*1e-2, (4.92+1.57)*1e-2, (6.04+2.33)*1e-3, (7.26+2.68)*1e-3, (1.72+0.70)*1e-2, (2.69+1.08)*1e-2, (6.87+2.42)*1e-2],
+            "label": "Wang et al. 2022"
+        }
+
+        data_He__Yuan_and_Steinle_Neumann_2021 = {
             "Target pressure (GPa)": [10, 25, 40, 50, 80, 130],
             "Target temperature (K)": [3000, 3500, 3800, 4000, 4000, 5000],
             "D_wt": [10**(-4.73), 10**(-3.48), 10**(-3.32), 10**(-2.07), 10**(-2.59), 10**(-1.24)],
             "D_wt_low": [10**(-4.73-0.40), 10**(-3.48-0.37), 10**(-3.32-0.28), 10**(-2.07-0.29), 10**(-2.59-0.26), 10**(-1.24-0.20)],
             "D_wt_high": [10**(-4.73+0.40), 10**(-3.48+0.37), 10**(-3.32+0.28), 10**(-2.07+0.29), 10**(-2.59+0.26), 10**(-1.24+0.20)],
-            "label": "Yuan & Steinle-Neumann 2020"
+            "label": r"Yuan \& Steinle-Neumann 2021"
         }
 
         datasets_comp = [
                     data_He__Li_et_al_2022,
                     data_He__Zhang_and_Yin_2012,
-                    data_He__Xiong_et_al_2020_corrected,
-                    data_He__Wang_et_al_2022_corrected,
-                    data_He__Yuan_and_Steinle_Neumann_2020
+                    # data_He__Xiong_et_al_2020_corrected,
+                    data_He__Xiong_et_al_2020,
+                    # data_He__Wang_et_al_2022_corrected,
+                    data_He__Wang_et_al_2022,
+                    # data_He__Yuan_and_Steinle_Neumann_2021
                                                             ]
 
         # calculate KD_sil_to_metal from D_wt (including error) using the formula:
@@ -2131,7 +2238,7 @@ if SCRIPT_MODE >= 0: # plot if > 0
         P: 90, T: 3900, D_wt: 17.81952229659459, D_wt_low: 6.145121384918334, D_wt_high: 51.6727587608185
         P: 135, T: 4200, D_wt: 16.006673089593978, D_wt_low: 3.072240409180031, D_wt_high: 83.39633273214913
 
-        Yuan & Steinle-Neumann 2020 data
+        Yuan & Steinle-Neumann 2020 data -- NOTE: use water reaction!
         dict: data_H__Yuan_and_Steinle_Neumann_2020
         P: 20, T: 2500, KD: 10**(0.86), KD_low: 10**(0.86), KD_high: 10**(0.86)
         P: 40, T: 4000, KD: 10**(1.92), KD_low: 10**(1.92), KD_high: 10**(1.92)
@@ -2145,7 +2252,7 @@ if SCRIPT_MODE >= 0: # plot if > 0
             "D_wt": [8.726904331596701, 9.01980466823185, 17.81952229659459, 16.006673089593978],
             "D_wt_low": [2.245197139773531, 2.972475471559787, 6.145121384918334, 3.072240409180031],
             "D_wt_high": [34.20189577525205, 27.145119399821766, 51.6727587608185, 83.39633273214913],
-            "label": "Yunguo Li et al. 2022"
+            "label": "Li et al. 2022"
         }
 
         #calculate KD_sil_to_metal from D_wt (including error) using the formula:
@@ -2172,7 +2279,7 @@ if SCRIPT_MODE >= 0: # plot if > 0
 
         datasets_comp = [
                     data_H__Li_et_al_2022,
-                    data_H__Yuan_and_Steinle_Neumann_2020
+                    # data_H__Yuan_and_Steinle_Neumann_2020
                                                             ]
 
 
@@ -2274,12 +2381,12 @@ if SCRIPT_MODE >= 0: # plot if > 0
 
         Tagawa et al. 2021 data (HO0.5_{silicate} + 0.5 Fe_{metal} = H_{metal} + 0.5FeO_{silicate})
         dict: data_H__Tagawa_et_al_2021
-        P: 46, T: 3920, KD: 10**1.32, KD_low: 10**(1.32-0.06), KD_high: 10**(1.32+0.06)
-        P: 48, T: 3450, KD: 10**1.10, KD_low: 10**(1.10-0.06), KD_high: 10**(1.10+0.06)
-        P: 57, T: 3860, KD: 10**1.22, KD_low: 10**(1.22-0.05), KD_high: 10**(1.22+0.05)
-        P: 60, T: 4560, KD: 10**1.37, KD_low: 10**(1.37-0.05), KD_high: 10**(1.37+0.05)
-        P: 47, T: 4230, KD: 10**1.35, KD_low: 10**(1.35-0.06), KD_high: 10**(1.35+0.06)
-        P: 30, T: 3080, KD: 10**1.18, KD_low: 10**(1.18-0.06), KD_high: 10**(1.18+0.06)
+        P: 46, T: 3920, KD: 10**1.32, KD_low: 10**(1.32-0.06), KD_high: 10**(1.32+0.06), D_wt: 47, D_wt_low: 47-4, D_wt_high: 47+4
+        P: 48, T: 3450, KD: 10**1.10, KD_low: 10**(1.10-0.06), KD_high: 10**(1.10+0.06), D_wt: 29, D_wt_low: 29-2, D_wt_high: 29+2
+        P: 57, T: 3860, KD: 10**1.22, KD_low: 10**(1.22-0.05), KD_high: 10**(1.22+0.05), D_wt: 40, D_wt_low: 40-3, D_wt_high: 40+3
+        P: 60, T: 4560, KD: 10**1.37, KD_low: 10**(1.37-0.05), KD_high: 10**(1.37+0.05), D_wt: 56, D_wt_low: 56-4, D_wt_high: 56+4
+        P: 47, T: 4230, KD: 10**1.35, KD_low: 10**(1.35-0.06), KD_high: 10**(1.35+0.06), D_wt: 57, D_wt_low: 57-6, D_wt_high: 57+6
+        P: 30, T: 3080, KD: 10**1.18, KD_low: 10**(1.18-0.06), KD_high: 10**(1.18+0.06), D_wt: 37, D_wt_low: 37-3, D_wt_high: 37+3
 
         Clesi et al. 2018 data (0.5 H2_{silicate} = H_{metal})
         dict: data_H__Clesi_et_al_2018
@@ -2306,15 +2413,15 @@ if SCRIPT_MODE >= 0: # plot if > 0
         P: 1, T: 1873.15, D_wt: 0.038, D_wt_low: 0.038-0.010, D_wt_high: 0.038+0.010
         P: 1, T: 1673.15, D_wt: 0.045, D_wt_low: 0.045-0.012, D_wt_high: 0.045+0.012
 
-        Okuchi 1997 data
+        Okuchi 1997 data (D estimated from plot in Tagawa et al. 1997)
         dict: data_H__Okuchi_1997
-        P: 7.5, T: 1200+273.15, KD: exp**(-3.6), KD_low: exp**(-3.6-0.1), KD_high: exp**(-3.6+0.1)    
-        P: 7.5, T: 1200+273.15, KD: exp**(-3.4), KD_low: exp**(-3.4-0.0), KD_high: exp**(-3.4+0.0)
-        P: 7.5, T: 1300+273.15, KD: exp**(-2.4), KD_low: exp**(-2.4-0.6), KD_high: exp**(-2.4+0.6)
-        P: 7.5, T: 1400+273.15, KD: exp**(-2.0), KD_low: exp**(-2.0-0.0), KD_high: exp**(-2.0+0.0)
-        P: 7.5, T: 1500+273.15, KD: exp**(-1.4), KD_low: exp**(-1.4-0.2), KD_high: exp**(-1.4+0.2)
-        P: 7.5, T: 1500+273.15, KD: exp**(1.5), KD_low: exp**(1.5-0.3), KD_high: exp**(1.5+0.3)
-        P: 7.5, T: 1500+273.15, KD: exp**(-1.5), KD_low: exp**(-1.5-0.2), KD_high: exp**(-1.5+0.2)
+        P: 7.5, T: 1200+273.15, KD: exp(-3.6), KD_low: exp(-3.6-0.1), KD_high: exp(-3.6+0.1), 
+        P: 7.5, T: 1200+273.15, KD: exp(-3.4), KD_low: exp(-3.4-0.0), KD_high: exp(-3.4+0.0)
+        P: 7.5, T: 1300+273.15, KD: exp(-2.4), KD_low: exp(-2.4-0.6), KD_high: exp(-2.4+0.6)
+        P: 7.5, T: 1400+273.15, KD: exp(-2.0), KD_low: exp(-2.0-0.0), KD_high: exp(-2.0+0.0)
+        P: 7.5, T: 1500+273.15, KD: exp(-1.4), KD_low: exp(-1.4-0.2), KD_high: exp(-1.4+0.2)
+        P: 7.5, T: 1500+273.15, KD: exp(-1.5), KD_low: exp(-1.5-0.3), KD_high: exp(-1.5+0.3)
+        P: 7.5, T: 1500+273.15, KD: exp(-1.5), KD_low: exp(-1.5-0.2), KD_high: exp(-1.5+0.2)
 
 
         """
@@ -2325,13 +2432,12 @@ if SCRIPT_MODE >= 0: # plot if > 0
             "KD_sil_to_metal": [10**1.32, 10**1.10, 10**1.22, 10**1.37, 10**1.35, 10**1.18],
             "KD_sil_to_metal_low": [10**(1.32-0.06), 10**(1.10-0.06), 10**(1.22-0.05), 10**(1.37-0.05), 10**(1.35-0.06), 10**(1.18-0.06)],
             "KD_sil_to_metal_high": [10**(1.32+0.06), 10**(1.10+0.06), 10**(1.22+0.05), 10**(1.37+0.05), 10**(1.35+0.06), 10**(1.18+0.06)],
+            "D_wt": [47, 29, 40, 56, 57, 37],
+            "D_wt_low": [47-4, 29-2, 40-3, 56-4, 57-6, 37-3],
+            "D_wt_high": [47+4, 29+2, 40+3, 56+4, 57+6, 37+3],
             "label": "Tagawa et al. 2021"
         }
-        # calculate D_wt from KD_sil_to_metal (including error) using the formula:
-        # D_wt = KD_sil_to_metal * (100/56)
-        data_H__Tagawa_et_al_2021["D_wt"] = [kd * (100/56) for kd in data_H__Tagawa_et_al_2021["KD_sil_to_metal"]]
-        data_H__Tagawa_et_al_2021["D_wt_low"] = [kd * (100/56) for kd in data_H__Tagawa_et_al_2021["KD_sil_to_metal_low"]]
-        data_H__Tagawa_et_al_2021["D_wt_high"] = [kd * (100/56) for kd in data_H__Tagawa_et_al_2021["KD_sil_to_metal_high"]]
+
 
         data_H__Clesi_et_al_2018 = {
             "Target pressure (GPa)": [5, 5, 5, 10, 10, 21, 5, 20, 10],
@@ -2362,18 +2468,18 @@ if SCRIPT_MODE >= 0: # plot if > 0
         data_H__Malavergne_et_al_2018["KD_sil_to_metal_high"] = [d * (56/100) for d in data_H__Malavergne_et_al_2018["D_wt_high"]]
 
         data_H__Okuchi_1997 = {
-            "Target pressure (GPa)": [1, 1, 1, 1, 1],
-            "Target temperature (K)": [1873.15, 1873.15, 1873.15, 1873.15, 1873.15],
-            "D_wt": [0.045, 0.038, 0.045, 0.045, 0.045],
-            "D_wt_low": [0.045-0.012, 0.038-0.010, 0.045-0.012, 0.045-0.012, 0.045-0.012],
-            "D_wt_high": [0.045+0.012, 0.038+0.010, 0.045+0.012, 0.045+0.012, 0.045+0.012],
-            "label": "Okuchi et al. 1997"
+            "Target pressure (GPa)": [7.5, 7.5, 7.5, 7.5, 7.5, 7.5, 7.5],
+            "Target temperature (K)": [1200+273.15, 1200+273.15, 1300+273.15, 1400+273.15, 1500+273.15, 1500+273.15, 1500+273.15],
+            "KD_sil_to_metal": [np.exp(-3.6), np.exp(-3.4), np.exp(-2.4), np.exp(-2.0), np.exp(-1.4), np.exp(-1.5), np.exp(-1.5)],
+            "KD_sil_to_metal_low": [np.exp(-3.6-0.1), np.exp(-3.4-0.0), np.exp(-2.4-0.6), np.exp(-2.0-0.0), np.exp(-1.4-0.2), np.exp(-1.5-0.3), np.exp(-1.5-0.2)],
+            "KD_sil_to_metal_high": [np.exp(-3.6+0.1), np.exp(-3.4+0.0), np.exp(-2.4+0.6), np.exp(-2.0+0.0), np.exp(-1.4+0.2), np.exp(-1.5+0.3), np.exp(-1.5+0.2)],
+            "label": "Okuchi 1997"
         }
         # calculate KD_sil_to_metal from D_wt (including error) using the formula:
         # KD_sil_to_metal = D_wt * (56/100)
-        data_H__Okuchi_1997["KD_sil_to_metal"] = [d * (56/100) for d in data_H__Okuchi_1997["D_wt"]]
-        data_H__Okuchi_1997["KD_sil_to_metal_low"] = [d * (56/100) for d in data_H__Okuchi_1997["D_wt_low"]]
-        data_H__Okuchi_1997["KD_sil_to_metal_high"] = [d * (56/100) for d in data_H__Okuchi_1997["D_wt_high"]]
+        data_H__Okuchi_1997["D_wt"] = [d * (100/56) for d in data_H__Okuchi_1997["KD_sil_to_metal"]]
+        data_H__Okuchi_1997["D_wt_low"] = [d * (100/56) for d in data_H__Okuchi_1997["KD_sil_to_metal_low"]]
+        data_H__Okuchi_1997["D_wt_high"] = [d * (100/56) for d in data_H__Okuchi_1997["KD_sil_to_metal_high"]]
 
         datasets_expt = [
                     data_H__Tagawa_et_al_2021,
@@ -2390,6 +2496,64 @@ if SCRIPT_MODE >= 0: # plot if > 0
     # make this pandas DataFrame
     # datasets_comp = [pd.DataFrame(data) for data in datasets_comp]
     # datasets_expt = [pd.DataFrame(data) for data in datasets_expt]
+
+
+
+
+
+    # ********************************************************************************************************
+    # ********************************************************************************************************
+    # ********************************************************************************************************
+    def best_fn(x0, x1, x2):# x0: log(X or X2), x1: P, x2: T
+
+        if secondary_species == "He":
+            fn = np.exp(x0) - (x2 * (0.07335293 / x1))
+            fn = ((x2 * -0.06782242) + -44.47209) / x1 # loss: 0.12429151 -- one of the simplest w/o X dependence
+            fn = ((x2 * -0.0678) + -44.5) / x1 # loss: 0.12429151 -- one of the simplest w/o X dependence -- simplified
+
+        elif secondary_species == "H":
+            if H_STOICH_MODE == 2:
+                fn = (((x1 * -0.0048796246) + 6.5670815) / np.exp(np.exp(x0))) + x0 # loss: 1.2789929; one of the simplest w no T dependence
+                fn = (((x1 * -0.00488) + 6.567) / np.exp(np.exp(x0))) + x0 # loss: 1.2789929; one of the simplest w no T dependence -- simplified
+                # fn =  #loss: ??? ; one of the simplest w T dependence
+                fn = ((6.7519736 - (0.0051717 * x1)) + x0) / ((x1 ** (1.6505091 + (50.947327 / x0))) + ((x2 ** 0.1455538) ** (np.log(x1) ** ((x0 + (0.6689549 ** x0)) * x0)))) #loss: 1.1131124; the most complex and lowest loss soln
+            elif H_STOICH_MODE == 1:
+                fn = ((x1 * -0.0033594905) + 3.5382779) ** ((0.3938717 ** (np.exp(x0) ** np.exp(((-43.5826 / (-1.6072097 - x0)) + (np.exp((12387.732 / x2) + x0) + 4.5243583)) / x1))) - -0.0033594905) # loss: 0.12907255
+
+        return np.exp(fn) # {return KD for He} or {KD_prime for H}
+    
+
+
+    def best_fn_v2(x0, x1, x2, H_STOICH_MODE=2):# x0: log(X or X2), x1: P, x2: T
+
+        if secondary_species == "He":
+            fn = np.exp(x0) - (x2 * (0.07335293 / x1))
+            fn = ((x2 * -0.06782242) + -44.47209) / x1 # loss: 0.12429151 -- one of the simplest w/o X dependence
+            fn = ((x2 * -0.0678) + -44.5) / x1 # loss: 0.12429151 -- one of the simplest w/o X dependence -- simplified
+
+        elif secondary_species == "H":
+            if H_STOICH_MODE == 2:
+                fn = (((x1 * -0.0048796246) + 6.5670815) / np.exp(np.exp(x0))) + x0 # loss: 1.2789929; one of the simplest w no T dependence
+                fn = (((x1 * -0.00488) + 6.567) / np.exp(np.exp(x0))) + x0 # loss: 1.2789929; one of the simplest w no T dependence -- simplified
+                # fn =  #loss: ??? ; one of the simplest w T dependence
+                fn = ((6.7519736 - (0.0051717 * x1)) + x0) / ((x1 ** (1.6505091 + (50.947327 / x0))) + ((x2 ** 0.1455538) ** (np.log(x1) ** ((x0 + (0.6689549 ** x0)) * x0)))) #loss: 1.1131124; the most complex and lowest loss soln
+            elif H_STOICH_MODE == 1:
+                fn = ((x1 * -0.0033594905) + 3.5382779) ** ((0.3938717 ** (np.exp(x0) ** np.exp(((-43.5826 / (-1.6072097 - x0)) + (np.exp((12387.732 / x2) + x0) + 4.5243583)) / x1))) - -0.0033594905) # loss: 0.12907255
+
+        return np.exp(fn) # {return KD for He} or {KD_prime for H}
+    # ********************************************************************************************************
+    # ********************************************************************************************************
+    # ********************************************************************************************************
+
+
+
+
+
+
+
+
+
+
 
 
     ##############################################
@@ -2517,8 +2681,8 @@ if SCRIPT_MODE >= 0: # plot if > 0
         plt.tight_layout()
 
         # 10) Save and/or show
-        plt.savefig(f"X_{secondary_species}_vs_G_hp_per_atom_w_TS.png", dpi=300)
-        print(f"Plot saved as X_{secondary_species}_vs_G_hp_per_atom_w_TS.png")
+        plt.savefig(f"X_{secondary_species}_vs_G_hp_per_atom_w_TS__{secondary_species}.png", dpi=300)
+        print(f"Plot saved as X_{secondary_species}_vs_G_hp_per_atom_w_TS__{secondary_species}.png")
         # plt.show()
 
 
@@ -2588,7 +2752,7 @@ if SCRIPT_MODE >= 0: # plot if > 0
         # ax.legend(bbox_to_anchor=(1.05,1), loc="upper left", fontsize="small", title="Legend")
         ax.grid(True)
         plt.tight_layout()
-        plt.savefig(f"X_{secondary_species}_vs_mu_{secondary_species}.png")
+        plt.savefig(f"X_{secondary_species}_vs_mu_{secondary_species}__{secondary_species}.png")
 
 
 
@@ -2667,17 +2831,23 @@ if SCRIPT_MODE >= 0: # plot if > 0
     df = df_superset.copy()
 
 
+    # y_min__H = 10**(-3.5)
+    # y_max__H = 10**(2.5)
+    # y_min__He = 10**(-3.5)
+    # y_max__He = 10**(2.5)
+    y_min__H = 10**(-2.0)
+    y_max__H = 10**(3.0)
+    y_min__He = 10**(-4.5)
+    y_max__He = 10**(0.5)
+
+
     # x lim ,  y lim
     if secondary_species == "He":
-        # y_min = 1e-5
-        # y_max = 1e1
-        y_min = 1e-5
-        y_max = 1e3
+        y_min = y_min__He
+        y_max = y_max__He
     elif secondary_species == "H":
-        # y_min = 1e-3
-        # y_max = 1e3
-        y_min = 1e-5
-        y_max = 1e3
+        y_min = y_min__H
+        y_max = y_max__H
         print("NOTE: 130 GPa Yuan & Steinle-Neumann 2020 data is not included in the plot as it is way off the scale.")
 
 
@@ -2696,7 +2866,13 @@ if SCRIPT_MODE >= 0: # plot if > 0
 
 
 
-    if PLOT_MODE == 3 or PLOT_MODE < 0:
+
+
+
+
+
+    if PLOT_MODE == 3 or PLOT_MODE < 0: # KD_D_wt_vs_P_T.png
+
         fig, axes_KD_D_wt__P = plt.subplots(2, 1, figsize=(12, 10))#, sharex=True, sharey=True)
         # fig, axes = plt.subplots(1, 2, figsize=(10, 4), sharex=True, sharey=True)
         # ax1, ax_KD, ax3, ax_D_wt = axes.flatten()
@@ -2838,22 +3014,22 @@ if SCRIPT_MODE >= 0: # plot if > 0
             data_He__two_phase_simulations["D_wt_low"] = [kd * (100/56) for kd in data_He__two_phase_simulations["KD_low"]]
             data_He__two_phase_simulations["D_wt_high"] = [kd * (100/56) for kd in data_He__two_phase_simulations["KD_high"]]
 
-            ax_KD.scatter(data_He__two_phase_simulations[x_variable], 
-                            data_He__two_phase_simulations["KD"],
-                            **marker_opts_scatter,
-                            marker=marker_2phase,
-                            c=data_He__two_phase_simulations[z_variable],
-                            cmap=cmap,
-                            norm=norm,
-                            label="This study (2P)")
-            ax_D_wt.scatter(data_He__two_phase_simulations[x_variable], 
-                            data_He__two_phase_simulations["D_wt"],
-                            **marker_opts_scatter,
-                            marker=marker_2phase,
-                            c=data_He__two_phase_simulations[z_variable],
-                            cmap=cmap,
-                            norm=norm,
-                            label="This study (2P)")
+            # ax_KD.scatter(data_He__two_phase_simulations[x_variable], 
+            #                 data_He__two_phase_simulations["KD"],
+            #                 **marker_opts_scatter,
+            #                 marker=marker_2phase,
+            #                 c=data_He__two_phase_simulations[z_variable],
+            #                 cmap=cmap,
+            #                 norm=norm,
+            #                 label="This study (2P)")
+            # ax_D_wt.scatter(data_He__two_phase_simulations[x_variable], 
+            #                 data_He__two_phase_simulations["D_wt"],
+            #                 **marker_opts_scatter,
+            #                 marker=marker_2phase,
+            #                 c=data_He__two_phase_simulations[z_variable],
+            #                 cmap=cmap,
+            #                 norm=norm,
+            #                 label="This study (2P)")
 
 
 
@@ -2906,6 +3082,59 @@ if SCRIPT_MODE >= 0: # plot if > 0
 
 
 
+
+
+
+        # ***************************
+        # ***************************
+        if FIT_MODE == 1:
+            # combine T and P from datasets_expt, datasets_comp and df dataframe
+            sources = list(datasets_expt) + list(datasets_comp) + [df]  # uncomment if needed
+            # array_T = row[f"array_T_{secondary_species}"] # z_variable -- T
+            # array_P = row[f"array_P_{secondary_species}"] # x_variable -- P
+            array_T          = _concat_cols(sources, "Target temperature (K)")
+            array_P          = _concat_cols(sources, "Target pressure (GPa)")
+
+            if secondary_species == "He":
+                # array_x_axis = array_X
+                array_X = (array_T ** 0.) * 1e-3
+                secondary_species_label = "He"
+
+            elif secondary_species == "H":
+                # array_x_axis = array_X2
+                array_X2 = array_X = (array_T ** 0.) * 1e-3
+                secondary_species_label = "H2"
+
+            array_x_axis = array_P
+
+            x0 = np.log(array_X)
+            x1 = array_P
+            x2 = array_T
+
+            if secondary_species == "H":
+                # plot the best fit line
+                y_fit = best_fn_v2(x0, x1, x2, H_STOICH_MODE=1)
+            elif secondary_species == "He":
+                y_fit = best_fn_v2(x0, x1, x2, H_STOICH_MODE=1)
+            # print(f"Best fit line for KD vs P, T: {y_fit}")
+            # print(f"logX: {x0}")
+            # print(f"T: {array_T}")
+            # print(f"P: {array_P}")
+            ax_KD.plot(
+                array_x_axis, y_fit,
+                linestyle='',
+                marker="s",
+                label=f"Best fit model",
+                color='black', markersize=10,
+                alpha=0.15
+            )
+        # ***************************
+        # ***************************
+
+
+
+
+
         # show 1 colorbar for both KD and D_wt plots
         # 1) Create a colorbar for the temperature range
         sm = plt.cm.ScalarMappable(cmap=cmap, norm=norm)
@@ -2949,7 +3178,7 @@ if SCRIPT_MODE >= 0: # plot if > 0
         ax_KD.grid(True)
         # ax_KD.tick_params(labelbottom=False)
         # ax_KD.set_xlabel("Pressure (GPa)")
-        ax_KD.set_xscale("log")
+        # ax_KD.set_xscale("log")
         # ax_KD.set_xlim(left=0,right=200)  # set x-axis limits for better visibility
 
         ax_D_wt.set_yscale("log")
@@ -3003,7 +3232,7 @@ if SCRIPT_MODE >= 0: # plot if > 0
         # 3) Layout & save
         # plt.tight_layout(rect=[0, 0, 1, 1.0])
         # plt.tight_layout(rect=[0, 0.03, 1, 0.95])  # adjust layout to make room for the title
-        plt.savefig(f"KD_D_wt_vs_P_T.png", dpi=300)
+        plt.savefig(f"KD_D_wt_vs_P_T__{secondary_species}.png", dpi=300)
 
 
 
@@ -3027,7 +3256,7 @@ if SCRIPT_MODE >= 0: # plot if > 0
 
 
 
-    if PLOT_MODE == 4 or PLOT_MODE < 0:
+    if PLOT_MODE == 4 or PLOT_MODE < 0: # KD_D_wt_vs_P_T__T__{secondary_species}.png; KD_sil_to_metal_vs_P_T_panels
 
         ########################################################
         ########################################################
@@ -3192,8 +3421,70 @@ if SCRIPT_MODE >= 0: # plot if > 0
         )
 
 
-        # plt.savefig(f"KD_D_wt_vs_P_T__T.png", dpi=300)
-        # exit(0)  # exit here to avoid plotting the second figure
+
+
+        # ***************************
+        # ***************************
+        if FIT_MODE == 1:
+            # combine T and P from datasets_expt, datasets_comp and df dataframe
+            sources = list(datasets_expt) + list(datasets_comp) + [df]  # uncomment if needed
+            # array_T = row[f"array_T_{secondary_species}"] # z_variable -- T
+            # array_P = row[f"array_P_{secondary_species}"] # x_variable -- P
+            array_T          = _concat_cols(sources, "Target temperature (K)")
+            array_P          = _concat_cols(sources, "Target pressure (GPa)")
+
+            if secondary_species == "He":
+                # array_x_axis = array_X
+                array_X = (array_T ** 0.) * 1e-3
+                secondary_species_label = "He"
+
+            elif secondary_species == "H":
+                # array_x_axis = array_X2
+                array_X2 = array_X = (array_T ** 0.) * 1e-3
+                secondary_species_label = "H2"
+
+            array_x_axis = array_T
+
+            x0 = np.log(array_X)
+            x1 = array_P
+            x2 = array_T
+
+            if secondary_species == "H":
+                # plot the best fit line
+                y_fit = best_fn_v2(x0, x1, x2, H_STOICH_MODE=1)
+            elif secondary_species == "He":
+                y_fit = best_fn_v2(x0, x1, x2, H_STOICH_MODE=1)
+            print(f"Best fit line for KD vs P, T: {y_fit}")
+            print(f"array_x_axis: {array_x_axis}")
+            # print(f"logX: {x0}")
+            # print(f"T: {array_T}")
+            # print(f"P: {array_P}")
+            ax_KD__T.plot(
+                array_x_axis, y_fit,
+                linestyle='',
+                marker="s",
+                label=f"Best fit model",
+                color='black', markersize=10,
+                alpha=0.15
+            )
+        # ***************************
+        # ***************************
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
         # show 1 colorbar for both KD and D_wt plots
@@ -3261,7 +3552,7 @@ if SCRIPT_MODE >= 0: # plot if > 0
         ax_KD__T.grid(True)
         # ax_KD.tick_params(labelbottom=False)
         # ax_KD.set_xlabel("Pressure (GPa)")
-        ax_KD__T.set_xscale("log")
+        # ax_KD__T.set_xscale("log")
         # ax_KD.set_xlim(left=0,right=200)  # set x-axis limits for better visibility
 
         ax_D_wt__T.set_yscale("log")
@@ -3316,7 +3607,7 @@ if SCRIPT_MODE >= 0: # plot if > 0
         # 3) Layout & save
         # plt.tight_layout(rect=[0, 0, 1, 1.0])
         # plt.tight_layout(rect=[0, 0.03, 1, 0.95])  # adjust layout to make room for the title
-        plt.savefig(f"KD_D_wt_vs_P_T__T.png", dpi=300)
+        plt.savefig(f"KD_D_wt_vs_P_T__T__{secondary_species}.png", dpi=300)
 
 
 
@@ -3458,7 +3749,7 @@ if SCRIPT_MODE >= 0: # plot if > 0
         # adjust layout
         # plt.tight_layout()
         # save the figure
-        plt.savefig(f"KD_sil_to_metal_vs_P_T_panels.png", dpi=300)
+        plt.savefig(f"KD_sil_to_metal_vs_P_T_panels__{secondary_species}.png", dpi=300)
 
 
         # plot all mu_{secondary_species} vs X_{secondary_species}, and color by P_T_folder
@@ -3468,10 +3759,10 @@ if SCRIPT_MODE >= 0: # plot if > 0
         #     s=100,
         #     alpha=0.5
         # )
-        # plt.savefig("test.png")
+        # plt.savefig("test__{secondary_species}.png")
 
         print(f"Created: dataframe with G_hp_per_atom, G_hp_per_atom_error, X_{secondary_species}, etc. from all systems")
-        print(f"Files created: all_TI_results_with_X{secondary_species}.csv, X_{secondary_species}_vs_G_hp_per_atom.png")
+        print(f"Files created: all_TI_results_with_X{secondary_species}.csv, X_{secondary_species}_vs_G_hp_per_atom__{secondary_species}.png")
 
 
 
@@ -3507,10 +3798,17 @@ if SCRIPT_MODE >= 0: # plot if > 0
 
 
 
-    if PLOT_MODE == 5 or PLOT_MODE < 0:
+    if PLOT_MODE == 5 or PLOT_MODE < 0: # KD_D_wt_vs_P_T__lowPT__{secondary_species}.png
 
-        y_min = 1e-5
-        y_max = 10**(5.2)
+        # y_min = 1e-5
+        # y_max = 10**(5.2)
+
+        if secondary_species == "He":
+            y_min = y_min__He
+            y_max = y_max__He
+        elif secondary_species == "H":
+            y_min = y_min__H
+            y_max = y_max__H
 
         # low pressure regime < 100 GPa + 5000 K
         # x = P
@@ -3658,22 +3956,22 @@ if SCRIPT_MODE >= 0: # plot if > 0
             data_He__two_phase_simulations["D_wt_low"] = [kd * (100/56) for kd in data_He__two_phase_simulations["KD_low"]]
             data_He__two_phase_simulations["D_wt_high"] = [kd * (100/56) for kd in data_He__two_phase_simulations["KD_high"]]
 
-            ax_KD.scatter(data_He__two_phase_simulations[x_variable], 
-                            data_He__two_phase_simulations["KD"],
-                            **marker_opts_scatter,
-                            marker=marker_2phase,
-                            c=data_He__two_phase_simulations[z_variable],
-                            cmap=cmap,
-                            norm=norm,
-                            label="This study (2P)")
-            ax_D_wt.scatter(data_He__two_phase_simulations[x_variable], 
-                            data_He__two_phase_simulations["D_wt"],
-                            **marker_opts_scatter,
-                            marker=marker_2phase,
-                            c=data_He__two_phase_simulations[z_variable],
-                            cmap=cmap,
-                            norm=norm,
-                            label="This study (2P)")
+            # ax_KD.scatter(data_He__two_phase_simulations[x_variable], 
+            #                 data_He__two_phase_simulations["KD"],
+            #                 **marker_opts_scatter,
+            #                 marker=marker_2phase,
+            #                 c=data_He__two_phase_simulations[z_variable],
+            #                 cmap=cmap,
+            #                 norm=norm,
+            #                 label="This study (2P)")
+            # ax_D_wt.scatter(data_He__two_phase_simulations[x_variable], 
+            #                 data_He__two_phase_simulations["D_wt"],
+            #                 **marker_opts_scatter,
+            #                 marker=marker_2phase,
+            #                 c=data_He__two_phase_simulations[z_variable],
+            #                 cmap=cmap,
+            #                 norm=norm,
+            #                 label="This study (2P)")
 
 
 
@@ -3725,6 +4023,61 @@ if SCRIPT_MODE >= 0: # plot if > 0
 
 
 
+        # ***************************
+        # ***************************
+        if FIT_MODE == 1:
+            # combine T and P from datasets_expt, datasets_comp and df dataframe
+            sources = list(datasets_expt) + list(datasets_comp) + [df]  # uncomment if needed
+            # array_T = row[f"array_T_{secondary_species}"] # z_variable -- T
+            # array_P = row[f"array_P_{secondary_species}"] # x_variable -- P
+            array_T          = _concat_cols(sources, "Target temperature (K)")
+            array_P          = _concat_cols(sources, "Target pressure (GPa)")
+
+            if secondary_species == "He":
+                # array_x_axis = array_X
+                array_X = (array_T ** 0.) * 1e-3
+                secondary_species_label = "He"
+
+            elif secondary_species == "H":
+                # array_x_axis = array_X2
+                array_X2 = array_X = (array_T ** 0.) * 1e-3
+                secondary_species_label = "H2"
+
+            array_x_axis = array_P
+
+            x0 = np.log(array_X)
+            x1 = array_P
+            x2 = array_T
+
+            if secondary_species == "H":
+                # plot the best fit line
+                y_fit = best_fn_v2(x0, x1, x2, H_STOICH_MODE=1)
+            elif secondary_species == "He":
+                y_fit = best_fn_v2(x0, x1, x2, H_STOICH_MODE=1)
+            # print(f"Best fit line for KD vs P, T: {y_fit}")
+            # print(f"logX: {x0}")
+            # print(f"T: {array_T}")
+            # print(f"P: {array_P}")
+            ax_KD.plot(
+                array_x_axis, y_fit,
+                linestyle='',
+                marker="s",
+                label=f"Best fit model",
+                color='black', markersize=10,
+                alpha=0.15
+            )
+        # ***************************
+        # ***************************
+
+
+
+
+
+
+
+
+
+
 
         # show 1 colorbar for both KD and D_wt plots
         # 1) Create a colorbar for the temperature range
@@ -3756,11 +4109,13 @@ if SCRIPT_MODE >= 0: # plot if > 0
         # elif secondary_species == "H":
         #     y_min = 1e-3 #1e-3
         #     y_max = 1e6
-        ax_KD.set_ylim(y_min, y_max)
-        ax_D_wt.set_ylim(y_min, y_max)
+        
 
         ax_KD.set_xlim(xlim_low, xlim_high)
         ax_D_wt.set_xlim(xlim_low, xlim_high)
+
+        ax_KD.set_ylim(y_min, y_max)
+        ax_D_wt.set_ylim(y_min, y_max)
 
 
 
@@ -3825,7 +4180,7 @@ if SCRIPT_MODE >= 0: # plot if > 0
         # 3) Layout & save
         # plt.tight_layout(rect=[0, 0, 1, 1.0])
         # plt.tight_layout(rect=[0, 0.03, 1, 0.95])  # adjust layout to make room for the title
-        plt.savefig(f"KD_D_wt_vs_P_T__lowPT.png", dpi=300)
+        plt.savefig(f"KD_D_wt_vs_P_T__lowPT__{secondary_species}.png", dpi=300)
 
 
 
@@ -3837,7 +4192,7 @@ if SCRIPT_MODE >= 0: # plot if > 0
 
 
 
-    if PLOT_MODE == 6 or PLOT_MODE < 0:
+    if PLOT_MODE == 6 or PLOT_MODE < 0: # KD_D_wt_vs_P_T__T__lowPT__{secondary_species}
 
         ########################################################
         ########################################################
@@ -3903,7 +4258,7 @@ if SCRIPT_MODE >= 0: # plot if > 0
         # ax_KD.errorbar(df[x_variable], df["KD_sil_to_metal"], yerr=df["KD_sil_to_metal_error"], **marker_opts_error, color=cmap(norm(df[z_variable])))
 
 
-        # 1) Plot the colored points
+        # # 1) Plot the colored points
         sc = ax_KD__T.scatter(
             df[x_variable],
             df["KD_sil_to_metal"],
@@ -3915,7 +4270,7 @@ if SCRIPT_MODE >= 0: # plot if > 0
             label="This study (TI)"
         )
 
-        # 2) Draw per-point errorbars with matching colors
+        # # 2) Draw per-point errorbars with matching colors
         temps  = df[z_variable].values
         colors = cmap(norm(temps))
 
@@ -4005,8 +4360,64 @@ if SCRIPT_MODE >= 0: # plot if > 0
         )
 
 
-        # plt.savefig(f"KD_D_wt_vs_P_T__T.png", dpi=300)
-        # exit(0)  # exit here to avoid plotting the second figure
+
+
+
+
+
+
+        # ***************************
+        # ***************************
+        if FIT_MODE == 1:
+            # combine T and P from datasets_expt, datasets_comp and df dataframe
+            sources = list(datasets_expt) + list(datasets_comp) + [df]  # uncomment if needed
+            # array_T = row[f"array_T_{secondary_species}"] # z_variable -- T
+            # array_P = row[f"array_P_{secondary_species}"] # x_variable -- P
+            array_T          = _concat_cols(sources, "Target temperature (K)")
+            array_P          = _concat_cols(sources, "Target pressure (GPa)")
+
+            if secondary_species == "He":
+                # array_x_axis = array_X
+                array_X = (array_T ** 0.) * 1e-3
+                secondary_species_label = "He"
+
+            elif secondary_species == "H":
+                # array_x_axis = array_X2
+                array_X2 = array_X = (array_T ** 0.) * 1e-3
+                secondary_species_label = "H2"
+
+            array_x_axis = array_T
+
+            x0 = np.log(array_X)
+            x1 = array_P
+            x2 = array_T
+
+            if secondary_species == "H":
+                # plot the best fit line
+                y_fit = best_fn_v2(x0, x1, x2, H_STOICH_MODE=1)
+            elif secondary_species == "He":
+                y_fit = best_fn_v2(x0, x1, x2, H_STOICH_MODE=1)
+            # print(f"Best fit line for KD vs P, T: {y_fit}")
+            # print(f"logX: {x0}")
+            # print(f"T: {array_T}")
+            # print(f"P: {array_P}")
+            ax_KD__T.plot(
+                array_x_axis, y_fit,
+                linestyle='',
+                marker="s",
+                label=f"Best fit model",
+                color='black', markersize=10,
+                alpha=0.15
+            )
+        # ***************************
+        # ***************************
+
+
+
+
+
+
+
 
 
         # show 1 colorbar for both KD and D_wt plots
@@ -4130,7 +4541,8 @@ if SCRIPT_MODE >= 0: # plot if > 0
         # 3) Layout & save
         # plt.tight_layout(rect=[0, 0, 1, 1.0])
         # plt.tight_layout(rect=[0, 0.03, 1, 0.95])  # adjust layout to make room for the title
-        plt.savefig(f"KD_D_wt_vs_P_T__T__lowPT.png", dpi=300)
+        plt.savefig(f"KD_D_wt_vs_P_T__T__lowPT__{secondary_species}.png", dpi=300)
+        # plt.savefig(f"KD_D_wt_vs_P_T__T__lowPT.pdf")
 
 
 
@@ -4349,7 +4761,7 @@ if SCRIPT_MODE >= 0: # plot if > 0
         # 3) Layout & save
         # plt.tight_layout(rect=[0, 0, 1, 1.0])
         # plt.tight_layout(rect=[0, 0.03, 1, 0.95])  # adjust layout to make room for the title
-        plt.savefig(f"PT_coverage.png", dpi=300)
+        plt.savefig(f"PT_coverage__{secondary_species}.png", dpi=300)
 
 
 
@@ -4369,461 +4781,1833 @@ if SCRIPT_MODE >= 0: # plot if > 0
 
 
 
-# # # print summary of df_superset cols: f"array_KD_{secondary_species}", f"array_KD_{secondary_species}_prime", f"array_D_wt_{secondary_species}", f"array_X_{secondary_species}" and f"array_Xw_{secondary_species}"
-# print("\nSummary of df_superset:")
-# cols = [
-#     f"array_KD_{secondary_species}",
-#     f"array_KD_prime_{secondary_species}",   # correct placement of 'prime'
-#     f"array_D_wt_{secondary_species}",
-#     f"array_X_{secondary_species}",
-#     f"array_Xw_{secondary_species}",
-# ]
-# cols = [
-#     f"array_D_wt_{secondary_species}",
-#     f"array_D_wt_{secondary_species}_lower",
-#     f"array_D_wt_{secondary_species}_upper",
-# ]
-# # print mean, std, min, max of each column
-# for row in df_superset[cols].iterrows():
-#     idx, data = row
-#     print(f"Index {idx}:")
-#     for col in cols:
-#         if col in data:
-#             print(f"  {col}: mean={data[col].mean():.2e}, std={data[col].std():.2e}, min={data[col].min():.2e}, max={data[col].max():.2e}")
-#         else:
-#             print(f"  {col} not found in row {idx}")
+    # # # print summary of df_superset cols: f"array_KD_{secondary_species}", f"array_KD_{secondary_species}_prime", f"array_D_wt_{secondary_species}", f"array_X_{secondary_species}" and f"array_Xw_{secondary_species}"
+    # print("\nSummary of df_superset:")
+    # cols = [
+    #     f"array_KD_{secondary_species}",
+    #     f"array_KD_prime_{secondary_species}",   # correct placement of 'prime'
+    #     f"array_D_wt_{secondary_species}",
+    #     f"array_X_{secondary_species}",
+    #     f"array_Xw_{secondary_species}",
+    # ]
+    # cols = [
+    #     f"array_D_wt_{secondary_species}",
+    #     f"array_D_wt_{secondary_species}_lower",
+    #     f"array_D_wt_{secondary_species}_upper",
+    # ]
+    # # print mean, std, min, max of each column
+    # for row in df_superset[cols].iterrows():
+    #     idx, data = row
+    #     print(f"Index {idx}:")
+    #     for col in cols:
+    #         if col in data:
+    #             print(f"  {col}: mean={data[col].mean():.2e}, std={data[col].std():.2e}, min={data[col].min():.2e}, max={data[col].max():.2e}")
+    #         else:
+    #             print(f"  {col} not found in row {idx}")
 
 
 
 
-if PLOT_MODE == 8 or PLOT_MODE < 0:
+    if PLOT_MODE == 8 or PLOT_MODE < 0:
 
 
 
-    # plot array_KD vs array_X only for phase = MgSiO3 -- df_superset
-    
-    # 4 separate figures for KD vs X, KD_prime vs X, D_wt vs X, and D_wt vs Xw
-    # create a 4 x 5 grid of subplots where each row corresponds to a different target "Target pressure (GPa)"
-    # and each column corresponds to a different "Target temperature (K)" in ascending order
-    fig_1, axes_1 = plt.subplots(4, 5, figsize=(16, 16), sharex=True, sharey=True)
-    axes_1 = axes_1.flatten()  # flatten the 2D array of axes to 1D for easier iteration
-    fig_2, axes_2 = plt.subplots(4, 5, figsize=(16, 16), sharex=True, sharey=True)
-    axes_2 = axes_2.flatten()  # flatten the 2D array of axes to 1D for easier iteration
-    fig_3, axes_3 = plt.subplots(4, 5, figsize=(16, 16), sharex=True, sharey=True)
-    axes_3 = axes_3.flatten()  # flatten the 2D array of axes to 1D for easier iteration
-    fig_4, axes_4 = plt.subplots(4, 5, figsize=(16, 16), sharex=True, sharey=True)
-    axes_4 = axes_4.flatten()  # flatten the 2D array of axes to 1D for easier iteration
-    fig_5, axes_5 = plt.subplots(4, 5, figsize=(16, 16), sharex=True, sharey=True)
-    axes_5 = axes_5.flatten()  # flatten the 2D array of axes to 1D for easier iteration
-    fig_6, axes_6 = plt.subplots(4, 5, figsize=(16, 16), sharex=True, sharey=True)
-    axes_6 = axes_6.flatten()  # flatten the 2D array of axes to 1D for easier iteration
+        # plot array_KD vs array_X only for phase = MgSiO3 -- df_superset
+        
+        # 4 separate figures for KD vs X, KD_prime vs X, D_wt vs X, and D_wt vs Xw
+        # create a 4 x 5 grid of subplots where each row corresponds to a different target "Target pressure (GPa)"
+        # and each column corresponds to a different "Target temperature (K)" in ascending order
+        fig_1, axes_1 = plt.subplots(4, 5, figsize=(16, 16), sharex=True, sharey=True)
+        axes_1 = axes_1.flatten()  # flatten the 2D array of axes to 1D for easier iteration
+        fig_2, axes_2 = plt.subplots(4, 5, figsize=(16, 16), sharex=True, sharey=True)
+        axes_2 = axes_2.flatten()  # flatten the 2D array of axes to 1D for easier iteration
+        fig_3, axes_3 = plt.subplots(4, 5, figsize=(16, 16), sharex=True, sharey=True)
+        axes_3 = axes_3.flatten()  # flatten the 2D array of axes to 1D for easier iteration
+        fig_4, axes_4 = plt.subplots(4, 5, figsize=(16, 16), sharex=True, sharey=True)
+        axes_4 = axes_4.flatten()  # flatten the 2D array of axes to 1D for easier iteration
+        fig_5, axes_5 = plt.subplots(4, 5, figsize=(16, 16), sharex=True, sharey=True)
+        axes_5 = axes_5.flatten()  # flatten the 2D array of axes to 1D for easier iteration
+        fig_6, axes_6 = plt.subplots(4, 5, figsize=(16, 16), sharex=True, sharey=True)
+        axes_6 = axes_6.flatten()  # flatten the 2D array of axes to 1D for easier iteration
 
-    marker_opts = dict(marker='o', linestyle='', markersize=10, alpha=1)#,color=base_color)
-    marker_opts_scatter = dict(linestyle='', s=5, alpha=0.5)#,edgecolor='black',
-    marker_opts_error = dict(linestyle='', markersize=10, alpha=0.25, capsize=3, elinewidth=1)#, color='black',ecolor='black')
-    
-    magma = plt.get_cmap("magma")
-    pastel_magma = pastel_cmap(magma, factor=0.25)  # tweak factor between 0 and 1
-    cmap = pastel_magma  # use pastel magma for the plots
+        marker_opts = dict(marker='o', linestyle='', markersize=10, alpha=1)#,color=base_color)
+        marker_opts_scatter = dict(linestyle='', s=5, alpha=0.5)#,edgecolor='black',
+        marker_opts_error = dict(linestyle='', markersize=10, alpha=0.25, capsize=3, elinewidth=1)#, color='black',ecolor='black')
+        
+        magma = plt.get_cmap("magma")
+        pastel_magma = pastel_cmap(magma, factor=0.25)  # tweak factor between 0 and 1
+        cmap = pastel_magma  # use pastel magma for the plots
 
-    # sort df_superset by "Target pressure (GPa)" and "Target temperature (K)" -- largest to smallest pressure but smallest to largest temperature
-    df_superset = df_superset.sort_values(
-        by=["Target pressure (GPa)", "Target temperature (K)"],
-        ascending=[False, True]  # largest to smallest pressure, smallest to largest temperature
-    )
+        # sort df_superset by "Target pressure (GPa)" and "Target temperature (K)" -- largest to smallest pressure but smallest to largest temperature
+        df_superset = df_superset.sort_values(
+            by=["Target pressure (GPa)", "Target temperature (K)"],
+            ascending=[False, True]  # largest to smallest pressure, smallest to largest temperature
+        )
 
 
-    i_axes = -1  # counter for the axes
+        i_axes = -1  # counter for the axes
 
-    # iterate over all systems in df_superset
-    for i, row in df_superset.iterrows():
+        # iterate over all systems in df_superset
+        for i, row in df_superset.iterrows():
 
-        phase = row["Phase"]
-        pt = row["P_T_folder"]
+            phase = row["Phase"]
+            pt = row["P_T_folder"]
 
-        if phase != f"MgSiO3_{secondary_species}":
-            continue
+            if phase != f"MgSiO3_{secondary_species}":
+                continue
 
-        i_axes += 1
-        # if i_axes == 4, 9 or 14, +1
-        if i_axes in [4, 9, 14]:
-            i_axes += 1 # to maintain 1 P per row
+            i_axes += 1
+            # if i_axes == 4, 9 or 14, +1
+            if i_axes in [4, 9, 14]:
+                i_axes += 1 # to maintain 1 P per row
 
-        # 2) Determine the other phase
-        other_phase = f"MgSiO3_{secondary_species}" if phase == f"Fe_{secondary_species}" else f"Fe_{secondary_species}"
+            # 2) Determine the other phase
+            other_phase = f"MgSiO3_{secondary_species}" if phase == f"Fe_{secondary_species}" else f"Fe_{secondary_species}"
 
-        mask = (
-            (df_superset["Phase"] == other_phase) &
-            (df_superset["P_T_folder"] == pt) &
-            (df_superset["Target temperature (K)"] == row["Target temperature (K)"])
+            mask = (
+                (df_superset["Phase"] == other_phase) &
+                (df_superset["P_T_folder"] == pt) &
+                (df_superset["Target temperature (K)"] == row["Target temperature (K)"])
+                )
+            mask_idx = df_superset.index[mask][0]
+            
+
+            array_KD = row[f"array_KD_{secondary_species}"]
+            array_KD_lower = row[f"array_KD_{secondary_species}_lower"]
+            array_KD_upper = row[f"array_KD_{secondary_species}_upper"]
+
+            # print KD shape
+            # print(f"array_KD: {array_KD}")
+            # print(f"array_KD shape: {array_KD.shape}")
+            # exit()
+
+            array_KD_prime = row[f"array_KD_prime_{secondary_species}"]
+            array_KD_prime_lower = row[f"array_KD_prime_{secondary_species}_lower"]
+            array_KD_prime_upper = row[f"array_KD_prime_{secondary_species}_upper"]
+
+            array_D_wt = row[f"array_D_wt_{secondary_species}"]
+            array_D_wt_lower = row[f"array_D_wt_{secondary_species}_lower"]
+            array_D_wt_upper = row[f"array_D_wt_{secondary_species}_upper"]
+
+            array_X = row[f"array_X_{secondary_species}"]
+            array_X_lower = row[f"array_X_{secondary_species}_lower"]
+            array_X_upper = row[f"array_X_{secondary_species}_upper"]
+
+            array_Xw = row[f"array_Xw_{secondary_species}"]
+            array_Xw_lower = row[f"array_Xw_{secondary_species}_lower"]
+            array_Xw_upper = row[f"array_Xw_{secondary_species}_upper"]
+
+            array_X_in_Fe = row[f"array_X_{secondary_species}_in_Fe"]
+            array_X_in_Fe_lower = row[f"array_X_{secondary_species}_in_Fe_lower"]
+            array_X_in_Fe_upper = row[f"array_X_{secondary_species}_in_Fe_upper"]
+
+
+            array_T = row[f"array_T_{secondary_species}"]
+            array_P = row[f"array_P_{secondary_species}"]
+
+            if secondary_species == "He":
+                KD_chosen = array_KD
+                KD_chosen_lower = array_KD_lower
+                KD_chosen_upper = array_KD_upper
+                
+                array_x_axis = array_X
+                secondary_species_label = "He"
+
+            elif secondary_species == "H":
+                KD_chosen = array_KD_prime
+                KD_chosen_lower = array_KD_prime_lower
+                KD_chosen_upper = array_KD_prime_upper
+                array_X2 = array_X / (2 - array_X)  # X_H2 = X_H / (2 - X_H)
+                array_X2_lower = row[f"array_X_{secondary_species}_lower"]
+                array_X2_upper = row[f"array_X_{secondary_species}_upper"]
+
+                array_x_axis = array_X2
+                secondary_species_label = "H2"
+
+            # prints min, max, mean of the above 5 arrays
+            # print(f"array_KD: min={np.min(array_KD)}, max={np.max(array_KD)}, mean={np.mean(array_KD)}")
+            # print(f"array_KD_prime: min={np.min(array_KD_prime)}, max={np.max(array_KD_prime)}, mean={np.mean(array_KD_prime)}")
+            # print(f"array_D_wt: min={np.min(array_D_wt)}, max={np.max(array_D_wt)}, mean={np.mean(array_D_wt)}")
+            # print(f"array_X: min={np.min(array_X)}, max={np.max(array_X)}, mean={np.mean(array_X)}")
+            # print(f"array_Xw: min={np.min(array_Xw)}, max={np.max(array_Xw)}, mean={np.mean(array_Xw)}")
+
+            # array_X_other_phase = df_superset.loc[mask_idx, f"array_X_{secondary_species}"]
+            # array_X_lower_other_phase = df_superset.loc[mask_idx, f"array_X_{secondary_species}_lower"]
+            # array_X_upper_other_phase = df_superset.loc[mask_idx, f"array_X_{secondary_species}_upper"]
+
+            # array_Xw_other_phase = df_superset.loc[mask_idx, f"array_Xw_{secondary_species}"]
+            # array_Xw_lower_other_phase = df_superset.loc[mask_idx, f"array_Xw_{secondary_species}_lower"]
+            # array_Xw_upper_other_phase = df_superset.loc[mask_idx, f"array_Xw_{secondary_species}_upper"]
+
+
+            # plot the KD vs X, KD_prime vs X, D_wt vs X, and D_wt vs Xw
+            ########################
+            axes_1[i_axes].scatter(
+                array_X, array_KD,
+                label = (
+                f"P={row['Target pressure (GPa)']:.0f} GPa, "
+                f"T={row['Target temperature (K)']:.0f} K"
+                ),                
+                **marker_opts_scatter
             )
-        mask_idx = df_superset.index[mask][0]
+            # axes_1[i_axes].errorbar(
+            #     array_X, array_KD,
+            #     yerr=[array_KD-array_KD_lower, array_KD_upper-array_KD],
+            #     fmt='none',  # no extra marker
+            #     # ecolor=cmap(norm(row["Target temperature (K)"])),  # single RGBA tuple
+            #     **marker_opts_error,
+            #     marker=marker_TI  # use the TI marker for errorbars
+            # )
+            axes_1[i_axes].fill_between(
+                array_X,
+                array_KD_lower,
+                array_KD_upper,
+                alpha=0.2, label='Error range',
+                color=axes_1[i_axes].collections[0].get_edgecolor()  # same as the scatter points
+            )
+            # horizontal line at y=K_D
+            axes_1[i_axes].axhline(
+                y=row["KD_sil_to_metal"],
+                color='black', linestyle='--', linewidth=1,
+                # label=f"K$_D$ = {row['KD_sil_to_metal']:.2e}"
+            )
+            # error
+            axes_1[i_axes].axhline(
+                y=row["KD_sil_to_metal_low"],
+                color='black', linestyle=':', linewidth=1,
+            )
+            axes_1[i_axes].axhline(
+                y=row["KD_sil_to_metal_high"],
+                color='black', linestyle=':', linewidth=1,
+            )
+
+            # ***************************
+            # ***************************
+            if FIT_MODE == 1 and secondary_species == "He":
+                # plot the best fit line
+                x0 = np.log(array_x_axis)
+                x1 = array_P
+                x2 = array_T
+                # print("array_P:", array_P)
+                y_fit = best_fn(x0, x1, x2)
+                axes_1[i_axes].plot(
+                    array_x_axis, y_fit,
+                    linestyle='--',
+                    label=f"Best fit model",
+                    color='black', linewidth=1.5
+                )
+            # ***************************
+            # ***************************
+
+
+            ########################
+
+            ########################
+            axes_2[i_axes].scatter(
+                array_X, array_KD_prime,
+                label = (
+                f"P={row['Target pressure (GPa)']:.0f} GPa, "
+                f"T={row['Target temperature (K)']:.0f} K"
+                ),             
+                **marker_opts_scatter
+            )
+            # axes_2[i_axes].errorbar(
+            #     array_X, array_KD_prime,
+            #     yerr=[array_KD_prime-array_KD_prime_lower, array_KD_prime_upper-array_KD_prime],
+            #     fmt='none',  # no extra marker
+            #     # ecolor=cmap(norm(row["Target temperature (K)"])),  # single RGBA tuple
+            #     **marker_opts_error,
+            #     marker=marker_TI  # use the TI marker for errorbars
+            # )
+            axes_2[i_axes].fill_between(
+                array_X,
+                array_KD_prime_lower,
+                array_KD_prime_upper,
+                alpha=0.2, label='Error range',
+                color=axes_2[i_axes].collections[0].get_edgecolor()  # same as the scatter points
+            )
+
+            # ***************************
+            # ***************************
+            if FIT_MODE == 1 and secondary_species == "H":
+                # plot the best fit line
+                x0 = np.log(array_x_axis)
+                x1 = array_P
+                x2 = array_T
+                # print("array_P:", array_P)
+                y_fit = best_fn(x0, x1, x2)
+                axes_2[i_axes].plot(
+                    array_x_axis, y_fit,
+                    linestyle='--',
+                    label=f"Best fit model",
+                    color='black', linewidth=1.5
+                )
+            # ***************************
+            # ***************************
+
+
+            ########################
+
+            ########################
+            axes_3[i_axes].scatter(
+                array_X, array_D_wt,
+                label = (
+                f"P={row['Target pressure (GPa)']:.0f} GPa, "
+                f"T={row['Target temperature (K)']:.0f} K"
+                ),
+                **marker_opts_scatter
+            )
+            # axes_3[i_axes].errorbar(
+            #     array_X, array_D_wt,
+            #     yerr=[array_D_wt-array_D_wt_lower, array_D_wt_upper-array_D_wt],
+            #     fmt='none',  # no extra marker
+            #     # ecolor=cmap(norm(row["Target temperature (K)"])),  # single RGBA tuple
+            #     **marker_opts_error,
+            #     marker=marker_TI  # use the TI marker for errorbars
+            # )
+            axes_3[i_axes].fill_between(
+                array_X,
+                array_D_wt_lower,
+                array_D_wt_upper,
+                alpha=0.2, label='Error range',
+                color=axes_3[i_axes].collections[0].get_edgecolor()  # same as the scatter points
+            )
+
+
+            # horizontal line at y=D_wt
+            axes_3[i_axes].axhline(
+                y=row["D_wt"],
+                color='black', linestyle='--', linewidth=1,
+                # label=f"D$_{{wt}}$ = {row['D_wt']:.2e}"
+            )
+            # error
+            axes_3[i_axes].axhline(
+                y=row["D_wt_low"],
+                color='black', linestyle=':', linewidth=1,
+                # label=f"D$_{{wt}}$ error = {row['D_wt_error']:.2e}"
+            )
+            axes_3[i_axes].axhline(
+                y=row["D_wt_high"],
+                color='black', linestyle=':', linewidth=1,
+            )
+            ########################
+
+            ########################
+            axes_4[i_axes].scatter(
+                array_Xw, array_D_wt,
+                label = (
+                f"P={row['Target pressure (GPa)']:.0f} GPa, "
+                f"T={row['Target temperature (K)']:.0f} K"
+                ),
+                **marker_opts_scatter
+            )
+            # axes_4[i_axes].errorbar(
+            #     array_Xw, array_D_wt,
+            #     yerr=[array_D_wt-array_D_wt_lower, array_D_wt_upper-array_D_wt],
+            #     fmt='none',  # no extra marker
+            #     # ecolor=cmap(norm(row["Target temperature (K)"])),  # single RGBA tuple
+            #     **marker_opts_error,
+            #     marker=marker_TI  # use the TI marker for errorbars
+            # )
+            axes_4[i_axes].fill_between(
+                array_Xw,
+                array_D_wt_lower,
+                array_D_wt_upper,
+                alpha=0.2, label='Error range',
+                color=axes_4[i_axes].collections[0].get_edgecolor()  # same as the scatter points
+            )
+            # horizontal line at y=D_wt
+            axes_4[i_axes].axhline(
+                y=row["D_wt"],
+                color='black', linestyle='--', linewidth=1,
+                # label=f"D$_{{wt}}$ = {row['D_wt']:.2e}"
+            )
+            # error
+            axes_4[i_axes].axhline(
+                y=row["D_wt_low"],
+                color='black', linestyle=':', linewidth=1,
+                # label=f"D$_{{wt}}$ error = {row['D_wt_error']:.2e}"
+            )
+            axes_4[i_axes].axhline(
+                y=row["D_wt_high"],
+                color='black', linestyle=':', linewidth=1,
+            )
+            ########################
+            # plot X vs Xw
+            axes_5[i_axes].scatter(
+                array_X, array_Xw,
+                label = (
+                f"P={row['Target pressure (GPa)']:.0f} GPa, "
+                f"T={row['Target temperature (K)']:.0f} K"
+                ),
+                **marker_opts_scatter
+            )
+            # axes_5[i_axes].errorbar(
+            #     array_X, array_Xw,
+            #     yerr=[array_Xw-array_Xw_lower, array_Xw_upper-array_Xw],
+            #     fmt='none',  # no extra marker
+            #     # ecolor=cmap(norm(row["Target temperature (K)"])),  # single RGBA tuple
+            #     **marker_opts_error,
+            #     marker=marker_TI  # use the TI marker for errorbars
+            # )
+            axes_5[i_axes].fill_between(
+                array_X,
+                array_Xw_lower,
+                array_Xw_upper,
+                alpha=0.2, label='Error range',
+                color=axes_5[i_axes].collections[0].get_edgecolor()  # same as the scatter points
+            )
+                
+            # print(f"array_X: {array_X}")
+            # print(f"array_Xw: {array_Xw}")
+            # print(f"array_Xw-array_Xw_lower: {array_Xw - array_Xw_lower}")
+            # print(f"array_Xw-array_Xw_upper: {array_Xw - array_Xw_upper}")
+            ########################
+            # plot X_in_Fe vs X
+            axes_6[i_axes].scatter(
+                array_X, array_X_in_Fe,
+                label = (
+                f"P={row['Target pressure (GPa)']:.0f} GPa, "
+                f"T={row['Target temperature (K)']:.0f} K"
+                ),
+                **marker_opts_scatter
+            )
+            axes_6[i_axes].fill_between(
+                array_X,
+                array_X_in_Fe_lower,
+                array_X_in_Fe_upper,
+                alpha=0.2, label='Error range',
+                color=axes_6[i_axes].collections[0].get_edgecolor()  # same as the scatter points
+            )
+            ########################
+
+
+
+        # set x and y limits for all axes
+        for axes in [axes_1, axes_2, axes_3, axes_4, axes_5, axes_6]:
+            for i_axes, ax in enumerate(axes):
+                # if axes is not axes_2:
+                #     if axes is not axes_1:
+                #         ax.set_xscale("log")
+                ax.set_xscale("log")
+                # if axes is not axes_2:
+                ax.set_yscale("log")
+                ax.grid(True, which="both", ls="--", alpha=0.5)
+
+                if i_axes not in (0, 5, 10, 15):
+                    ax.tick_params(labelleft=False)
+                else:
+                    ax.tick_params(labelleft=True)
+                    if axes is axes_1:
+                        ax.set_ylabel(f"K$_D$")
+                    elif axes is axes_2:
+                        ax.set_ylabel(f"K$_D^{{H_{{2,sil}}\\rightleftharpoons H_{{Fe}}}}$")
+                    elif axes is axes_3:
+                        ax.set_ylabel(f"D$_{{wt}}$")
+                    elif axes is axes_4:
+                        ax.set_ylabel(f"D$_{{wt}}$")
+                    elif axes is axes_5:
+                        ax.set_ylabel(f"X$_{{w,{secondary_species}}}$")
+                    elif axes is axes_6:
+                        ax.set_ylabel(fr"$X_{{{secondary_species}}}^{{Fe}}$")
+
+                if i_axes >= 15:
+                    ax.tick_params(labelbottom=True)         # force it ON explicitly
+                    # If shared x hides it, unhide individual labels:
+                    for lbl in ax.get_xticklabels():
+                        lbl.set_visible(True)
+                    if axes is not axes_4 and axes is not axes_5:
+                        ax.set_xlabel(fr"$X_{{{secondary_species}}}^{{MgSiO_3}}$")
+                    elif axes is axes_4:
+                        ax.set_xlabel(fr"$X_{{w,{secondary_species}}}^{{MgSiO_3}}$")
+                    elif axes is axes_5:
+                        ax.set_xlabel(fr"$X_{{{secondary_species}}}^{{MgSiO_3}}$")
+                    elif axes is axes_6:
+                        ax.set_xlabel(fr"$X_{{{secondary_species}}}^{{MgSiO_3}}$")
+                else:
+                    ax.tick_params(labelbottom=False)
+
+                # delete sub-plots that are not used -- i_axes = 4,9,14
+                if i_axes in (4, 9, 14):
+                    ax.remove()
+
+                # legend
+                # if i_axes < 15:
+                #     ax.legend(loc="lower right", fontsize=8)
+                # else:
+                #     ax.legend(loc="upper right", fontsize=8)
+                ax.legend(loc="best", fontsize=8)
+
+                # x axis limits
+                # if axes is not axes_3 and axes is not axes_4:
+                #     ax.set_xlim(1e-4, 100/109)
+                # else:
+                #     ax.set_xlim(1e-4, 0.1)  # set x
+                # ax.set_xlower(1e-4)
+                ax.set_xlim(1e-6, None)
+
+                if axes is axes_6:
+                    # set y limits for axes_6
+                    ax.set_ylim(1e-6, 2.0)
+
+        # # If *all* subplots share the same legend entries, collect once:
+        # handles, labels = axes_1[0].get_legend_handles_labels()
+        # # Place a single legend outside (adjust bbox_to_anchor as needed)
+        # axes_1[0].figure.legend(handles, labels, loc="upper center",
+        #                         bbox_to_anchor=(0.5, 1.02), ncol=len(labels),
+        #                         frameon=False, fontsize=8)
+            # only keep x-axis labels
+
+        # for ax in axes_2:
+        #     # ax.set_xlim(0, 1)
+        #     # ax.set_ylim(1e-6, 1e2)
+        #     # ax.set_xscale("log")
+        #     # ax.set_yscale("log")
+        #     ax.grid(True, which="both", ls="--", alpha=0.3)
+        #     ax.set_xlabel(f"X$_{{{secondary_species}}}$")
+        #     ax.set_ylabel(f"K$_D'$")
+        #     ax.legend(loc="upper right", fontsize=8)
+
+        # for ax in axes_3:
+        #     # ax.set_xlim(0, 1)
+        #     # ax.set_ylim(1e-6, 1e2)
+        #     # ax.set_xscale("log")
+        #     # ax.set_yscale("log")
+        #     ax.grid(True, which="both", ls="--", alpha=0.3)
+        #     ax.set_xlabel(f"X$_{{{secondary_species}}}$")
+        #     ax.set_ylabel(f"D$_{{wt}}$")
+        #     # ax.legend(loc="upper right", fontsize=8)
+
+        # for ax in axes_4:
+        #     # # ax.set_xlim(0, 1)
+        #     # ax.set_ylim(1e-6, 1e2)
+        #     # ax.set_xscale("log")
+        #     # ax.set_yscale("log")
+        #     ax.grid(True, which="both", ls="--", alpha=0.3)
+        #     ax.set_xlabel(f"X$_{{w,{secondary_species}}}$")
+        #     ax.set_ylabel(f"D$_{{wt}}$")
+        #     # ax.legend(loc="upper right", fontsize=8)
+
+        # set the title for each figure
+        fig_1.suptitle(
+            f"K$_D$ vs X for {secondary_species}",
+            fontsize=10
+        )
+        fig_2.suptitle(
+            f"K$_D^{{H_{{2,sil}}\\rightleftharpoons H_{{Fe}}}}$ vs X for {secondary_species}",
+            fontsize=10
+        )
+        fig_3.suptitle(
+            f"D$_{{wt}}$ vs X for {secondary_species}",
+            fontsize=10
+        )
+        fig_4.suptitle(
+            f"D$_{{wt}}$ vs Xw for {secondary_species}",
+            fontsize=10
+        )
+        fig_5.suptitle(
+            f"X vs Xw for {secondary_species}",
+            fontsize=10
+        )
+        fig_6.suptitle(
+            f"X$_{{{secondary_species}}}^{{Fe}}$ vs X$_{{{secondary_species}}}^{{MgSiO_3}}$",
+            fontsize=10
+        )
+
+        # from matplotlib.collections import PathCollection, LineCollection
+        # def sanitize_for_pdf(fig):
+        #     for ax in fig.axes:
+        #         # Remove empty collections or patch their arrays
+        #         for coll in list(ax.collections):
+        #             try:
+        #                 # 1) Empty PathCollection (e.g., scatter/markers with 0 points)
+        #                 if isinstance(coll, PathCollection):
+        #                     offs = np.asarray(getattr(coll, "get_offsets", lambda: np.array([]))())
+        #                     if offs.size == 0:
+        #                         coll.remove()
+        #                         continue
+        #                     lw = np.asarray(coll.get_linewidths())
+        #                     if lw.size == 0:
+        #                         coll.set_linewidths((0.0,))   # avoid np.max([]) in PDF backend
+        #                     sz = np.asarray(getattr(coll, "get_sizes", lambda: np.array([]))())
+        #                     if sz.size == 0:
+        #                         coll.set_sizes((0.0,))
+        #                 # 2) Empty LineCollection (e.g., errorbar caps with no segments)
+        #                 if isinstance(coll, LineCollection):
+        #                     if not coll.get_segments():       # empty list
+        #                         coll.remove()
+        #                         continue
+        #             except Exception:
+        #                 pass
+        #         # Also remove truly empty Line2D lines (rare but safe)
+        #         for line in list(ax.lines):
+        #             x = np.asarray(line.get_xdata(orig=False))
+        #             y = np.asarray(line.get_ydata(orig=False))
+        #             if x.size == 0 or y.size == 0:
+        #                 try: line.remove()
+        #                 except Exception: pass
+
+
+
+        # sanitize_for_pdf(fig_1)
+        # sanitize_for_pdf(fig_2)
+        # sanitize_for_pdf(fig_3)
+        # sanitize_for_pdf(fig_4)
+        # sanitize_for_pdf(fig_5)
+        # sanitize_for_pdf(fig_6)
+
+
+
+        # save the figures
+        fig_1.savefig(f"array__KD_vs_X__{secondary_species}.png", dpi=300)
+        fig_2.savefig(f"array__KD_prime_vs_X__{secondary_species}.png", dpi=300)
+        fig_3.savefig(f"array__D_wt_vs_X__{secondary_species}.png", dpi=300)
+        fig_4.savefig(f"array__D_wt_vs_Xw__{secondary_species}.png", dpi=300)
+        fig_5.savefig(f"array__X_vs_Xw__{secondary_species}.png", dpi=300)
+        fig_6.savefig(f"array__X_in_Fe_vs_X_in_MgSiO3__{secondary_species}.png", dpi=300)
+
+        # save as pdf
+        # fig_1.savefig("array__KD_vs_X.pdf")
+        # fig_2.savefig(f"array__KD_prime_vs_X.pdf")
+        # fig_3.savefig(f"array__D_wt_vs_X.pdf")
+        # fig_4.savefig(f"array__D_wt_vs_Xw.pdf")
+        # fig_5.savefig(f"array__X_vs_Xw.pdf")
+        # fig_6.savefig(f"array__X_in_Fe_vs_X_in_MgSiO3.pdf")
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    if PLOT_MODE == 15 or PLOT_MODE < 0: # KD_D_wt_vs_P_T__lowPT__only_past_data__{secondary_species}.png
+
+        # y_min = 1e-5
+        # y_max = 10**(5.2)
+
+        if secondary_species == "He":
+            y_min = y_min__He
+            y_max = y_max__He
+        elif secondary_species == "H":
+            y_min = y_min__H
+            y_max = y_max__H
+
+        # low pressure regime < 100 GPa + 5000 K
+        # x = P
+        xlim_low = 0.
+        xlim_high = 70
+
+        fig, axes_KD_D_wt__P = plt.subplots(2, 1, figsize=(12, 10))#, sharex=True, sharey=True)
+        # fig, axes = plt.subplots(1, 2, figsize=(10, 4), sharex=True, sharey=True)
+        # ax1, ax_KD, ax3, ax_D_wt = axes.flatten()
+        ax_KD, ax_D_wt = axes_KD_D_wt__P.flatten()
+
+
+        x_variable = "Target pressure (GPa)"  # x-axis variable for all plots
+        z_variable = "Target temperature (K)"  # z-axis variable for all plots -- color coding
+
+
+
+        # create a colormap based on the temperature range
+        temp_min = 1500  # minimum temperature in K
+        temp_max = 5500  # maximum temperature in K
+        cbar_ticks = [2000, 3000, 4000, 5000]
+        norm = plt.Normalize(
+            vmin=temp_min,
+            vmax=temp_max
+        )
+
+        magma = plt.get_cmap("magma")
+        pastel_magma = pastel_cmap(magma, factor=0.25)  # tweak factor between 0 and 1
+        cmap = pastel_magma  # use pastel magma for the plots
+
+
+
+
+        # 2) Draw per-point errorbars with matching colors
+        temps  = df_superset[z_variable].values
+        colors = cmap(norm(temps))
+
+
+
+
+
+
+
+
+
+
+
+
+
+        # if secondary_species is "He" -- in all plots, add two data points at P500_T9000 0.032 and at P1000_T13000, 1
+        if secondary_species == "He":
+            """ 
+            
+            Two-phase simulations for He in Fe and MgSiO3:
+            dict: data_He__two_phase_simulations
+            P:500, T:9000, KD: 0.032, KD_low: 0.032, KD_high: 0.032
+            P:1000, T:13000, KD: 0.32, KD_low: 0.32, KD_high: 0.32
+
+            """
+
+            data_He__two_phase_simulations = {
+                "Target pressure (GPa)": [500, 1000],
+                "Target temperature (K)": [9000, 13000],
+                "KD": [0.032, 0.32],
+                "KD_low": [0.032, 0.32],
+                "KD_high": [0.032, 0.32]
+            }
+            # D_wt = KD * (100/56)  # assuming Fe as metal, 56 g/mol
+            data_He__two_phase_simulations["D_wt"] = [kd * (100/56) for kd in data_He__two_phase_simulations["KD"]]
+            data_He__two_phase_simulations["D_wt_low"] = [kd * (100/56) for kd in data_He__two_phase_simulations["KD_low"]]
+            data_He__two_phase_simulations["D_wt_high"] = [kd * (100/56) for kd in data_He__two_phase_simulations["KD_high"]]
+
+            # ax_KD.scatter(data_He__two_phase_simulations[x_variable], 
+            #                 data_He__two_phase_simulations["KD"],
+            #                 **marker_opts_scatter,
+            #                 marker=marker_2phase,
+            #                 c=data_He__two_phase_simulations[z_variable],
+            #                 cmap=cmap,
+            #                 norm=norm,
+            #                 label="This study (2P)")
+            # ax_D_wt.scatter(data_He__two_phase_simulations[x_variable], 
+            #                 data_He__two_phase_simulations["D_wt"],
+            #                 **marker_opts_scatter,
+            #                 marker=marker_2phase,
+            #                 c=data_He__two_phase_simulations[z_variable],
+            #                 cmap=cmap,
+            #                 norm=norm,
+            #                 label="This study (2P)")
+
+
+
+
+
+
+
+
+
+
+
+        # plot the data points
+        plot_studies(
+        ax_KD,
+        ax_D_wt,
+        datasets_comp,
+        x_variable,
+        z_variable,
+        cmap,
+        norm,
+        marker_other_comp_studies,
+        marker_opts_scatter__others,
+        marker_opts_error__others
+        )
+
+
+
+
+
+
+
+
+
+        # plot the data points
+        plot_studies(
+        ax_KD,
+        ax_D_wt,
+        datasets_expt,
+        x_variable,
+        z_variable,
+        cmap,
+        norm,
+        marker_other_expt_studies,
+        marker_opts_scatter__others,
+        marker_opts_error__others
+        )
+        ###########################
+
+
+
+
+
+        # show 1 colorbar for both KD and D_wt plots
+        # 1) Create a colorbar for the temperature range
+        sm = plt.cm.ScalarMappable(cmap=cmap, norm=norm)
+        # sm.set_array([])  # only needed for older matplotlib versions
+        # 2) Add the colorbar to the figure -- width == width of 1 plot
+        cbar = fig.colorbar(sm, ax=[ax_KD, ax_D_wt],
+                            orientation='horizontal',
+                            # fraction=1, pad=0.04,
+                            pad=0.1,  # space between colorbar and plot
+                            ticks=np.linspace(temp_min, temp_max, 5),
+                            location='bottom',  # 'top' or 'bottom'
+                            shrink=1,      # shrink to 80% of the original size
+                            aspect=50,     # thinner bar
+                            )
+        cbar.set_label("Temperature (K)")#, rotation=270, labelpad=15)
+        # set colorbar ticks to be in K -- 3500, 6500, 9000, 13000, 17000
+        cbar.set_ticks(cbar_ticks)
+        # cbar.set_ticklabels([f"{int(t)} K" for t in cbar.get_ticks()])
+
+
+
+
+
+        # # x lim ,  y lim
+        # if secondary_species == "He":
+        #     y_min = 1e-5 # 1e-5
+        #     y_max = 1e1 #1e1
+        # elif secondary_species == "H":
+        #     y_min = 1e-3 #1e-3
+        #     y_max = 1e6
+        ax_KD.set_ylim(y_min, y_max)
+        ax_D_wt.set_ylim(y_min, y_max)
+
+        ax_KD.set_xlim(xlim_low, xlim_high)
+        ax_D_wt.set_xlim(xlim_low, xlim_high)
+
+
+
+        ax_KD.set_yscale("log")
+        # ax_KD.set_ylabel(r"K$_D^{rxn: silicate → metal}$")
+        # ax_KD.set_ylabel(r"K$_D$")
+        ax_KD.set_ylabel(r"Equilibrium Constant ($K_{D}^{\mathrm{Fe}/\mathrm{MgSiO}_{3}}$)")
+        ax_KD.grid(True)
+        # ax_KD.tick_params(labelbottom=False)
+        # ax_KD.set_xlabel("Pressure (GPa)")
+        # ax_KD.set_xscale("log")
+        # ax_KD.set_xlim(left=0,right=200)  # set x-axis limits for better visibility
+
+        ax_D_wt.set_yscale("log")
+        # ax_D_wt.set_ylabel(r"D$_{wt}^{rxn: silicate → metal}$")
+        ax_D_wt.set_ylabel(r"Partition Coefficient ($D_{wt}^{\mathrm{Fe}/\mathrm{MgSiO}_{3}}$)")
+        ax_D_wt.grid(True)
+        ax_D_wt.set_xlabel("Pressure (GPa)")
+        # ax_D_wt.set_xscale("log")
+        # ax_D_wt.set_xlim(left=10, right=1100)  # set x-axis limits for better visibility
+
+
+
+        # Legend
+        # 1) Grab handles & labels from one of your axes
+        handles, labels = ax_KD.get_legend_handles_labels()
+
+        # 2) Create a single legend on the right side of the figure
+        fig.legend(
+            handles,
+            labels,
+            loc='lower center',        # center vertically on the right edge
+            fontsize=8,
+            # borderaxespad=0.1,
+            # bbox_to_anchor=(1.00, 0.5),
+            frameon=False,
+            ncol=3,  # number of columns in the legend
+            # mode='expand',  # 'expand' to fill the space, 'none'
+            labelspacing=1.5,    # default is 0.5; larger → more space
+            handletextpad=1.0,   # default is 0.8; larger → more space between handle & text
+            columnspacing=2.0,   # if you have multiple columns, space between them
+        )
+
+        # 3) Shrink the subplots to make room for the legend
+        # fig.subplots_adjust(right=0.82)  # push the plot area leftward
+
+
+
+
+
+        # fig.subplots_adjust(top=0.88)
+
+        fig.suptitle(
+            f"Equilibrium Constant ($K_D$) and Partition Coefficient ($D_{{wt}}$) "
+            f"for the reaction {secondary_species}$_{{silicates}}$ $\\rightleftharpoons$ {secondary_species}$_{{metal}}$.\n"
+            f"Note: Assumption that X$_{{{secondary_species},silicates}}$ $\\ll$ 1",
+            fontsize=10#,
+            # y=1.03,            # default ≃0.98, smaller → more gap
+        )
+
+
+        # 3) Layout & save
+        # plt.tight_layout(rect=[0, 0, 1, 1.0])
+        # plt.tight_layout(rect=[0, 0.03, 1, 0.95])  # adjust layout to make room for the title
+        # plt.savefig(f"KD_D_wt_vs_P_T__lowPT__{secondary_species}.png", dpi=300)
+        plt.savefig(f"KD_D_wt_vs_P_T__lowPT__only_past_data__{secondary_species}.png", dpi=300)
+
+
+
+
+
+
+
+
+
+
         
 
-        array_KD = row[f"array_KD_{secondary_species}"]
-        array_KD_lower = row[f"array_KD_{secondary_species}_lower"]
-        array_KD_upper = row[f"array_KD_{secondary_species}_upper"]
-
-        # print KD shape
-        # print(f"array_KD: {array_KD}")
-        # print(f"array_KD shape: {array_KD.shape}")
-        # exit()
-
-        array_KD_prime = row[f"array_KD_prime_{secondary_species}"]
-        array_KD_prime_lower = row[f"array_KD_prime_{secondary_species}_lower"]
-        array_KD_prime_upper = row[f"array_KD_prime_{secondary_species}_upper"]
-
-        array_D_wt = row[f"array_D_wt_{secondary_species}"]
-        array_D_wt_lower = row[f"array_D_wt_{secondary_species}_lower"]
-        array_D_wt_upper = row[f"array_D_wt_{secondary_species}_upper"]
-
-        array_X = row[f"array_X_{secondary_species}"]
-        array_X_lower = row[f"array_X_{secondary_species}_lower"]
-        array_X_upper = row[f"array_X_{secondary_species}_upper"]
-
-        array_Xw = row[f"array_Xw_{secondary_species}"]
-        array_Xw_lower = row[f"array_Xw_{secondary_species}_lower"]
-        array_Xw_upper = row[f"array_Xw_{secondary_species}_upper"]
-
-        array_X_in_Fe = row[f"array_X_{secondary_species}_in_Fe"]
-        array_X_in_Fe_lower = row[f"array_X_{secondary_species}_in_Fe_lower"]
-        array_X_in_Fe_upper = row[f"array_X_{secondary_species}_in_Fe_upper"]
-
-        # prints min, max, mean of the above 5 arrays
-        # print(f"array_KD: min={np.min(array_KD)}, max={np.max(array_KD)}, mean={np.mean(array_KD)}")
-        # print(f"array_KD_prime: min={np.min(array_KD_prime)}, max={np.max(array_KD_prime)}, mean={np.mean(array_KD_prime)}")
-        # print(f"array_D_wt: min={np.min(array_D_wt)}, max={np.max(array_D_wt)}, mean={np.mean(array_D_wt)}")
-        # print(f"array_X: min={np.min(array_X)}, max={np.max(array_X)}, mean={np.mean(array_X)}")
-        # print(f"array_Xw: min={np.min(array_Xw)}, max={np.max(array_Xw)}, mean={np.mean(array_Xw)}")
-
-        # array_X_other_phase = df_superset.loc[mask_idx, f"array_X_{secondary_species}"]
-        # array_X_lower_other_phase = df_superset.loc[mask_idx, f"array_X_{secondary_species}_lower"]
-        # array_X_upper_other_phase = df_superset.loc[mask_idx, f"array_X_{secondary_species}_upper"]
-
-        # array_Xw_other_phase = df_superset.loc[mask_idx, f"array_Xw_{secondary_species}"]
-        # array_Xw_lower_other_phase = df_superset.loc[mask_idx, f"array_Xw_{secondary_species}_lower"]
-        # array_Xw_upper_other_phase = df_superset.loc[mask_idx, f"array_Xw_{secondary_species}_upper"]
-
-
-        # plot the KD vs X, KD_prime vs X, D_wt vs X, and D_wt vs Xw
-        ########################
-        axes_1[i_axes].scatter(
-            array_X, array_KD,
-            label=f"P={row['Target pressure (GPa)']}, T={row['Target temperature (K)']}",
-            **marker_opts_scatter
-        )
-        # axes_1[i_axes].errorbar(
-        #     array_X, array_KD,
-        #     yerr=[array_KD-array_KD_lower, array_KD_upper-array_KD],
-        #     fmt='none',  # no extra marker
-        #     # ecolor=cmap(norm(row["Target temperature (K)"])),  # single RGBA tuple
-        #     **marker_opts_error,
-        #     marker=marker_TI  # use the TI marker for errorbars
-        # )
-        axes_1[i_axes].fill_between(
-            array_X,
-            array_KD_lower,
-            array_KD_upper,
-            alpha=0.2, label='K$_D$ error range',
-            color=axes_1[i_axes].collections[0].get_edgecolor()  # same as the scatter points
-        )
-        # horizontal line at y=K_D
-        axes_1[i_axes].axhline(
-            y=row["KD_sil_to_metal"],
-            color='black', linestyle='--', linewidth=1,
-            # label=f"K$_D$ = {row['KD_sil_to_metal']:.2e}"
-        )
-        # error
-        axes_1[i_axes].axhline(
-            y=row["KD_sil_to_metal_low"],
-            color='black', linestyle=':', linewidth=1,
-        )
-        axes_1[i_axes].axhline(
-            y=row["KD_sil_to_metal_high"],
-            color='black', linestyle=':', linewidth=1,
-        )
-        ########################
-
-        ########################
-        axes_2[i_axes].scatter(
-            array_X, array_KD_prime,
-            label=f"P={row['Target pressure (GPa)']}, T={row['Target temperature (K)']}",
-            **marker_opts_scatter
-        )
-        # axes_2[i_axes].errorbar(
-        #     array_X, array_KD_prime,
-        #     yerr=[array_KD_prime-array_KD_prime_lower, array_KD_prime_upper-array_KD_prime],
-        #     fmt='none',  # no extra marker
-        #     # ecolor=cmap(norm(row["Target temperature (K)"])),  # single RGBA tuple
-        #     **marker_opts_error,
-        #     marker=marker_TI  # use the TI marker for errorbars
-        # )
-        axes_2[i_axes].fill_between(
-            array_X,
-            array_KD_prime_lower,
-            array_KD_prime_upper,
-            alpha=0.2, label='K$_D$\' error range',
-            color=axes_2[i_axes].collections[0].get_edgecolor()  # same as the scatter points
-        )
-        ########################
-
-        ########################
-        axes_3[i_axes].scatter(
-            array_X, array_D_wt,
-            label=f"P={row['Target pressure (GPa)']}, T={row['Target temperature (K)']}",
-            **marker_opts_scatter
-        )
-        # axes_3[i_axes].errorbar(
-        #     array_X, array_D_wt,
-        #     yerr=[array_D_wt-array_D_wt_lower, array_D_wt_upper-array_D_wt],
-        #     fmt='none',  # no extra marker
-        #     # ecolor=cmap(norm(row["Target temperature (K)"])),  # single RGBA tuple
-        #     **marker_opts_error,
-        #     marker=marker_TI  # use the TI marker for errorbars
-        # )
-        axes_3[i_axes].fill_between(
-            array_X,
-            array_D_wt_lower,
-            array_D_wt_upper,
-            alpha=0.2, label='D$_{wt}$ error range',
-            color=axes_3[i_axes].collections[0].get_edgecolor()  # same as the scatter points
-        )
-
-
-        # horizontal line at y=D_wt
-        axes_3[i_axes].axhline(
-            y=row["D_wt"],
-            color='black', linestyle='--', linewidth=1,
-            # label=f"D$_{{wt}}$ = {row['D_wt']:.2e}"
-        )
-        # error
-        axes_3[i_axes].axhline(
-            y=row["D_wt_low"],
-            color='black', linestyle=':', linewidth=1,
-            # label=f"D$_{{wt}}$ error = {row['D_wt_error']:.2e}"
-        )
-        axes_3[i_axes].axhline(
-            y=row["D_wt_high"],
-            color='black', linestyle=':', linewidth=1,
-        )
-        ########################
-
-        ########################
-        axes_4[i_axes].scatter(
-            array_Xw, array_D_wt,
-            label=f"P={row['Target pressure (GPa)']}, T={row['Target temperature (K)']}",
-            **marker_opts_scatter
-        )
-        # axes_4[i_axes].errorbar(
-        #     array_Xw, array_D_wt,
-        #     yerr=[array_D_wt-array_D_wt_lower, array_D_wt_upper-array_D_wt],
-        #     fmt='none',  # no extra marker
-        #     # ecolor=cmap(norm(row["Target temperature (K)"])),  # single RGBA tuple
-        #     **marker_opts_error,
-        #     marker=marker_TI  # use the TI marker for errorbars
-        # )
-        axes_4[i_axes].fill_between(
-            array_Xw,
-            array_D_wt_lower,
-            array_D_wt_upper,
-            alpha=0.2, label='D$_{wt}$ error range',
-            color=axes_4[i_axes].collections[0].get_edgecolor()  # same as the scatter points
-        )
-        # horizontal line at y=D_wt
-        axes_4[i_axes].axhline(
-            y=row["D_wt"],
-            color='black', linestyle='--', linewidth=1,
-            # label=f"D$_{{wt}}$ = {row['D_wt']:.2e}"
-        )
-        # error
-        axes_4[i_axes].axhline(
-            y=row["D_wt_low"],
-            color='black', linestyle=':', linewidth=1,
-            # label=f"D$_{{wt}}$ error = {row['D_wt_error']:.2e}"
-        )
-        axes_4[i_axes].axhline(
-            y=row["D_wt_high"],
-            color='black', linestyle=':', linewidth=1,
-        )
-        ########################
-        # plot X vs Xw
-        axes_5[i_axes].scatter(
-            array_X, array_Xw,
-            label=f"P={row['Target pressure (GPa)']}, T={row['Target temperature (K)']}",
-            **marker_opts_scatter
-        )
-        # axes_5[i_axes].errorbar(
-        #     array_X, array_Xw,
-        #     yerr=[array_Xw-array_Xw_lower, array_Xw_upper-array_Xw],
-        #     fmt='none',  # no extra marker
-        #     # ecolor=cmap(norm(row["Target temperature (K)"])),  # single RGBA tuple
-        #     **marker_opts_error,
-        #     marker=marker_TI  # use the TI marker for errorbars
-        # )
-        axes_5[i_axes].fill_between(
-            array_X,
-            array_Xw_lower,
-            array_Xw_upper,
-            alpha=0.2, label='X$_{w}$ error range',
-            color=axes_5[i_axes].collections[0].get_edgecolor()  # same as the scatter points
-        )
-            
-        # print(f"array_X: {array_X}")
-        # print(f"array_Xw: {array_Xw}")
-        # print(f"array_Xw-array_Xw_lower: {array_Xw - array_Xw_lower}")
-        # print(f"array_Xw-array_Xw_upper: {array_Xw - array_Xw_upper}")
-        ########################
-        # plot X_in_Fe vs X
-        axes_6[i_axes].scatter(
-            array_X, array_X_in_Fe,
-            label=f"P={row['Target pressure (GPa)']}, T={row['Target temperature (K)']}",
-            **marker_opts_scatter
-        )
-        axes_6[i_axes].fill_between(
-            array_X,
-            array_X_in_Fe_lower,
-            array_X_in_Fe_upper,
-            alpha=0.2, label='X$_{in,Fe}$ error range',
-            color=axes_6[i_axes].collections[0].get_edgecolor()  # same as the scatter points
-        )
-        ########################
 
 
 
-    # set x and y limits for all axes
-    for axes in [axes_1, axes_2, axes_3, axes_4, axes_5, axes_6]:
-        for i_axes, ax in enumerate(axes):
-            # if axes is not axes_2:
-            #     if axes is not axes_1:
-            #         ax.set_xscale("log")
-            ax.set_xscale("log")
-            # if axes is not axes_2:
-            ax.set_yscale("log")
-            ax.grid(True, which="both", ls="--", alpha=0.5)
 
-            if i_axes not in (0, 5, 10, 15):
-                ax.tick_params(labelleft=False)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    if PLOT_MODE == 16 or PLOT_MODE < 0: # KD_D_wt_vs_P_T__T__lowPT__{secondary_species}__past_data_only
+
+        ########################################################
+        ########################################################
+        ########################################################
+        ########################################################
+        ## KD, D_wt vs Temperature for the current study (TI) --- LOW PRESSURE REGIME < 100 GPa + 5000 K
+
+        # x = T
+        xlim_min = 1500
+        xlim_max = 5500
+
+        # plt.rcParams.update(INITIAL_RCP)
+        # plt.rcdefaults()
+
+        fig, axes_KD_D_wt__T = plt.subplots(2, 1, figsize=(12, 10))#, sharex=True, sharey=True)
+        ax_KD__T, ax_D_wt__T = axes_KD_D_wt__T.flatten()
+
+
+
+        # add log pressure to df
+        # df["log(Target pressure (GPa))"] = np.log10(df["Target pressure (GPa)"])
+        # for data in datasets_comp:
+        #     data["log(Target pressure (GPa))"] = [ np.log10(p) for p in data["Target pressure (GPa)"] ]
+        # for data in datasets_expt:
+        #     data["log(Target pressure (GPa))"] = [ np.log10(p) for p in data["Target pressure (GPa)"] ]
+
+        x_variable = "Target temperature (K)"  # x-axis variable for all plots
+        # z_variable = "log(Target pressure (GPa))"  # z-axis variable for all plots -- color coding
+        z_variable = "Target pressure (GPa)"  # z-axis variable for all plots -- color coding
+
+
+
+        # create a colormap based on the temperature range
+        if z_variable == "log(Target pressure (GPa))":
+            log10_pres_min = np.log10(0.3)  # minimum pressure in GPa
+            log10_pres_max = np.log10(70)  # maximum pressure in GPa
+            cbar_ticks = np.log10([1, 10, 100, 1000])
+            norm = plt.Normalize(
+                vmin=log10_pres_min,
+                vmax=log10_pres_max
+            )
+        elif z_variable == "Target pressure (GPa)":
+            pres_min = 0.1  # minimum pressure in GPa
+            pres_max = 70  # maximum pressure in GPa
+            cbar_ticks = [0, 10, 20, 30, 40, 50, 60, 70]
+            norm = plt.Normalize(
+                vmin=pres_min,
+                vmax=pres_max
+            )
+
+
+        viridis = plt.get_cmap("viridis")
+        pastel_viridis = pastel_cmap(viridis, factor=0.25)  # tweak factor between 0 and 1
+        cmap = pastel_viridis  # use pastel viridis for the plots
+
+
+
+
+
+        # # 2) Draw per-point errorbars with matching colors
+        temps  = df_superset[z_variable].values
+        colors = cmap(norm(temps))
+
+
+
+
+        # plot the data points -- computational studies
+        plot_studies(
+        ax_KD__T,
+        ax_D_wt__T,
+        datasets_comp,
+        x_variable,
+        z_variable,
+        cmap,
+        norm,
+        marker_other_comp_studies,
+        marker_opts_scatter__others,
+        marker_opts_error__others
+        )
+
+        # plot the data points -- experimental studies
+        plot_studies(
+        ax_KD__T,
+        ax_D_wt__T,
+        datasets_expt,
+        x_variable,
+        z_variable,
+        cmap,
+        norm,
+        marker_other_expt_studies,
+        marker_opts_scatter__others,
+        marker_opts_error__others
+        )
+
+
+        # plt.savefig(f"KD_D_wt_vs_P_T__T__{secondary_species}.png", dpi=300)
+        # exit(0)  # exit here to avoid plotting the second figure
+
+
+        # show 1 colorbar for both KD and D_wt plots
+        # 1) Create a colorbar for the temperature range
+        sm = plt.cm.ScalarMappable(cmap=cmap, norm=norm)
+        # sm.set_array([])  # only needed for older matplotlib versions
+        # 2) Add the colorbar to the figure -- width == width of 1 plot
+        if z_variable == "log(Target pressure (GPa))":
+            cbar = fig.colorbar(sm, ax=[ax_KD__T, ax_D_wt__T],
+                                orientation='horizontal',
+                                # fraction=1, pad=0.04,
+                                pad=0.1,  # space between colorbar and plot
+                                # ticks=np.log10([1, 10, 100, 1000]),
+                                location='bottom',  # 'top' or 'bottom'
+                                shrink=1,      # shrink to 80% of the original size
+                                aspect=50,     # thinner bar
+                                )
+            cbar.set_label("Pressure (GPa)")#, rotation=270, labelpad=15)
+            # set colorbar ticks to be in K -- 3500, 6500, 9000, 13000, 17000
+            cbar.set_ticks(cbar_ticks)
+            cbar.set_ticklabels(["1", "10", "100", "1000"])  # set tick labels to be in GPa
+
+            ## grab colors used for P=50,250,500,1000 GPa
+            # colors__wrt_P = [cmap(norm(np.log10(p))) for p in [50, 250, 500, 1000]]
+
+        elif z_variable == "Target pressure (GPa)":
+            cbar = fig.colorbar(sm, ax=[ax_KD__T, ax_D_wt__T],
+                                orientation='horizontal',
+                                # fraction=1, pad=0.04,
+                                pad=0.1,  # space between colorbar and plot
+                                # ticks=np.log10([1, 10, 100, 1000]),
+                                location='bottom',  # 'top' or 'bottom'
+                                shrink=1,      # shrink to 80% of the original size
+                                aspect=50,     # thinner bar
+                                )
+            cbar.set_label("Pressure (GPa)")#, rotation=270, labelpad=15)
+            # set colorbar ticks to be in K -- 3500, 6500, 9000, 13000, 17000
+            cbar.set_ticks(cbar_ticks)
+            # cbar.set_ticklabels(["0", "200", "400", "600", "800", "1000"])  # set tick labels to be in GPa
+
+            ## grab colors used for P=50,250,500,1000 GPa
+            # colors__wrt_P = [cmap(norm(p)) for p in [50, 250, 500, 1000]]
+
+
+
+
+
+        # x lim ,  y lim
+        # if secondary_species == "He":
+        #     y_min__T = 1e-5 # 1e-5
+        #     y_max__T = 1e3 #1e1
+        # elif secondary_species == "H":
+        #     y_min__T = 1e-5 #1e-3
+        #     y_max__T = 1e3
+        ax_KD__T.set_ylim(y_min, y_max)
+        ax_D_wt__T.set_ylim(y_min, y_max)
+
+        ax_KD__T.set_xlim(xlim_min, xlim_max)
+        ax_D_wt__T.set_xlim(xlim_min, xlim_max)
+
+
+        ax_KD__T.set_yscale("log")
+        # ax_KD.set_ylabel(r"K$_D^{rxn: silicate → metal}$")
+        # ax_KD.set_ylabel(r"K$_D$")
+        ax_KD__T.set_ylabel(r"Equilibrium Constant ($K_{D}^{\mathrm{Fe}/\mathrm{MgSiO}_{3}}$)")
+        ax_KD__T.grid(True)
+        # ax_KD.tick_params(labelbottom=False)
+        # ax_KD.set_xlabel("Pressure (GPa)")
+        # ax_KD__T.set_xscale("log")
+        # ax_KD.set_xlim(left=0,right=200)  # set x-axis limits for better visibility
+
+        ax_D_wt__T.set_yscale("log")
+        # ax_D_wt.set_ylabel(r"D$_{wt}^{rxn: silicate → metal}$")
+        ax_D_wt__T.set_ylabel(r"Partition Coefficient ($D_{wt}^{\mathrm{Fe}/\mathrm{MgSiO}_{3}}$)")
+        ax_D_wt__T.grid(True)
+        ax_D_wt__T.set_xlabel("Temperature (K)")
+        # ax_D_wt.set_xscale("log")
+        # ax_D_wt.set_xlim(left=10, right=1100)  # set x-axis limits for better visibility
+
+
+
+        # Legend
+        # Legend
+        # 1) Grab handles & labels from one of your axes
+        handles, labels = ax_KD__T.get_legend_handles_labels()
+
+        # 2) Create a single legend on the right side of the figure
+        fig.legend(
+            handles,
+            labels,
+            loc='lower center',        # center vertically on the right edge
+            fontsize=8,
+            # borderaxespad=0.1,
+            # bbox_to_anchor=(1.00, 0.5),
+            frameon=False,
+            ncol=3,  # number of columns in the legend
+            # mode='expand',  # 'expand' to fill the space, 'none'
+            labelspacing=1.5,    # default is 0.5; larger → more space
+            handletextpad=1.0,   # default is 0.8; larger → more space between handle & text
+            columnspacing=2.0,   # if you have multiple columns, space between them
+        )
+
+        # 3) Shrink the subplots to make room for the legend
+        # fig.subplots_adjust(right=0.82)  # push the plot area leftward
+
+
+
+
+
+        # fig.subplots_adjust(top=0.88)
+
+        fig.suptitle(
+            f"Equilibrium Constant ($K_D$) and Partition Coefficient ($D_{{wt}}$) "
+            f"for the reaction {secondary_species}$_{{silicates}}$ $\\rightleftharpoons$ {secondary_species}$_{{metal}}$.\n"
+            f"Note: Assumption that X$_{{{secondary_species},silicates}}$ $\\ll$ 1",
+            fontsize=10#,
+            # y=1.03,            # default ≃0.98, smaller → more gap
+        )
+
+
+        # 3) Layout & save
+        # plt.tight_layout(rect=[0, 0, 1, 1.0])
+        # plt.tight_layout(rect=[0, 0.03, 1, 0.95])  # adjust layout to make room for the title
+        # plt.savefig(f"KD_D_wt_vs_P_T__T__lowPT__{secondary_species}.png", dpi=300)
+        plt.savefig(f"KD_D_wt_vs_P_T__T__lowPT__only_past_data__{secondary_species}.png", dpi=300)
+        # plt.savefig(f"KD_D_wt_vs_P_T__T__lowPT.pdf")
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    if PLOT_MODE == 21 or PLOT_MODE < 0: # paper__KD_D_wt__vs_P_T_{secondary_species}
+
+        # fig, axes_KD_D_wt__P = plt.subplots(2, 2, figsize=(12, 10))#, sharex=True, sharey=True)
+        # fig, axes = plt.subplots(1, 2, figsize=(10, 4), sharex=True, sharey=True)
+        # ax1, ax_KD, ax3, ax_D_wt = axes.flatten()
+        # ax_KD_low, ax_KD_high, ax_D_wt_low, ax_D_wt_high = axes_KD_D_wt__P.flatten()
+    
+        import matplotlib.gridspec as gridspec
+
+        # sort df_superset by pressure and KD_sil_to_metal
+        df_superset = df_superset.sort_values(by=["Target pressure (GPa)", "KD_sil_to_metal"])
+
+        fig = plt.figure(figsize=(12, 16))
+
+
+        plt.rcParams["text.usetex"] = True
+        plt.rcParams["font.family"] = "serif"
+        plt.rcParams["font.serif"] = ["Times"]
+
+
+        # all font sizes
+        font_size_title = 14
+        font_size_labels = 16
+        font_size_ticks = 14
+        font_size_legend = 12
+
+
+        x_min = -8
+        x_mid = 70
+        x_max = 1071
+
+
+        # Big grid: 2 rows, 1 col
+        outer = gridspec.GridSpec(2, 1, height_ratios=[1, 0.02], hspace=0.2)
+
+        # Top block: looser spacing
+        gs_top = gridspec.GridSpecFromSubplotSpec(2, 2, subplot_spec=outer[0], 
+                                                width_ratios=[0.5, 0.5],
+                                                wspace=0.01)
+
+        # Bottom block: tighter spacing
+        gs_bottom = gridspec.GridSpecFromSubplotSpec(1, 2, subplot_spec=outer[1])
+
+
+        # # 2 rows × 2 columns, with column widths 40% and 60%
+        # gs = gridspec.GridSpec(2, 2, 
+        #                     width_ratios=[0.4, 0.6],
+        #                     height_ratios=[1, 1, 0.06],
+        #                     hspace=0.15, wspace=0.05)
+
+        ax_KD_low = fig.add_subplot(gs_top[0, 0])  # Top-left (40%)
+        ax_KD_high = fig.add_subplot(gs_top[0, 1])  # Top-right (60%)
+        ax_D_wt_low = fig.add_subplot(gs_top[1, 0])  # Bottom-left (40%)
+        ax_D_wt_high = fig.add_subplot(gs_top[1, 1])  # Bottom-right (60%)
+
+
+
+        marker_TI="o"  # marker for TI points
+        marker_2phase="s"  # marker for two-phase points
+        marker_other_comp_studies=["^", "D", "v", "<", ">"] # array of markers for other studies
+        marker_other_expt_studies=["p", "H", "h", "*", ""]  # array of markers for other experimental studies
+
+        marker_opts = dict(marker='o', linestyle='', markersize=10, alpha=1)#,color=base_color)
+        marker_opts_scatter = dict(linestyle='', s=200, alpha=1,edgecolors='black', linewidths=1)
+        marker_opts_error = dict(linestyle='', markersize=10, alpha=1, capsize=5, elinewidth=1)#, color='black',ecolor='black')
+        marker_opts_scatter__others = dict(linestyle='', s=200, alpha=0.5)#, edgecolors='k',linewidths=0)#,color=base_color, alpha=0.5
+        marker_opts_error__others = dict(linestyle='', markersize=10, capsize=5, elinewidth=1,alpha=0.5)#, color='black',ecolor='black')
+
+        # add log temperature to df
+        df_superset["log(Target temperature (K))"] = np.log10(df_superset["Target temperature (K)"])
+        df_superset["log(Target pressure (GPa))"] = np.log10(df_superset["Target pressure (GPa)"])
+        for data in datasets_comp:
+            data["log(Target temperature (K))"] = [ np.log10(p) for p in data["Target temperature (K)"] ]
+            data["log(Target pressure (GPa))"] = [ np.log10(p) for p in data["Target pressure (GPa)"] ]
+        for data in datasets_expt:
+            data["log(Target temperature (K))"] = [ np.log10(p) for p in data["Target temperature (K)"] ]
+            data["log(Target pressure (GPa))"] = [ np.log10(p) for p in data["Target pressure (GPa)"] ]
+
+        ######################################
+        x_variable = "Target pressure (GPa)"  # x-axis variable for all plots
+        # x_variable = "log(Target pressure (GPa))"  # x-axis variable for all plots
+        # z_variable = "Target temperature (K)"  # z-axis variable for all plots -- color coding
+        z_variable = "log(Target temperature (K))"
+        ######################################
+        
+        if x_variable == "log(Target pressure (GPa))":
+            x_min = np.log10(5)
+            x_mid = np.log10(200.0)
+            x_max = np.log10(1100)
+
+        # create a colormap based on the temperature range
+        if z_variable == "log(Target temperature (K))":
+            temp_min = 1000  # minimum temperature in K
+            temp_max = 16000  # maximum temperature in K
+            log10_temp_min = np.log10(temp_min)  # minimum temperature in K
+            log10_temp_max = np.log10(temp_max)  # maximum temperature in K
+            cbar_ticks = np.log10([1000, 2000, 4000, 8000, 16000])
+            cbar_labels = [1000, 2000, 4000, 8000, 16000]
+            norm = plt.Normalize(
+                vmin=log10_temp_min,
+                vmax=log10_temp_max
+            )
+        elif z_variable == "Target temperature (K)":
+            temp_min = 1000  # minimum temperature in K
+            temp_max = 15000  # maximum temperature in K
+            cbar_ticks = [1000, 3000, 6000, 9000, 12000, 15000]
+            cbar_labels = [f"{int(t)}" for t in cbar_ticks]
+            norm = plt.Normalize(
+                vmin=temp_min,
+                vmax=temp_max
+            )
+
+
+        magma = plt.get_cmap("magma")
+        viridis = plt.get_cmap("viridis")
+        pastel_magma = pastel_cmap(magma, factor=0.05)  # tweak factor between 0 and 1
+        pastel_viridis = pastel_cmap(viridis, factor=0.05)  # tweak factor between 0 and 1
+        cmap = pastel_viridis  # use pastel magma/viridis/... for the plots
+        # cmap = pastel_magma  # use pastel magma/viridis/... for the plots
+
+
+
+
+
+
+
+
+
+
+        for axes_low_or_high in ["low", "high"]:
+
+
+            # KD = all first elements of each row from df_superset[f"array_KD_{secondary_species}"]
+            KD = df_superset[f"array_KD_{secondary_species}"].str[0].to_numpy()
+            KD_low = df_superset[f"array_KD_{secondary_species}_lower"].str[0].to_numpy()
+            KD_high = df_superset[f"array_KD_{secondary_species}_upper"].str[0].to_numpy()
+
+            # D_wt = all first elements of each row from df_superset[f"array_D_wt_{secondary_species}"]
+            D_wt = df_superset[f"array_D_wt_{secondary_species}"].str[0].to_numpy()
+            D_wt_low = df_superset[f"array_D_wt_{secondary_species}_lower"].str[0].to_numpy()
+            D_wt_high = df_superset[f"array_D_wt_{secondary_species}_upper"].str[0].to_numpy()
+
+            # x and z variables
+            df_x_variable = df_superset[x_variable].values
+            df_z_variable = df_superset[z_variable].values
+
+
+
+            if axes_low_or_high == "low":
+                ax_KD = ax_KD_low
+                ax_D_wt = ax_D_wt_low
+
+                # limit df_x_variable, df_z_variable and KD, D_wt, ... to df_x_variable < x_mid
+                mask = np.asarray(df_x_variable) < x_mid
+                df_x_variable = df_x_variable[mask]
+                df_z_variable = df_z_variable[mask]
+                KD = KD[mask]
+                KD_low = KD_low[mask]
+                KD_high = KD_high[mask]
+                D_wt = D_wt[mask]
+                D_wt_low = D_wt_low[mask]
+                D_wt_high = D_wt_high[mask]
+
+            elif axes_low_or_high == "high":
+                ax_KD = ax_KD_high
+                ax_D_wt = ax_D_wt_high
+
+                # limit ... to > x_mid
+                mask = np.asarray(df_x_variable) > x_mid
+                # print(f"Number of points in high P plot: {len(mask)}, x_mid: {x_mid}, df_x_variable: {df_x_variable}")
+                df_x_variable = df_x_variable[mask]
+                df_z_variable = df_z_variable[mask]
+                KD = KD[mask]
+                KD_low = KD_low[mask]
+                KD_high = KD_high[mask]
+                D_wt = D_wt[mask]
+                D_wt_low = D_wt_low[mask]
+                D_wt_high = D_wt_high[mask]
+
+            # --- Panel 3: KD_sil_to_metal (log y) ---
+
+            # 1) Plot the colored points
+            sc = ax_KD.scatter(
+                df_x_variable,
+                KD,
+                c=df_z_variable,
+                cmap=cmap,
+                norm=norm,
+                **marker_opts_scatter,
+                marker=marker_TI,  # use the TI marker for scatter points
+                label="This study (TI+DFT-MD)",
+                # rasterized=True
+            )
+
+            # 2) Draw per-point errorbars with matching colors
+            temps  = df_z_variable
+            colors = cmap(norm(temps))
+
+            for x0, y0, y_low, y_high, c in zip(
+                df_x_variable,
+                KD,
+                KD_low,
+                KD_high,
+                # df_superset["KD_sil_to_metal"],
+                # df_superset["KD_sil_to_metal_low"],
+                # df_superset["KD_sil_to_metal_high"],
+                colors
+            ):
+
+                low  = y0 - y_low
+                high = y_high - y0
+
+                # shape (2,1) array: [[low], [high]]
+                yerr = [[low], [high]]
+
+                ax_KD.errorbar(
+                    x0, y0,
+                    yerr=yerr,
+                    fmt='none',       # no extra marker
+                    ecolor=c,         # single RGBA tuple
+                    **marker_opts_error,
+                    marker=marker_TI  # use the TI marker for errorbars
+                )
+
+
+
+
+
+
+            # --- Panel 4: D_wt (log y) ---
+
+            # 1) Plot the colored points
+            sc = ax_D_wt.scatter(
+                df_x_variable,
+                D_wt,
+                c=df_z_variable,
+                cmap=cmap,
+                norm=norm,
+                **marker_opts_scatter,
+                marker=marker_TI,  # use the TI marker for scatter points
+                label="This study (TI+DFT-MD)",
+                # rasterized=True
+            )
+            # 2) Draw per-point errorbars with matching colors
+            for x0, y0, y_low, y_high, c in zip(
+                df_x_variable,
+                D_wt,
+                D_wt_low,
+                D_wt_high,
+                # df_superset["KD_sil_to_metal"],
+                # df_superset["KD_sil_to_metal_low"],
+                # df_superset["KD_sil_to_metal_high"],
+                colors
+            ):
+
+                low  = y0 - y_low
+                high = y_high - y0
+
+                # shape (2,1) array: [[low], [high]]
+                yerr = [[low], [high]]
+
+                ax_D_wt.errorbar(
+                    x0, y0,
+                    yerr=yerr,
+                    fmt='none',       # no extra marker
+                    ecolor=c,         # single RGBA tuple
+                    **marker_opts_error,
+                    marker=marker_TI  # use the TI marker for errorbars
+                )
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+            # if secondary_species is "He" -- in all plots, add two data points at P500_T9000 0.032 and at P1000_T13000, 1
+            if secondary_species == "He":
+                """ 
+                
+                Two-phase simulations for He in Fe and MgSiO3:
+                dict: data_He__two_phase_simulations
+                P:500, T:9000, KD: 0.032, KD_low: 0.032, KD_high: 0.032
+                P:1000, T:13000, KD: 0.32, KD_low: 0.32, KD_high: 0.32
+
+                """
+
+                data_He__two_phase_simulations = {
+                    "Target pressure (GPa)": [500, 1000],
+                    "Target temperature (K)": [9000, 13000],
+                    "KD": [0.032, 0.32],
+                    "KD_low": [0.032, 0.32],
+                    "KD_high": [0.032, 0.32]
+                }
+                # D_wt = KD * (100/56)  # assuming Fe as metal, 56 g/mol
+                data_He__two_phase_simulations["D_wt"] = [kd * (100/56) for kd in data_He__two_phase_simulations["KD"]]
+                data_He__two_phase_simulations["D_wt_low"] = [kd * (100/56) for kd in data_He__two_phase_simulations["KD_low"]]
+                data_He__two_phase_simulations["D_wt_high"] = [kd * (100/56) for kd in data_He__two_phase_simulations["KD_high"]]
+
+                # ax_KD.scatter(data_He__two_phase_simulations[x_variable], 
+                #                 data_He__two_phase_simulations["KD"],
+                #                 **marker_opts_scatter,
+                #                 marker=marker_2phase,
+                #                 c=data_He__two_phase_simulations[z_variable],
+                #                 cmap=cmap,
+                #                 norm=norm,
+                #                 label="This study (2P)",
+                #                 rasterized=True)
+                # ax_D_wt.scatter(data_He__two_phase_simulations[x_variable], 
+                #                 data_He__two_phase_simulations["D_wt"],
+                #                 **marker_opts_scatter,
+                #                 marker=marker_2phase,
+                #                 c=data_He__two_phase_simulations[z_variable],
+                #                 cmap=cmap,
+                #                 norm=norm,
+                #                 label="This study (2P)",
+                #                 rasterized=True)
+
+
+
+
+
+
+
+
+
+
+
+            # plot the data points
+            plot_studies(
+            ax_KD,
+            ax_D_wt,
+            datasets_comp,
+            x_variable,
+            z_variable,
+            cmap,
+            norm,
+            marker_other_comp_studies,
+            marker_opts_scatter__others,
+            marker_opts_error__others,
+            x_low=x_mid if axes_low_or_high=="high" else None,
+            x_high=x_mid if axes_low_or_high=="low" else None
+            )
+
+
+
+
+
+
+
+
+
+            # plot the data points
+            plot_studies(
+            ax_KD,
+            ax_D_wt,
+            datasets_expt,
+            x_variable,
+            z_variable,
+            cmap,
+            norm,
+            marker_other_expt_studies,
+            marker_opts_scatter__others,
+            marker_opts_error__others,
+            x_low=x_mid if axes_low_or_high=="high" else None,
+            x_high=x_mid if axes_low_or_high=="low" else None
+            )
+            ###########################
+
+
+
+
+
+
+
+
+            # ***************************
+            # ***************************
+            if FIT_MODE == 1:
+                # combine T and P from datasets_expt, datasets_comp and df dataframe
+                sources = list(datasets_expt) + list(datasets_comp) + [df]  # uncomment if needed
+                # array_T = row[f"array_T_{secondary_species}"] # z_variable -- T
+                # array_P = row[f"array_P_{secondary_species}"] # x_variable -- P
+                array_T          = _concat_cols(sources, "Target temperature (K)")
+                array_P          = _concat_cols(sources, "Target pressure (GPa)")
+
+                if secondary_species == "He":
+                    # array_x_axis = array_X
+                    array_X = (array_T ** 0.) * 1e-3
+                    secondary_species_label = "He"
+
+                elif secondary_species == "H":
+                    # array_x_axis = array_X2
+                    array_X2 = array_X = (array_T ** 0.) * 1e-3
+                    secondary_species_label = "H2"
+
+                array_x_axis = array_P
+
+                x0 = np.log(array_X)
+                x1 = array_P
+                x2 = array_T
+
+                if secondary_species == "H":
+                    # plot the best fit line
+                    y_fit = best_fn_v2(x0, x1, x2, H_STOICH_MODE=1)
+                elif secondary_species == "He":
+                    y_fit = best_fn_v2(x0, x1, x2, H_STOICH_MODE=1)
+                # print(f"Best fit line for KD vs P, T: {y_fit}")
+                # print(f"logX: {x0}")
+                # print(f"T: {array_T}")
+                # print(f"P: {array_P}")
+                ax_KD.plot(
+                    array_x_axis, y_fit,
+                    linestyle='',
+                    marker="s",
+                    label=f"Best fit model",
+                    color='black', markersize=10,
+                    alpha=0.15
+                )
+            # ***************************
+            # ***************************
+
+
+
+
+
+        # show 1 colorbar for both KD and D_wt plots
+        # 1) Create a colorbar for the temperature range
+        sm = plt.cm.ScalarMappable(cmap=cmap, norm=norm)
+        # sm.set_array([])  # only needed for older matplotlib versions
+        # 2) Add the colorbar to the figure -- width == width of 1 plot
+        # cbar = fig.colorbar(sm, ax=[ax_D_wt_low, ax_D_wt_high],
+        #                     orientation='horizontal',
+        #                     # fraction=1, pad=0.04,
+        #                     pad=100,  # space between colorbar and plot
+        #                     ticks=np.linspace(temp_min, temp_max, 5),
+        #                     location='bottom',  # 'top' or 'bottom'
+        #                     shrink=1,      # shrink to 80% of the original size
+        #                     aspect=50,     # thinner bar
+        #                     )
+        cax = fig.add_subplot(gs_bottom[0, :])
+        # cax.axis("off")  # hide frame and ticks
+        # cax.set_xlabel("Pressure (GPa)", labelpad=10)  # shared label
+        cbar = fig.colorbar(
+            sm, cax=cax, orientation='horizontal',
+            ticks=np.linspace(temp_min, temp_max, 5)
+        )
+        cbar.set_label("Temperature (K)", fontsize=font_size_labels)#, rotation=270, labelpad=15)
+        # set colorbar ticks to be in K -- 3500, 6500, 9000, 13000, 17000
+        cbar.set_ticks(cbar_ticks)
+        cbar.set_ticklabels(cbar_labels)
+        cbar.ax.tick_params(labelsize=font_size_ticks)
+        # bold boundary
+        for spine in cbar.ax.spines.values():
+            spine.set_linewidth(1.5)
+            spine.set_color("black")
+
+
+
+
+
+        # # x lim ,  y lim
+
+        for axes in [ax_KD_low, ax_KD_high, ax_D_wt_low, ax_D_wt_high]:
+
+            # draw horizontal dashed line at y=1
+            axes.axhline(y=1, color='gray', linestyle='-', linewidth=7.5, alpha=0.35)
+            # annotate on top and immediately below it, on the right end side
+            if axes in [ax_KD_low, ax_D_wt_low]:
+                axes.annotate("Lithophile", xy=(0, 1), xytext=(-7, 0.6),
+                            fontsize=12, ha='left', color='dimgray')
+                axes.annotate("Siderophile", xy=(0, 1), xytext=(-7, 1.3),
+                            fontsize=12, ha='left', color='dimgray')
+
+            # if secondary_species == "He":
+            #     y_min = 1e-5 # 1e-5
+            #     y_max = 1e1 #1e1
+            # elif secondary_species == "H":
+            #     y_min = 1e-3 #1e-3
+            #     y_max = 1e6
+            axes.set_ylim(y_min, y_max)
+            if axes in [ax_KD_low, ax_D_wt_low]:
+                axes.set_xlim(x_min, x_mid)
             else:
-                ax.tick_params(labelleft=True)
-                if axes is axes_1:
-                    ax.set_ylabel(f"K$_D$")
-                elif axes is axes_2:
-                    ax.set_ylabel(f"K$_D^{{H_{{2,sil}}\\rightleftharpoons H_{{Fe}}}}$")
-                elif axes is axes_3:
-                    ax.set_ylabel(f"D$_{{wt}}$")
-                elif axes is axes_4:
-                    ax.set_ylabel(f"D$_{{wt}}$")
-                elif axes is axes_5:
-                    ax.set_ylabel(f"X$_{{w,{secondary_species}}}$")
-                elif axes is axes_6:
-                    ax.set_ylabel(fr"$X_{{{secondary_species}}}^{{Fe}}$")
+                axes.set_xlim(x_mid, x_max)
+            axes.set_yscale("log")
+            axes.grid(True)
 
-            if i_axes >= 15:
-                ax.tick_params(labelbottom=True)         # force it ON explicitly
-                # If shared x hides it, unhide individual labels:
-                for lbl in ax.get_xticklabels():
-                    lbl.set_visible(True)
-                if axes is not axes_4 and axes is not axes_5:
-                    ax.set_xlabel(fr"$X_{{{secondary_species}}}^{{MgSiO_3}}$")
-                elif axes is axes_4:
-                    ax.set_xlabel(fr"$X_{{w,{secondary_species}}}^{{MgSiO_3}}$")
-                elif axes is axes_5:
-                    ax.set_xlabel(fr"$X_{{{secondary_species}}}^{{MgSiO_3}}$")
-                elif axes is axes_6:
-                    ax.set_xlabel(fr"$X_{{{secondary_species}}}^{{MgSiO_3}}$")
-            else:
-                ax.tick_params(labelbottom=False)
+            # for bottom axes, set 1 x label
+            # if axes in [ax_D_wt_low, ax_D_wt_high]:
+            #     axes.set_xlabel("Pressure (GPa)")
+            fig.supxlabel("Pressure (GPa)", y=0.15, fontsize=font_size_labels)
 
-            # delete sub-plots that are not used -- i_axes = 4,9,14
-            if i_axes in (4, 9, 14):
-                ax.remove()
+            # for left axes, set y labels
+            if axes in [ax_KD_low]:
+                axes.set_ylabel(r"Equilibrium Constant ($K_{D}^{\mathrm{Fe}/\mathrm{MgSiO}_{3}}$)")
+            elif axes in [ax_D_wt_low]:
+                axes.set_ylabel(r"Partition Coefficient ($D_{wt}^{\mathrm{Fe}/\mathrm{MgSiO}_{3}}$)")
 
-            # legend
-            if i_axes < 15:
-                ax.legend(loc="lower right", fontsize=8)
-            else:
-                ax.legend(loc="upper right", fontsize=8)
+            # no y tick labels for right panels
+            if axes in [ax_KD_high, ax_D_wt_high]:
+                axes.set_yticklabels([])
 
-            # x axis limits
-            # if axes is not axes_3 and axes is not axes_4:
-            #     ax.set_xlim(1e-4, 100/109)
-            # else:
-            #     ax.set_xlim(1e-4, 0.1)  # set x
-            # ax.set_xlower(1e-4)
-            ax.set_xlim(1e-4, None)
+            axes.tick_params(axis='y', which='both', direction='in', pad=15)
 
-            if axes is axes_6:
-                # set y limits for axes_6
-                ax.set_ylim(1e-4, 2.0)
+            # move ticks to right side on right panels
+            if axes in [ax_KD_high, ax_D_wt_high]:
+                axes.yaxis.tick_right()                     # move ticks to right side
+                # axes.yaxis.set_label_position("right")      # move y-axis label too
+                axes.tick_params(axis='y', which='both', direction='in', pad=5)  # adjust tick direction/padding
 
-    # # If *all* subplots share the same legend entries, collect once:
-    # handles, labels = axes_1[0].get_legend_handles_labels()
-    # # Place a single legend outside (adjust bbox_to_anchor as needed)
-    # axes_1[0].figure.legend(handles, labels, loc="upper center",
-    #                         bbox_to_anchor=(0.5, 1.02), ncol=len(labels),
-    #                         frameon=False, fontsize=8)
-        # only keep x-axis labels
+            # font sizes
+            for label in (axes.get_xticklabels() + axes.get_yticklabels()):
+                label.set_fontsize(font_size_ticks)
+            axes.set_xlabel(axes.get_xlabel(), fontsize=font_size_labels)
+            axes.set_ylabel(axes.get_ylabel(), fontsize=font_size_labels)
 
-    # for ax in axes_2:
-    #     # ax.set_xlim(0, 1)
-    #     # ax.set_ylim(1e-6, 1e2)
-    #     # ax.set_xscale("log")
-    #     # ax.set_yscale("log")
-    #     ax.grid(True, which="both", ls="--", alpha=0.3)
-    #     ax.set_xlabel(f"X$_{{{secondary_species}}}$")
-    #     ax.set_ylabel(f"K$_D'$")
-    #     ax.legend(loc="upper right", fontsize=8)
+            # bold boundaries
+            for spine in axes.spines.values():
+                spine.set_linewidth(1.5)
+                spine.set_color("black")
 
-    # for ax in axes_3:
-    #     # ax.set_xlim(0, 1)
-    #     # ax.set_ylim(1e-6, 1e2)
-    #     # ax.set_xscale("log")
-    #     # ax.set_yscale("log")
-    #     ax.grid(True, which="both", ls="--", alpha=0.3)
-    #     ax.set_xlabel(f"X$_{{{secondary_species}}}$")
-    #     ax.set_ylabel(f"D$_{{wt}}$")
-    #     # ax.legend(loc="upper right", fontsize=8)
+        # Legend
+        # 1) Grab handles & labels from one of your axes
+        handles, labels = ax_KD_low.get_legend_handles_labels()
 
-    # for ax in axes_4:
-    #     # # ax.set_xlim(0, 1)
-    #     # ax.set_ylim(1e-6, 1e2)
-    #     # ax.set_xscale("log")
-    #     # ax.set_yscale("log")
-    #     ax.grid(True, which="both", ls="--", alpha=0.3)
-    #     ax.set_xlabel(f"X$_{{w,{secondary_species}}}$")
-    #     ax.set_ylabel(f"D$_{{wt}}$")
-    #     # ax.legend(loc="upper right", fontsize=8)
+        # 2) Create a single legend on the right side of the figure
+        fig.legend(
+            handles,
+            labels,
+            loc='lower center',        # center vertically on the right edge
+            fontsize=font_size_legend,
+            # borderaxespad=0.1,
+            bbox_to_anchor=(0.50, 0.9),
+            # frameon=False,
+            ncol=3,  # number of columns in the legend
+            # mode='expand',  # 'expand' to fill the space, 'none'
+            labelspacing=1.,    # default is 0.5; larger → more space
+            handletextpad=1.0,   # default is 0.8; larger → more space between handle & text
+            columnspacing=2.0,   # if you have multiple columns, space between them
+        )
 
-    # set the title for each figure
-    fig_1.suptitle(
-        f"K$_D$ vs X for {secondary_species}",
-        fontsize=10
-    )
-    fig_2.suptitle(
-        f"K$_D^{{H_{{2,sil}}\\rightleftharpoons H_{{Fe}}}}$ vs X for {secondary_species}",
-        fontsize=10
-    )
-    fig_3.suptitle(
-        f"D$_{{wt}}$ vs X for {secondary_species}",
-        fontsize=10
-    )
-    fig_4.suptitle(
-        f"D$_{{wt}}$ vs Xw for {secondary_species}",
-        fontsize=10
-    )
-    fig_5.suptitle(
-        f"X vs Xw for {secondary_species}",
-        fontsize=10
-    )
-    fig_6.suptitle(
-        f"X$_{{{secondary_species}}}^{{Fe}}$ vs X$_{{{secondary_species}}}^{{MgSiO_3}}$",
-        fontsize=10
-    )
+        # 3) Shrink the subplots to make room for the legend
+        # fig.subplots_adjust(right=0.82)  # push the plot area leftward
 
-    # save the figures
-    fig_1.savefig(f"array__KD_vs_X.png", dpi=300)
-    fig_2.savefig(f"array__KD_prime_vs_X.png", dpi=300)
-    fig_3.savefig(f"array__D_wt_vs_X.png", dpi=300)
-    fig_4.savefig(f"array__D_wt_vs_Xw.png", dpi=300)
-    fig_5.savefig(f"array__X_vs_Xw.png", dpi=300)
-    fig_6.savefig(f"array__X_in_Fe_vs_X_in_MgSiO3.png", dpi=300)
+
+
+
+
+
+        # fig.subplots_adjust(top=0.88)
+
+        # fig.suptitle(
+        #     f"Equilibrium Constant ($K_D$) and Partition Coefficient ($D_{{wt}}$) "
+        #     f"for the reaction {secondary_species}$_{{silicates}}$ $\\rightleftharpoons$ {secondary_species}$_{{metal}}$.\n"
+        #     f"Note: Assumption that X$_{{{secondary_species},silicates}}$ $\\ll$ 1",
+        #     fontsize=font_size_title,
+        #     # y=1.03,            # default ≃0.98, smaller → more gap
+        # )
+
+        # plt.subplots_adjust(wspace=0.05, hspace=0.1)
+        # plt.subplots_adjust(wspace=0.05)
+    
+        from matplotlib.collections import PathCollection
+        from collections.abc import Sequence
+
+        # --- Axes: remove empty collections & fix linewidths
+        for ax in fig.axes:
+            for coll in list(ax.collections):
+                if isinstance(coll, PathCollection):
+                    # remove truly empty offsets
+                    if np.size(coll.get_offsets()) == 0:
+                        coll.remove()
+                        continue
+
+                    lw = coll.get_linewidths()
+                    # Normalize: scalar OK; list/array must be non-empty
+                    if lw is None:
+                        coll.set_linewidth(0.8)
+                    elif np.isscalar(lw):
+                        pass  # fine
+                    elif isinstance(lw, Sequence):
+                        if len(lw) == 0:
+                            coll.set_linewidth(0.8)
+                        # else: keep as-is
+                    else:
+                        # fallback: treat as array
+                        if np.asarray(lw).size == 0:
+                            coll.set_linewidth(0.8)
+
+        # Legends too
+        for leg in fig.legends:
+            for h in leg.legend_handles:
+                if isinstance(h, PathCollection):
+                    lw = h.get_linewidths()
+                    if lw is None or (not np.isscalar(lw) and len(np.atleast_1d(lw)) == 0):
+                        h.set_linewidth(0.8)
+
+        # 3) Layout & save
+        # plt.tight_layout()
+        # plt.tight_layout(rect=[0, 0, 1, 1.0])
+        # plt.tight_layout(rect=[0, 0.03, 1, 0.95])  # adjust layout to make room for the title
+        plt.savefig(f"paper__KD_D_wt__vs_P_T_{secondary_species}.png", dpi=300)
+
+        # pdf
+        # plt.savefig(f"paper__KD_D_wt__vs_P_T_{secondary_species}.eps")
+        plt.savefig(f"paper__KD_D_wt__vs_P_T_{secondary_species}.svg", format="svg", dpi=300)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    print("Plotting completed successfully.")

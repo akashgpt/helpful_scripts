@@ -5,12 +5,13 @@ from ast import literal_eval
 import argparse
 
 """
-Usage:  python $HELP_SCRIPTS_TI/fit_KD_PTX.py -s H > log.fit_KD_PTX 2>&1
-        python $HELP_SCRIPTS_TI/fit_KD_PTX.py -s He > log.fit_KD_PTX 2>&1
+Usage:  python $LOCAL_HELP_SCRIPTS_TI/fit_KD_PTX__long.py -s H > log.fit_KD_PTX__long 2>&1
+        python $LOCAL_HELP_SCRIPTS_TI/fit_KD_PTX__long.py -s He > log.fit_KD_PTX__long 2>&1
 """
 
 ANALYSIS_MODE=1 # >0: analysis, <=0: no analysis
-PLOT_MODE=0 # >0: plot, <=0: no plot
+PLOT_MODE=1 # >0: plot, <=0: no plot
+H_STOICH_MODE = 1 # 2: calculate for H2, 1: calculate for H
 
 
 # read secondary species from terminal, e.g., He, H, C, etc.
@@ -27,13 +28,8 @@ secondary_species = args.secondary_species
 
 
 print(f"Fitting KD/KD_prime for {secondary_species} in Fe and MgSiO3 systems from TI data.")
-
-
-
-
-
-
-
+if secondary_species == "H":
+    print("Using H_STOICH_MODE:", H_STOICH_MODE)
 
 _num_token_re = re.compile(
     r"""
@@ -234,10 +230,19 @@ if ANALYSIS_MODE > 0:
         x = np.column_stack((flat_array_logX, flat_array_P, flat_array_T))
     elif secondary_species == "H":
         print("Fitting KD_prime for H_2 in MgSiO3")
-        y = flat_array_logKD_prime
-        error_y = 1e-10 * flat_array_logKD_prime_error
-        x = np.column_stack((flat_array_logX2, flat_array_P, flat_array_T))
-    
+
+        if H_STOICH_MODE == 2:
+            y = flat_array_logKD_prime
+            # error_y = 1e-10 * flat_array_logKD_prime_error
+            error_y = flat_array_logKD_prime_error
+            x = np.column_stack((flat_array_logX2, flat_array_P, flat_array_T))
+
+        if H_STOICH_MODE == 1:
+            # For H, we need to adjust the x values
+            y = flat_array_logKD
+            error_y = flat_array_logKD_error
+            x = np.column_stack((flat_array_logX, flat_array_P, flat_array_T))
+
     weights = 1 / (error_y ** 2 + 1e-10)  # Avoid division by zero
 
     
@@ -257,7 +262,7 @@ if ANALYSIS_MODE > 0:
         # ^ Generations between migrations.
         niterations=10000000,  # Run forever
         # early_stop_condition=(
-        #     "stop_if(loss, complexity) = loss < 1e-20 && complexity < 10"
+        #     "stop_if(loss, complexity) = loss < 1e-6 && complexity < 10"
         #     # Stop early if we find a good and simple equation
         # ),
         timeout_in_seconds=60 * 60 * 23,
@@ -317,21 +322,14 @@ if PLOT_MODE > 0:
     # x2 = array_T
     def best_fn(x0, x1, x2):
         if secondary_species == "He":
-            # fn = (2.0459936 / (x1 + (x2 / -26.194601))) + (((2.6340475 - ((x2 / x1) * 0.17239113)) / (np.exp(x0) + 0.9716166)) + x0)
-            # fn = (((3.4979217 / (((x2 / x1) / -0.10494591) + x1)) + ((x0 + 2.4573598) - ((x2 * 0.16685495) / (x1 - (-1.1481286 / x0))))) / np.exp(np.exp(x0 * 1.9996892)))
-            # fn = (x0 + (-343.9297 / x1))
-            # fn = ((-435.83066 / x1) + 0.60782576) + x0
-            # fn = (((x2 * -0.16254203) / x1) + (-57.93452 / (x1 + -329.52286))) + (x0 + 2.6449335)
             fn = np.exp(x0) - (x2 * (0.07335293 / x1))
-            # fn = np.exp(x0) - (((x2 * (0.089986384 - (1.5164394 / (420.57715 - x1)))) / x1) - 0.40996122)
+            fn = ((x2 * -0.06782242) + -44.47209) / x1 # loss: 0.12429151 -- one of the simplest w/o X dependence
+            fn = ((x2 * -0.0678) + -44.5) / x1 # loss: 0.12429151 -- one of the simplest w/o X dependence
         elif secondary_species == "H":
-            # fn = (np.exp(x0) + -0.6378883) - (x1 / (x2 - (x1 * 27.900202)))
-            # fn = ((-3.9062214 - (x1 / (x2 - (27.763603 * x1)))) / np.exp((np.exp((-3.9062214 - x0) * x0) / x1) + np.exp(x0 + -0.11166532))) + np.exp(9.85995 / np.log(x2))
-            # fn = np.exp(9.859399 / np.log(x2)) + ((-3.9076896 - (x1 / (x2 - (27.762503 * x1)))) / np.exp((np.exp(x0 * (-3.9062726 - x0)) / x1) + np.exp(x0)))
-            # fn = (-0.6201157 - (4.2224436 / ((x2**0.62346363) - x1))) + np.exp(x0)
-            # fn = (((x1 * -0.0004224998) + np.exp(x0 + 1.292497)) + -0.60875523) - (4.2287445 / ((x2 ** 0.6235566) - x1))
-            # fn = (np.exp(x0) + (((np.exp((np.exp(x0) * -136381.97) + -0.4070354) * x0) + (0.9994636 ** (x1 / np.exp(x0)))) - (4.025868 / ((x2 ** 0.6234068) - x1)))) + -0.6311273
-            fn = (x0 / 1.5825349) / np.exp(np.exp(((((0.23073731 ** (((0.746305 - ((np.log(x1) - x0) ** (-4.958918 - x0))) / 0.22926822) * x0)) ** 0.23119897) - x0) / x1) / 0.23119897))
+            # fn = (x0 - (x1 / 202.40953)) + 6.6363807 # one of the simplest w no T dependence
+            fn = (x0 + (1.7645013 ** (np.log(x1) - (x1 / (x2 ** 0.5255437))))) / ((1.3912275 ** x0) + 1.0416356) #loss: 1.6055515 ; one of the simplest w T dependence
+            fn = (x0 + (1.76 ** (np.log(x1) - (x1 / (x2 ** 0.526))))) / ((1.39 ** x0) + 1.04) #loss: 1.7209659 ; one of the simplest w T dependence
+            # fn = ((x0 + ((x1 - ((x2 * (x1 ** 0.2129224)) / ((x1 + (x0 * 2.4594634)) - (x2 / (x1 + -203.64128))))) * -0.0043917773)) + 5.737133) / np.exp(1.5379059 ** x0) # loss: 1.5272713; the most complex and lowest loss soln
         return np.exp(fn)
     # eqn = (2.0459936 / (x1 + (x2 / -26.194601))) + (((2.6340475 - ((x2 / x1) * 0.17239113)) / (np.exp(x0) + 0.9716166)) + x0)
 
@@ -375,6 +373,8 @@ if PLOT_MODE > 0:
         phase = row["Phase"]
         pt = row["P_T_folder"]
 
+        assert not isinstance(phase, pd.Series)  # should be a scalar
+
         if phase != f"MgSiO3_{secondary_species}":
             continue
 
@@ -414,21 +414,33 @@ if PLOT_MODE > 0:
             KD_chosen = array_KD
             KD_chosen_lower = array_KD_lower
             KD_chosen_upper = array_KD_upper
+            
+            array_x_axis = array_X
+            secondary_species_label = "He"
+
         elif secondary_species == "H":
-            KD_chosen = array_KD_prime
-            KD_chosen_lower = array_KD_prime_lower
-            KD_chosen_upper = array_KD_prime_upper
-            KD_chosen_error = array_KD_prime_error
-            array_X2 = array_X / (2 - array_X)  # X_H2 = X_H / (2 - X_H)
-            array_X2_lower = row[f"array_X_{secondary_species}_lower"]
-            array_X2_upper = row[f"array_X_{secondary_species}_upper"]
+            if H_STOICH_MODE == 2:
+                KD_chosen = array_KD_prime
+                KD_chosen_lower = array_KD_prime_lower
+                KD_chosen_upper = array_KD_prime_upper
+                array_X2 = array_X / (2 - array_X)  # X_H2 = X_H / (2 - X_H)
+                array_X2_lower = row[f"array_X_{secondary_species}_lower"]
+                array_X2_upper = row[f"array_X_{secondary_species}_upper"]
+                array_x_axis = array_X2
+                secondary_species_label = "H2"
+            elif H_STOICH_MODE == 1:
+                KD_chosen = array_KD
+                KD_chosen_lower = array_KD_lower
+                KD_chosen_upper = array_KD_upper
+                array_x_axis = array_X
+                secondary_species_label = "H"
         # KD_chosen = array_KD
         # KD_chosen_lower = array_KD_lower
         # KD_chosen_upper = array_KD_upper
 
         ########################
         axes_2[i_axes].scatter(
-            array_X, KD_chosen,
+            array_x_axis, KD_chosen,
             label=f"P={row['Target pressure (GPa)']}, T={row['Target temperature (K)']}",
             **marker_opts_scatter
         )
@@ -441,7 +453,7 @@ if PLOT_MODE > 0:
         #     marker=marker_TI  # use the TI marker for errorbars
         # )
         axes_2[i_axes].fill_between(
-            array_X,
+            array_x_axis,
             KD_chosen_lower,
             KD_chosen_upper,
             # KD_chosen-KD_chosen_error,
@@ -450,23 +462,22 @@ if PLOT_MODE > 0:
             color=axes_2[i_axes].collections[0].get_edgecolor()  # same as the scatter points
         )
 
+        ########################
+        ########################
         # plot the best fit line
-        if secondary_species == "He":
-            x0 = np.log(array_X)
-            secondary_species_label = "He"
-        elif secondary_species == "H":
-            x0 = np.log(array_X2)
-            secondary_species_label = "H2"
+        x0 = np.log(array_x_axis)
         x1 = array_P
         x2 = array_T
         # print("array_P:", array_P)
         y_fit = best_fn(x0, x1, x2)
         axes_2[i_axes].plot(
-            array_X, y_fit,
+            array_x_axis, y_fit,
             linestyle='--',
             label=f"Best fit model",
             color='black', linewidth=1.5
         )
+        ########################
+        ########################
         ########################
 
 
@@ -521,10 +532,10 @@ if PLOT_MODE > 0:
                 ax.remove()
 
             # legend
-            if i_axes < 15:
-                ax.legend(loc="lower right", fontsize=8)
-            else:
-                ax.legend(loc="lower right", fontsize=8)
+            # if i_axes < 15:
+            #     ax.legend(loc="lower right", fontsize=8)
+            # else:
+            #     ax.legend(loc="lower right", fontsize=8)
 
             # x axis limits
             # if axes is not axes_3 and axes is not axes_4:
@@ -532,7 +543,7 @@ if PLOT_MODE > 0:
             # else:
             #     ax.set_xlim(1e-4, 0.1)  # set x
             # ax.set_xlower(1e-4)
-            # ax.set_xlim(1e-4, None)
+            ax.set_xlim(1e-6, None)
 
 
     # set the title for each figure
@@ -542,14 +553,20 @@ if PLOT_MODE > 0:
     # )
     if secondary_species == "He":
         fig_2.suptitle(
-            f"K$_D^{{He}}$ vs X for {secondary_species_label}",
+            f"K$_D^{{He_{{sil}}\\rightleftharpoons He_{{Fe}}}}$ vs X for {secondary_species_label}",
             fontsize=10
         )
     elif secondary_species == "H":
-        fig_2.suptitle(
-            f"K$_D^{{H_{{2,sil}}\\rightleftharpoons H_{{Fe}}}}$ vs X for {secondary_species_label}",
-            fontsize=10
-        )
+        if H_STOICH_MODE == 2:
+            fig_2.suptitle(
+                f"K$_D^{{H_{{2,sil}}\\rightleftharpoons H_{{Fe}}}}$ vs X for {secondary_species_label}",
+                fontsize=10
+            )
+        elif H_STOICH_MODE == 1:
+            fig_2.suptitle(
+                f"K$_D^{{H_{{sil}}\\rightleftharpoons H_{{Fe}}}}$ vs X for {secondary_species_label}",
+                fontsize=10
+            )
     # fig_2.suptitle(
     #     f"K$_D^{{H_{{2,sil}}\\rightleftharpoons H_{{Fe}}}}$ vs X for {secondary_species}",
     #     fontsize=10
@@ -569,7 +586,13 @@ if PLOT_MODE > 0:
 
     # save the figures
     # fig_1.savefig(f"array__KD_vs_X.png", dpi=300)
-    fig_2.savefig(f"fit__array__KD_prime_vs_X.png", dpi=300)
+    if secondary_species == "He":
+        fig_2.savefig(f"fit__array__KD_chosen_vs_X.png", dpi=300)
+    elif secondary_species == "H":
+        if H_STOICH_MODE == 2:
+            fig_2.savefig(f"fit__array__KD_chosen_vs_X__H2.png", dpi=300)
+        elif H_STOICH_MODE == 1:
+            fig_2.savefig(f"fit__array__KD_chosen_vs_X__H1.png", dpi=300)
     # fig_3.savefig(f"array__D_wt_vs_X.png", dpi=300)
     # fig_4.savefig(f"array__D_wt_vs_Xw.png", dpi=300)
     # fig_5.savefig(f"array__X_vs_Xw.png", dpi=300)
