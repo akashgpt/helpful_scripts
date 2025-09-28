@@ -287,6 +287,7 @@ elif [[ $CLUSTER == "TIGER" ]]; then
   alias l_dp='module load anaconda3/2024.2; conda activate deepmd' #TIGER
 elif [[ $CLUSTER == "TIGER3" ]]; then
   alias l_deepmd='module load anaconda3/2024.6; conda activate deepmd' #TIGER3
+  alias l_deepmd_cpu='module load anaconda3/2024.6; conda activate deepmd_cpu' #TIGER3
 elif [[ $CLUSTER == "STELLAR" ]]; then
   alias l_deepmd='module load anaconda3/2024.6; conda activate deepmd' #STELLAR
 fi
