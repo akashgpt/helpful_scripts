@@ -13,7 +13,7 @@ Usage:  python $HELP_SCRIPTS_TI/fit_KD_PTX.py -s H > log.fit_KD_PTX 2>&1
 
 ANALYSIS_MODE=0 # >0: analysis, <=0: no analysis
 PLOT_MODE=1 # >0: plot, <=0: no plot
-H_STOICH_MODE = 2 # 2: calculate for H2, 1: calculate for H
+H_STOICH_MODE = 1 # 2: calculate for H2, 1: calculate for H
 X_in_Fe_MODE = 0 # 1: plot w array_X_in_Fe, 0: plot with the default (array_X or array_X_in_MgSiO3)
 
 
@@ -606,9 +606,9 @@ if PLOT_MODE > 0:
 
 
         elif secondary_species == "H" and H_STOICH_MODE == 1 and i_axes == 1:
-            K_D, K_D_lower, K_D_upper = (1.245, 1.051, 1.509)
-            X_H_in_MgSiO3, X_H_in_MgSiO3_lower, X_H_in_MgSiO3_upper = (0.24313, 0.20624, 0.27710)
-            X_H_in_Fe, X_H_in_Fe_lower, X_H_in_Fe_upper = (0.30144, 0.27107, 0.33034)
+            K_D, K_D_lower, K_D_upper = (1.434, 1.239, 1.674)
+            X_H_in_MgSiO3, X_H_in_MgSiO3_lower, X_H_in_MgSiO3_upper = (0.42190, 0.37334, 0.46500)
+            X_H_in_Fe, X_H_in_Fe_lower, X_H_in_Fe_upper = (0.60387, 0.54287, 0.66338)
 
             if X_in_Fe_MODE == 1:
                 X_H_in_MgSiO3 = X_H_in_Fe
@@ -747,9 +747,18 @@ if PLOT_MODE > 0:
             # ax.set_xlower(1e-4)
             ax.set_xlim(1e-6, 1)
             # ax.set_xlim(1e-2, 0.5)
+
+            if secondary_species == "H":
+                ax.set_ylim(1e-1, 1e2)
+
+            if secondary_species == "He":
+                ax.set_ylim(1e-3, 1e0)
+
             if secondary_species == "H" and H_STOICH_MODE == 2:
                 # ax.set_ylim(1e-6, None)
                 ax.set_ylim(2e-6, 0.9e2)
+
+
 
             # y minor grid lines on
             ax.minorticks_on()

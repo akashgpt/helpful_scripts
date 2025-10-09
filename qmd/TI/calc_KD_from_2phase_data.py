@@ -16,6 +16,8 @@ Notes:
     (a) sample each parameter within [lower, upper],
     (b) evaluate fn(params) over many draws,
     (c) return central estimate and asymmetric CI (lower, upper).
+
+Usage: python $HELP_SCRIPTS_TI/calc_KD_from_2phase_data.py
 """
 
 import re
@@ -150,26 +152,26 @@ print(f"X_He_in_Fe = {X_He_in_Fe:.5f}, X_He_in_Fe_lower = {X_He_in_Fe_lower:.5f}
 # --------------------------
 
 # Raw H atom counts & 1σ
-mean_N_H_in_Fe       = 38.522
-sigma_N_H_in_Fe      = 5.151
+mean_N_H_in_Fe       = 140.895
+sigma_N_H_in_Fe      = 25.578
 
 # Convert to H₂ molecule counts assuming H atoms pair as H₂
 # (If your model uses atomic H activity, keep the H-atom form instead.)
 mean_N_H2_in_Fe      = mean_N_H_in_Fe / 2
 sigma_N_H2_in_Fe     = sigma_N_H_in_Fe / 2
 
-mean_N_H_in_MgSiO3   = 16.957
-sigma_N_H_in_MgSiO3  = 3.198
+mean_N_H_in_MgSiO3   = 40.789
+sigma_N_H_in_MgSiO3  = 7.375
 
 mean_N_H2_in_MgSiO3  = mean_N_H_in_MgSiO3 / 2
 sigma_N_H2_in_MgSiO3 = sigma_N_H_in_MgSiO3 / 2
 
 # Matrix counts (may differ from He case; keep separate)
-mean_N_Fe            = 89.130
-sigma_N_Fe           = 3.946
+mean_N_Fe            = 92.211
+sigma_N_Fe           = 15.957
 
-mean_N_MgSiO3        = 52.957  # Using Mg as a proxy for formula count (comment retained)
-sigma_N_MgSiO3       = 2.205
+mean_N_MgSiO3        = 56.000  # Using Mg as a proxy for formula count (comment retained)
+sigma_N_MgSiO3       = 3.383
 
 # Molar masses for H-based D_wt
 mu_H      = 1.00784

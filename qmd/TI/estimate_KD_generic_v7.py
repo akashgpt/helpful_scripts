@@ -2546,6 +2546,31 @@ if SCRIPT_MODE >= 0: # plot if > 0
 
         datasets_2phases = [data_He__two_phase_simulations__new]
 
+    if secondary_species == "H":
+        """ 
+        
+        Two-phase simulations for H in Fe and MgSiO3:
+        dict: data_H__two_phase_simulations
+        P:250, T:6500, KD = 1.434, KD_low = 1.239, KD_high = 1.674, D_wt = 3.729, D_wt_low = 2.731, D_wt_high = 5.124
+                        X_H_in_MgSiO3 = 0.42190, X_H_in_MgSiO3_lower = 0.37334, X_H_in_MgSiO3_upper = 0.46500
+                        X_H_in_Fe = 0.60387, X_H_in_Fe_lower = 0.54287, X_H_in_Fe_upper = 0.66338
+        """
+
+        data_H__two_phase_simulations = {
+            "Target pressure (GPa)": [250],
+            "Target temperature (K)": [6500],
+            "KD_sil_to_metal": [1.434],
+            "KD_sil_to_metal_low": [1.239],
+            "KD_sil_to_metal_high": [1.674],
+            "D_wt": [3.729],
+            "D_wt_low": [2.731],
+            "D_wt_high": [5.124],
+            "label": "This study (2P-AIMD)"
+        }
+
+
+        datasets_2phases = [data_H__two_phase_simulations]
+
         ##########################
 
 
@@ -6522,7 +6547,7 @@ if SCRIPT_MODE >= 0: # plot if > 0
         if secondary_species == "He":
             ncol_legend = 4
         elif secondary_species == "H":
-            ncol_legend = 3
+            ncol_legend = 4
 
         # 2) Create a single legend on the right side of the figure
         fig.legend(
@@ -7440,7 +7465,7 @@ if SCRIPT_MODE >= 0: # plot if > 0
             data["log(Target temperature (K))"] = [ np.log10(p) for p in data["Target temperature (K)"] ]
             data["log(Target pressure (GPa))"] = [ np.log10(p) for p in data["Target pressure (GPa)"] ]
 
-        if secondary_species == "He":
+        if secondary_species == "He" or secondary_species == "H":
             # data_He__two_phase_simulations["log(Target temperature (K))"] = [ np.log10(p) for p in data_He__two_phase_simulations["Target temperature (K)"] ]
             # data_He__two_phase_simulations["log(Target pressure (GPa))"] = [ np.log10(p) for p in data_He__two_phase_simulations["Target pressure (GPa)"] ]
             for data in datasets_2phases:
@@ -7490,7 +7515,7 @@ if SCRIPT_MODE >= 0: # plot if > 0
         pastel_viridis = pastel_cmap(viridis, factor=0.05)  # tweak factor between 0 and 1
         pastel_coolwarm = pastel_cmap(coolwarm, factor=0.05)  # tweak factor between 0 and 1
         cmap = pastel_viridis  # use pastel magma/viridis/... for the plots
-        # cmap = pastel_magma  # use pastel magma/viridis/... for the plots
+        cmap = pastel_magma  # use pastel magma/viridis/... for the plots
         # cmap = pastel_coolwarm  # use pastel magma/viridis/... for the plots
 
 
@@ -7657,7 +7682,7 @@ if SCRIPT_MODE >= 0: # plot if > 0
 
 
             # # if secondary_species is "He" -- in all plots, add two data points at P500_T9000 0.032 and at P1000_T13000, 1
-            if secondary_species == "He":
+            if secondary_species == "He" or secondary_species == "H":
 
             #     ax_KD.scatter(data_He__two_phase_simulations[x_variable], 
             #                     data_He__two_phase_simulations["KD"],
@@ -7923,7 +7948,7 @@ if SCRIPT_MODE >= 0: # plot if > 0
         if secondary_species == "He":
             ncol_legend = 4
         elif secondary_species == "H":
-            ncol_legend = 3
+            ncol_legend = 4
 
         # 2) Create a single legend on the right side of the figure
         fig.legend(
@@ -8133,7 +8158,7 @@ if SCRIPT_MODE >= 0: # plot if > 0
             data["log(Target temperature (K))"] = [ np.log10(p) for p in data["Target temperature (K)"] ]
             data["log(Target pressure (GPa))"] = [ np.log10(p) for p in data["Target pressure (GPa)"] ]
         
-        if secondary_species == "He":
+        if secondary_species == "He" or secondary_species == "H":
             # data_He__two_phase_simulations["log(Target temperature (K))"] = [ np.log10(p) for p in data_He__two_phase_simulations["Target temperature (K)"] ]
             # data_He__two_phase_simulations["log(Target pressure (GPa))"] = [ np.log10(p) for p in data_He__two_phase_simulations["Target pressure (GPa)"] ]
             for data in datasets_2phases:
@@ -8382,7 +8407,7 @@ if SCRIPT_MODE >= 0: # plot if > 0
 
 
             # # if secondary_species is "He" -- in all plots, add two data points at P500_T9000 0.032 and at P1000_T13000, 1
-            if secondary_species == "He":
+            if secondary_species == "He" or secondary_species == "H":
 
             #     ax_KD.scatter(data_He__two_phase_simulations[x_variable], 
             #                     data_He__two_phase_simulations["KD"],
@@ -8660,7 +8685,7 @@ if SCRIPT_MODE >= 0: # plot if > 0
         if secondary_species == "He":
             ncol_legend = 4
         elif secondary_species == "H":
-            ncol_legend = 3
+            ncol_legend = 4
 
         # 2) Create a single legend on the right side of the figure
         fig.legend(
