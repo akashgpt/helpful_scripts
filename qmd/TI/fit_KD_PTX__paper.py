@@ -7,8 +7,8 @@ import argparse
 from mc_error import monte_carlo_error_asymmetric # located at $HELP_SCRIPTS/general/mc_error.pys
 
 """
-Usage:  python $HELP_SCRIPTS_TI/fit_KD_PTX.py -s H > log.fit_KD_PTX 2>&1
-        python $HELP_SCRIPTS_TI/fit_KD_PTX.py -s He > log.fit_KD_PTX 2>&1
+Usage:  python $HELP_SCRIPTS_TI/fit_KD_PTX__paper.py -s H > log.fit_KD_PTX 2>&1
+        python $HELP_SCRIPTS_TI/fit_KD_PTX__paper.py -s He > log.fit_KD_PTX 2>&1
 """
 
 ANALYSIS_MODE=0 # >0: analysis, <=0: no analysis
@@ -675,21 +675,21 @@ if PLOT_MODE > 0:
             #     ax.set_ylabel(f"K$_D$")
             if axes is axes_2:
                 if secondary_species == "He":
-                    ax.set_ylabel(r"$K_{D,\;\mathrm{He}}^{\mathrm{Fe/MgSiO_3}}$", fontsize=font_size_labels)
-                    ax.set_xlabel(rf"$x_{{\mathrm{{He}}}}^{{\mathrm{{MgSiO_3}}}}$", fontsize=font_size_labels)
+                    ax.set_ylabel(r"$K_{D,\;\mathrm{He}}^{\mathrm{met/sil}}$", fontsize=font_size_labels)
+                    ax.set_xlabel(rf"$x_{{\mathrm{{He}}}}^{{\mathrm{{sil}}}}$", fontsize=font_size_labels)
                     if X_in_Fe_MODE == 1:
-                        ax.set_xlabel(rf"$x_{{\mathrm{{He}}}}^{{\mathrm{{Fe}}}}$", fontsize=font_size_labels)
+                        ax.set_xlabel(rf"$x_{{\mathrm{{He}}}}^{{\mathrm{{met}}}}$", fontsize=font_size_labels)
                 elif secondary_species == "H":
                     if H_STOICH_MODE == 2:
-                        ax.set_ylabel(r"$K_{D,\;\mathrm{H_2}}^{\mathrm{Fe/MgSiO_3}}$", fontsize=font_size_labels)
-                        ax.set_xlabel(rf"$x_{{\mathrm{{H_2}}}}^{{\mathrm{{MgSiO_3}}}}$", fontsize=font_size_labels)
+                        ax.set_ylabel(r"$K_{D,\;\mathrm{H_2}}^{\mathrm{met/sil}}$", fontsize=font_size_labels)
+                        ax.set_xlabel(rf"$x_{{\mathrm{{H_2}}}}^{{\mathrm{{sil}}}}$", fontsize=font_size_labels)
                         if X_in_Fe_MODE == 1:
-                            ax.set_xlabel(rf"$x_{{\mathrm{{H_2}}}}^{{\mathrm{{Fe}}}}$", fontsize=font_size_labels)
+                            ax.set_xlabel(rf"$x_{{\mathrm{{H_2}}}}^{{\mathrm{{met}}}}$", fontsize=font_size_labels)
                     elif H_STOICH_MODE == 1:
-                        ax.set_ylabel(r"$K_{D,\;\mathrm{H}}^{\mathrm{Fe/MgSiO_3}}$", fontsize=font_size_labels)
-                        ax.set_xlabel(rf"$x_{{\mathrm{{H}}}}^{{\mathrm{{MgSiO_3}}}}$", fontsize=font_size_labels)
+                        ax.set_ylabel(r"$K_{D,\;\mathrm{H}}^{\mathrm{met/sil}}$", fontsize=font_size_labels)
+                        ax.set_xlabel(rf"$x_{{\mathrm{{H}}}}^{{\mathrm{{sil}}}}$", fontsize=font_size_labels)
                         if X_in_Fe_MODE == 1:
-                            ax.set_xlabel(rf"$x_{{\mathrm{{H}}}}^{{\mathrm{{Fe}}}}$", fontsize=font_size_labels)
+                            ax.set_xlabel(rf"$x_{{\mathrm{{H}}}}^{{\mathrm{{met}}}}$", fontsize=font_size_labels)
             # elif axes is axes_3:
             #     ax.set_ylabel(f"D$_{{wt}}$")
             # elif axes is axes_4:

@@ -66,7 +66,7 @@ num_array_X=100  # number of points in the log-spaced array for X_{secondary_spe
 max_array_X=0.2 #100/109  # maximum value of X_{secondary_species} (corresponds to a wt fraction of 0.1)
 
 SCRIPT_MODE             = 1 # >0, only plot; <0, only do analysis; 0: both
-PLOT_MODE               = 32 # 21 #-1: plot all; 0: do not plot, 1: plot #1, 2: plot #2, 3: plot #3 ...
+PLOT_MODE               = 31 # 21 #-1: plot all; 0: do not plot, 1: plot #1, 2: plot #2, 3: plot #3 ...
 TEMPERATURES_TO_REMOVE  = [10400, 7200, 5200]  # temperatures to remove from the final DataFrame
 FIT_MODE                = 0 # 1: plot fit to data; 0: do not plot fit
 H_STOICH_MODE           = 1 # 2: calculate for H2, 1: calculate for H
@@ -7903,9 +7903,12 @@ if SCRIPT_MODE >= 0: # plot if > 0
 
             # for left axes, set y labels
             if axes in [ax_KD_low]:
-                axes.set_ylabel(r"Equilibrium Constant ($K_{D}^{\mathrm{Fe}/\mathrm{MgSiO}_{3}}$)")
+                axes.set_ylabel(r"Equilibrium Constant ($K_{D}^{\mathrm{met}/\mathrm{sil}}$)")
             elif axes in [ax_D_wt_low]:
-                axes.set_ylabel(r"Partition Coefficient ($D_{wt}^{\mathrm{Fe}/\mathrm{MgSiO}_{3}}$)")
+                if secondary_species == "H":
+                    axes.set_ylabel(r"Partition Coefficient ($D_\mathrm{H}^{\mathrm{met}/\mathrm{sil}}$)")
+                elif secondary_species == "He":
+                    axes.set_ylabel(r"Partition Coefficient ($D_\mathrm{He}^{\mathrm{met}/\mathrm{sil}}$)")
 
             # no y tick labels for right panels
             if axes in [ax_KD_high, ax_D_wt_high]:
@@ -8628,9 +8631,12 @@ if SCRIPT_MODE >= 0: # plot if > 0
 
             # for left axes, set y labels
             if axes in [ax_KD_low]:
-                axes.set_ylabel(r"Equilibrium Constant ($K_{D}^{\mathrm{Fe}/\mathrm{MgSiO}_{3}}$)")
+                axes.set_ylabel(r"Equilibrium Constant ($K_{D}^{\mathrm{met}/\mathrm{sil}}$)")
             elif axes in [ax_D_wt_low]:
-                axes.set_ylabel(r"Partition Coefficient ($D_{wt}^{\mathrm{Fe}/\mathrm{MgSiO}_{3}}$)")
+                if secondary_species == "H":
+                    axes.set_ylabel(r"Partition Coefficient ($D_\mathrm{H}^{\mathrm{met}/\mathrm{sil}}$)")
+                elif secondary_species == "He":
+                    axes.set_ylabel(r"Partition Coefficient ($D_\mathrm{He}^{\mathrm{met}/\mathrm{sil}}$)")
 
             # no y tick labels for right panels
             # if axes in [ax_KD_high, ax_D_wt_high]:

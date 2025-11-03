@@ -18,47 +18,25 @@ export PATH
 # User specific aliases and functions
 
 # my aliases and functions
+# unset PYTHONPATH
 
-# # check if the $HOME/.tag.myshortcuts.sh file exists and when it was created. Run the following commands if it is older than the /projects/BURROWS/akashgpt/myshortcuts.sh file
-# OG_myshortcuts_file="/projects/BURROWS/akashgpt/myshortcuts.sh"
-# if [ -f $HOME/.tag.myshortcuts.sh ]; then
-#   if [ $HOME/.tag.myshortcuts.sh -ot $OG_myshortcuts_file ]; then
-#     echo "The $HOME/.tag.myshortcuts.sh file is older than the $OG_myshortcuts_file file. Running myshortcuts.sh."
-#     if [ -f $OG_myshortcuts_file ] && [ ! -z "$PS1" ]; then
-#       source $OG_myshortcuts_file
-#     fi
-#   # fi
-#   else
-#     echo "The $HOME/.tag.myshortcuts.sh file is newer than the $OG_myshortcuts_file file. Not running myshortcuts.sh."
-#   fi
-# else
-#   echo "The $HOME/.tag.myshortcuts.sh file does not exist. Creating the $HOME/.tag.myshortcuts.sh file."
-#   source $OG_myshortcuts_file
-# fi
-
-
-# COPY_myshortcuts_file="$SCRATCH/local_copy__projects/BURROWS/akashgpt/myshortcuts.sh"
-# if [ -f $HOME/.tag.myshortcuts.sh ]; then
-#   if [ $HOME/.tag.myshortcuts.sh -ot $COPY_myshortcuts_file ]; then
-#     echo "The $HOME/.tag.myshortcuts.sh file is older than the $COPY_myshortcuts_file file. Running myshortcuts.sh."
-#     if [ -f $COPY_myshortcuts_file ]; then
-#       source $COPY_myshortcuts_file
-#     fi
-#   # fi
-#   else
-#     echo "The $HOME/.tag.myshortcuts.sh file is newer than the $COPY_myshortcuts_file file. Not running myshortcuts.sh."
-#   fi
-# else
-#   echo "The $HOME/.tag.myshortcuts.sh file does not exist. Creating the $HOME/.tag.myshortcuts.sh file."
-#   source $OG_myshortcuts_file
-# fi
+# check if /projects/BURROWS/akashgpt/myshortcuts.sh exists, if yes -- source it
+# if not, check if /projects/BURROWS/akashgpt/run_scripts/helpful_scripts/sys/myshortcuts.sh exists -- then source it
 
 if [ -f /projects/BURROWS/akashgpt/myshortcuts.sh ] && [ ! -z "$PS1" ]; then
-  source /projects/BURROWS/akashgpt/myshortcuts.sh
+    source /projects/BURROWS/akashgpt/myshortcuts.sh ${verbose}
 fi
 
 if [ -f $SCRATCH/local_copy__projects/BURROWS/akashgpt/myshortcuts.sh ]; then
-  source $SCRATCH/local_copy__projects/BURROWS/akashgpt/myshortcuts.sh
+    source $SCRATCH/local_copy__projects/BURROWS/akashgpt/myshortcuts.sh ${verbose}
+fi
+
+if [ -f /projects/BURROWS/akashgpt/run_scripts/helpful_scripts/sys/myshortcuts.sh ] && [ ! -z "$PS1" ]; then
+    source /projects/BURROWS/akashgpt/run_scripts/helpful_scripts/sys/myshortcuts.sh ${verbose}
+fi
+
+if [ -f $SCRATCH/local_copy__projects/BURROWS/akashgpt/run_scripts/helpful_scripts/sys/myshortcuts.sh ]; then
+    source $SCRATCH/local_copy__projects/BURROWS/akashgpt/run_scripts/helpful_scripts/sys/myshortcuts.sh ${verbose}
 fi
 
 #adding VASP to path

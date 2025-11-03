@@ -46,7 +46,7 @@ start_block1=$(date +%s)
 # check name of current cluster
 if [[ $(hostname) == *"della"* ]]; then
   export CLUSTER="DELLA"
-  export SCRATCH="/scratch/gpfs/$USER"
+  export SCRATCH="/scratch/gpfs/BURROWS/akashgpt"
 elif [[ $(hostname) == *"tigercpu"* ]]; then
   export CLUSTER="TIGER"
   export SCRATCH="/scratch/gpfs/$USER"
@@ -55,7 +55,7 @@ elif [[ $(hostname) == *"tiger3"* ]]; then
   export SCRATCH="/scratch/gpfs/BURROWS/akashgpt"
 elif [[ $(hostname) == *"stellar"* ]]; then
   export CLUSTER="STELLAR"
-  export SCRATCH="/scratch/gpfs/$USER"
+  export SCRATCH="/scratch/gpfs/BURROWS/akashgpt"
 fi
 end_block1=$(date +%s)
 elapsed_block1=$(( end_block1 - start_block1 ))
@@ -485,8 +485,8 @@ rsync -av --update --progress --delete $AG_BURROWS/$DIR4/*  $LOCAL_AG_BURROWS/$D
 rsync -av --update --progress --delete $AG_BURROWS/$DIR6/*  $LOCAL_AG_BURROWS/$DIR6 > /dev/null 2>&1
 rsync -av --update --progress --delete --exclude='iteration_CROSS_CLUSTER' "$AG_BURROWS/$DIR7/" "$LOCAL_AG_BURROWS/$DIR7" > /dev/null 2>&1
 
-rsync -av --update --progress --delete $AG_BURROWS/$FILE1  $LOCAL_AG_BURROWS/$FILE1 > /dev/null 2>&1
-rsync -av --update --progress --delete $AG_BURROWS/$FILE1  $HELP_SCRIPTS/sys/$FILE1 > /dev/null 2>&1
+# rsync -av --update --progress --delete $AG_BURROWS/$FILE1  $LOCAL_AG_BURROWS/$FILE1 > /dev/null 2>&1
+# rsync -av --update --progress --delete $AG_BURROWS/$FILE1  $HELP_SCRIPTS/sys/$FILE1 > /dev/null 2>&1
 rsync -av --update --progress --delete $HOME/$FILE2  $HELP_SCRIPTS/sys/${CLUSTER}${FILE2} > /dev/null 2>&1
 # rsync -av --update --progress $AG_BURROWS/VASP_POTPAW/* $SCRATCH/local_copy__projects/BURROWS/VASP_POTPAW
 end_block9=$(date +%s)
