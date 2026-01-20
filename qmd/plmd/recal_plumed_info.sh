@@ -14,6 +14,8 @@ energy_vals=()
 volume_vals=()
 temp_vals=()
 pressure_vals=()
+MISSING_DATA_FLAG=false
+MISSING_DATA_DIRS=()
 
 # 1) Gather one value per directory
 for d in */; do
@@ -37,11 +39,29 @@ for d in */; do
     # external pressure line → pressure in kBar
     pressurekBar=$(grep -i "external pressure" "$dir/OUTCAR" | head -n1 | awk '{print $4}')
 
+    # --- Check for empty values ---
+    if [[ -z "$ev" ]] || [[ -z "$vv" ]] || [[ -z "$tempK" ]] || [[ -z "$pressurekBar" ]]; then
+        echo "⚠️  WARNING: One or more value extractions failed in: $dir/OUTCAR"
+        MISSING_DATA_FLAG=true
+        MISSING_DATA_DIRS+=("$dir")
+        continue  # Skip adding this empty value to the arrays
+    fi
+    # ----------------------------------
+
     energy_vals+=("$ev")
     volume_vals+=("$vv")
     temp_vals+=("$tempK")
     pressure_vals+=("$pressurekBar")
 done
+
+# print warning if any directories had missing data
+if [ "$MISSING_DATA_FLAG" = true ]; then
+    echo "⚠️  WARNING: Some directories had missing data and were skipped:"
+    for missing_dir in "${MISSING_DATA_DIRS[@]}"; do
+        echo "    - $missing_dir"
+    done
+    echo ""
+fi
 
 # 2) Compute global min/max
 energy_eV_min=$(printf '%s\n' "${energy_vals[@]}" | sort -n | head -n1)
@@ -82,5 +102,9 @@ Across all directories:
     ${pressure_bars_min} to ${pressure_bars_max} bars
     ${pressure_min} to ${pressure_max} kbar
     ${pressure_GPa_min} to ${pressure_GPa_max} GPa
+
+    Number of directories processed (and those with missing data): 
+    ${#energy_vals[@]} (${#MISSING_DATA_DIRS[@]})
+    
 
 EOF

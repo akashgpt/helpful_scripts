@@ -48,8 +48,9 @@ if [[ $(hostname) == *"della"* ]]; then
   export CLUSTER="DELLA"
   export SCRATCH="/scratch/gpfs/BURROWS/akashgpt"
 elif [[ $(hostname) == *"tigercpu"* ]]; then
-  export CLUSTER="TIGER"
-  export SCRATCH="/scratch/gpfs/$USER"
+  # export CLUSTER="TIGER"
+  # export SCRATCH="/scratch/gpfs/$USER"
+  echo "*** TIGER CPU node detected. Not supposed to exist. Revisit settings if you see this message. ***"
 elif [[ $(hostname) == *"tiger3"* ]]; then
   export CLUSTER="TIGER3"
   export SCRATCH="/scratch/gpfs/BURROWS/akashgpt"
@@ -66,6 +67,9 @@ fi
 
 ##########################################
 # BLOCK 2: squeue aliases
+#
+# List: sqp, sqpmy, sq
+#     jobpath (jobpath <jobid1> [jobid2 ...])
 ##########################################
 start_block2=$(date +%s)
 # if verbose; then
@@ -75,8 +79,24 @@ fi
 # squeue
 alias sqp='squeue -o "%.18i %Q %.9q %.8j %.8u %.10a %.2t %.10M %.10L %.6C %R" | more' #priority rating
 alias sqpmy='squeue -o "%.18i %Q %.9q %.8j %.8u %.10a %.2t %.10M %.10L %.6C %R" | grep $USER' #priority rating
-alias sq='squeue -u $USER -o "%.18i %.9P %.12j %.8u %.2t %.10M %.6D %.8C %.10l"
-'
+alias sq='squeue -u $USER -o "%.18i %.9P %.12j %.8u %.2t %.10M %.6D %.8C %.10l"'
+
+# Show parent directories of given Slurm job IDs
+jobpath() {
+  if [ $# -eq 0 ]; then
+    echo "Usage: jobpath <jobid1> [jobid2 ...]"
+    return 1
+  fi
+  for id in "$@"; do
+    workdir=$(scontrol show job "$id" 2>/dev/null | awk -F= '/WorkDir/{print $2}')
+    if [ -n "$workdir" ]; then
+      echo "$id → $workdir"
+    else
+      echo "$id → [Job not found or WorkDir unavailable]"
+    fi
+  done
+}
+
 end_block2=$(date +%s)
 elapsed_block2=$(( end_block2 - start_block2 ))
 if [ $elapsed_block2 -gt 10 ]; then
@@ -84,8 +104,16 @@ if [ $elapsed_block2 -gt 10 ]; then
 fi
 
 
+
+
+
+
 ##########################################
 # BLOCK 3: Color support & other ls/grep aliases
+#
+# List: ll, la, l, ls, lsf, llt, llf, lls, 
+#       du, cq, 
+#       mk, cl, .., ..., pwd
 ##########################################
 start_block3=$(date +%s)
 # enable color support of ls and also add handy aliases
@@ -117,6 +145,7 @@ cl() { cd "$1" && ll; } # uses alias defined above
 alias ..='cd .. && ll'
 alias ...='cd ../.. && ll'
 alias pwd='pwd -P'
+
 end_block3=$(date +%s)
 elapsed_block3=$(( end_block3 - start_block3 ))
 if [ $elapsed_block3 -gt 10 ]; then
@@ -126,6 +155,11 @@ fi
 
 ##########################################
 # BLOCK 4: myfind & hog/hog_gpu functions
+#
+# List: myfind [directory] filename_pattern
+#       hog [days] [account] [topcount]
+#       hog_gpu [days] [account] [topcount]
+#       hog_summary [days] [useraccount]
 ##########################################
 start_block4=$(date +%s)
 # to find files within the current directory; myfind 1061560[2-3] == myfind 10615602 && myfind 10615603
@@ -218,6 +252,8 @@ fi
 
 ##########################################
 # BLOCK 5: myjobs function
+#
+# List: myjobs [core_flag]
 ##########################################
 start_block5=$(date +%s)
 myjobs() {
@@ -259,6 +295,10 @@ fi
 
 ##########################################
 # BLOCK 6: environment & conda aliases
+#
+# List: modl, sb, js, jspending
+#        conda_a, conda_d, l_base, l_hpc, l_deepmd_gpu, l_deepmd_cpu, l_dp_plmd, l_mda, l_asap
+#        git_merge_main, git_update_dev, git_update_main  
 ##########################################
 start_block6=$(date +%s)
 if [ $verbose -eq 1 ]; then
@@ -273,7 +313,7 @@ alias jspending='scontrol show job'
 # conda related alias
 alias conda_a='conda activate'
 alias conda_d='conda deactivate'
-alias l_base='module load anaconda3/2024.6; conda activate base'
+alias l_base='module load anaconda3/2025.12; conda activate base'
 alias l_hpc='module load anaconda3/2024.6; conda activate hpc-tools'
 # alias l_dpdev='module load anaconda3/2021.5; conda activate dpdev'
 alias l_planet_evo='module load anaconda3/2021.5; conda activate planet_evo'
@@ -293,23 +333,24 @@ elif [[ $CLUSTER == "STELLAR" ]]; then
 fi
 
 # alias l_dp2='module load anaconda3/2021.5; conda activate dp2.2.7; export PLUMED_KERNEL=$CONDA_PREFIX/lib/libplumedKernel.so; LAMMPS_PLUGIN_PATH=$CONDA_PREFIX/lib/deepmd_lmp; patchelf --add-rpath $CONDA_PREFIX/lib dpplugin.so'
-alias l_dp_plmd='module load anaconda3/2024.6; conda activate dp_plmd_09' #STELLAR | DELLA
-alias l_mda='module load anaconda3/2024.6; conda activate mda_env' #TIGER3 | STELLAR | DELLA
+alias l_dp_plmd='module load anaconda3/2024.10; conda activate dp_plmd_09' #STELLAR | DELLA
+alias l_mda='module load anaconda3/2025.12; conda activate mda_env' #TIGER3 | STELLAR | DELLA
 alias l_asap='module load anaconda3/2024.6; conda activate asap'
-alias l_pysr='module load anaconda3/2024.10; conda activate pysr_env' # TIGER3
+alias l_pysr='module load anaconda3/2025.12; conda activate pysr_env' # TIGER3
 
 if [[ $CLUSTER == "STELLAR" ]]; then
-  alias l_qmda='module load anaconda3/2024.6; conda activate qmda' #STELLAR
+  alias l_qmda='module load anaconda3/2025.12; conda activate qmda' #STELLAR
 elif [[ $CLUSTER == "DELLA" ]]; then
-  alias l_qmda='module load anaconda3/2024.2; conda activate qmda' #DELLA
+  alias l_qmda='module load anaconda3/2025.12; conda activate qmda' #DELLA
 fi 
 # alias l_dp_plmd='module load anaconda3/2024.2; conda activate dp_plmd' #DELLA; deepmd-kit 2.2.12-dev
 # alias l_dpdev='module load anaconda3/2024.6; conda activate dpdev' #DELLA; deepmd-kit 2.2.12-dev
 
-alias l_ase='module load anaconda3/2024.6; conda activate ase_env'
+alias l_ase='module load anaconda3/2025.12; conda activate ase_env'
 
 # git aliases
 alias git_merge_main="git switch main; git merge dev; git push origin main; git switch dev"
+
 git_update_dev() {
   date_time=$(date +"%Y-%m-%d %T")
   # Default commit message with current date and time if no argument is provided
@@ -448,6 +489,7 @@ DIR8=
 
 FILE1="myshortcuts.sh"
 FILE2=".bashrc"
+FILE3=".condarc"
 
 mkdir -p $LOCAL_AG_BURROWS/$DIR1
 mkdir -p $LOCAL_AG_BURROWS/$DIR2
@@ -488,6 +530,7 @@ rsync -av --update --progress --delete --exclude='iteration_CROSS_CLUSTER' "$AG_
 # rsync -av --update --progress --delete $AG_BURROWS/$FILE1  $LOCAL_AG_BURROWS/$FILE1 > /dev/null 2>&1
 # rsync -av --update --progress --delete $AG_BURROWS/$FILE1  $HELP_SCRIPTS/sys/$FILE1 > /dev/null 2>&1
 rsync -av --update --progress --delete $HOME/$FILE2  $HELP_SCRIPTS/sys/${CLUSTER}${FILE2} > /dev/null 2>&1
+rsync -av --update --progress --delete $HOME/$FILE3  $HELP_SCRIPTS/sys/${CLUSTER}${FILE3} > /dev/null 2>&1
 # rsync -av --update --progress $AG_BURROWS/VASP_POTPAW/* $SCRATCH/local_copy__projects/BURROWS/VASP_POTPAW
 end_block9=$(date +%s)
 elapsed_block9=$(( end_block9 - start_block9 ))

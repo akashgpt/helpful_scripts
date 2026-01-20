@@ -15,7 +15,7 @@ Outputs in BASE/:
 Usage:
     python $HELP_SCRIPTS_vasp/merge_vasp_runs.py BASE 
     python $LOCAL_HELP_SCRIPTS/qmd/vasp/merge_vasp_runs.py BASE
-    python merge_vasp_runs.py SCALEE_7 --run_data_script 
+    python merge_vasp_runs.py BASE --run_data_script
 """
 import os
 import sys

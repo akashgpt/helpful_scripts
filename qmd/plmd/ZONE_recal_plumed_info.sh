@@ -23,6 +23,9 @@ volume_vals=()
 temp_vals=()
 pressure_vals=()
 
+MISSING_DATA_FLAG=false
+MISSING_DATA_DIRS=()
+
 # 1) Gather one value per directory from */pre/recal/*
 for d in */pre/recal/*/; do
     dir=${d%/}
@@ -47,11 +50,38 @@ for d in */pre/recal/*/; do
     # external pressure line → pressure in kBar
     pressurekBar=$(grep -i "external pressure" "$dir/OUTCAR" | head -n1 | awk '{print $4}')
 
+    # --- Check for empty values ---
+    if [[ -z "$ev" ]] || [[ -z "$vv" ]] || [[ -z "$tempK" ]] || [[ -z "$pressurekBar" ]]; then
+        echo "⚠️  WARNING: One or more value extractions failed in: $dir/OUTCAR"
+        MISSING_DATA_FLAG=true
+        MISSING_DATA_DIRS+=("$dir")
+        continue  # Skip adding this empty value to the arrays
+    fi
+    # ----------------------------------
+
     energy_vals+=("$ev")
     volume_vals+=("$vv")
     temp_vals+=("$tempK")
     pressure_vals+=("$pressurekBar")
 done
+
+# print warning if any directories had missing data
+if [ "$MISSING_DATA_FLAG" = true ]; then
+    echo "⚠️  WARNING: Some directories had missing data and were skipped:"
+    for missing_dir in "${MISSING_DATA_DIRS[@]}"; do
+        echo "    - $missing_dir"
+    done
+    echo ""
+fi
+
+# print total number of vals collected + min and max for a quick check -- for energy, volume, temp, pressure
+echo "Collected ${#energy_vals[@]} energy values: min=$(printf '%s\n' "${energy_vals[@]}" | sort -n | head -n1), max=$(printf '%s\n' "${energy_vals[@]}" | sort -n | tail -n1)"
+# print all energy values collected for debugging
+# echo "Energy values collected: ${energy_vals[@]}"
+echo "Collected ${#volume_vals[@]} volume values: min=$(printf '%s\n' "${volume_vals[@]}" | sort -n | head -n1), max=$(printf '%s\n' "${volume_vals[@]}" | sort -n | tail -n1)"
+echo "Collected ${#temp_vals[@]} temperature values: min=$(printf '%s\n' "${temp_vals[@]}" | sort -n | head -n1), max=$(printf '%s\n' "${temp_vals[@]}" | sort -n | tail -n1)"
+echo "Collected ${#pressure_vals[@]} pressure values: min=$(printf '%s\n' "${pressure_vals[@]}" | sort -n | head -n1), max=$(printf '%s\n' "${pressure_vals[@]}" | sort -n | tail -n1)"
+
 
 # 2) Compute global min/max
 energy_eV_min=$(printf '%s\n' "${energy_vals[@]}" | sort -n | head -n1)
@@ -101,6 +131,7 @@ Range of properties across all the current ZONE's recal (single-point calculatio
     ZONE directory:             ${ZONE_dir}
     
     Number of dirs processed:   ${#energy_vals[@]}
+    ... with missing data:      ${#MISSING_DATA_DIRS[@]}
 
     Energy/TOTEN (eV):          ${energy_eV_min} to ${energy_eV_max}
     Energy/TOTEN (kJ/mol):      ${energy_kJ_min} to ${energy_kJ_max}

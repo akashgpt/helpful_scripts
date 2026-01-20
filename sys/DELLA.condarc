@@ -1,0 +1,13 @@
+envs_dirs:
+  - /scratch/gpfs/BURROWS/akashgpt/softwares/conda_envs_dir_secondary/envs
+  # - /home/ag5805/.conda/envs
+
+pkgs_dirs:
+  - /scratch/gpfs/BURROWS/akashgpt/softwares/conda_envs_dir_secondary/pkgs
+  # - /home/ag5805/.conda/pkgs
+
+# Customize the environment prompt
+env_prompt: '({name}) '
+channels:
+  - conda-forge
+  - defaults
