@@ -37,21 +37,27 @@ mu_excess_{secondary_species}, mu_{secondary_species}, KD_sil_to_metal, D_wt, a,
 Author: Akash Gupta
 """
 
-import re
-import ast
-from pathlib import Path
-from matplotlib.collections import PathCollection
-import pandas as pd
-import numpy as np
-import matplotlib.pyplot as plt
-import sys
 import argparse
+import ast
 import os
-from mc_error import monte_carlo_error # located at $HELP_SCRIPTS/general/mc_error.py
-from mc_error import monte_carlo_error_asymmetric # located at $HELP_SCRIPTS/general/mc_error.py
-from mc_error import monte_carlo_error_asymmetric_w_bounds # located at $HELP_SCRIPTS/general/mc_error.py
-from mc_error import monte_carlo_error_asymmetric_w_io_bounds # located at $HELP_SCRIPTS/general/mc_error.py
-from mc_error import monte_carlo_error_asymmetric_w_io_bounds_vectorized_outputs # located at $HELP_SCRIPTS/general/mc_error.py
+import re
+import sys
+from pathlib import Path
+
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+from matplotlib.collections import PathCollection
+from mc_error import \
+    monte_carlo_error  # located at $HELP_SCRIPTS/general/mc_error.py
+from mc_error import \
+    monte_carlo_error_asymmetric  # located at $HELP_SCRIPTS/general/mc_error.py
+from mc_error import \
+    monte_carlo_error_asymmetric_w_bounds  # located at $HELP_SCRIPTS/general/mc_error.py
+from mc_error import \
+    monte_carlo_error_asymmetric_w_io_bounds  # located at $HELP_SCRIPTS/general/mc_error.py
+from mc_error import \
+    monte_carlo_error_asymmetric_w_io_bounds_vectorized_outputs  # located at $HELP_SCRIPTS/general/mc_error.py
 from scipy.optimize import curve_fit
 
 # Boltzmann constant in eV/K for entropy term
@@ -1755,8 +1761,6 @@ if SCRIPT_MODE <= 0:
 
 
 
-
-
 if SCRIPT_MODE >= 0: # plot if > 0
 
 
@@ -2649,10 +2653,10 @@ if SCRIPT_MODE >= 0: # plot if > 0
 
 
     # plot X_{secondary_species} vs G_hp_per_atom_w_TS, and color by P_T_folder and size by phase
+    import matplotlib.pyplot as plt
     import numpy as np
     import pandas as pd
-    import matplotlib.pyplot as plt
-    from matplotlib.colors import ListedColormap, BoundaryNorm
+    from matplotlib.colors import BoundaryNorm, ListedColormap
 
     # 1) Load your assembled TI results (with columns: Phase, P_T_folder, X_{secondary_species}, G_hp_per_atom_w_TS, a, b, etc.)
     df = pd.read_csv("all_TI_results.csv")
@@ -6588,8 +6592,9 @@ if SCRIPT_MODE >= 0: # plot if > 0
         # plt.subplots_adjust(wspace=0.05, hspace=0.1)
         # plt.subplots_adjust(wspace=0.05)
     
-        from matplotlib.collections import PathCollection
         from collections.abc import Sequence
+
+        from matplotlib.collections import PathCollection
 
         # --- Axes: remove empty collections & fix linewidths
         for ax in fig.axes:
@@ -7306,8 +7311,9 @@ if SCRIPT_MODE >= 0: # plot if > 0
         # plt.subplots_adjust(wspace=0.05, hspace=0.1)
         # plt.subplots_adjust(wspace=0.05)
     
-        from matplotlib.collections import PathCollection
         from collections.abc import Sequence
+
+        from matplotlib.collections import PathCollection
 
         # --- Axes: remove empty collections & fix linewidths
         for ax in fig.axes:
@@ -7992,8 +7998,9 @@ if SCRIPT_MODE >= 0: # plot if > 0
         # plt.subplots_adjust(wspace=0.05, hspace=0.1)
         # plt.subplots_adjust(wspace=0.05)
     
-        from matplotlib.collections import PathCollection
         from collections.abc import Sequence
+
+        from matplotlib.collections import PathCollection
 
         # --- Axes: remove empty collections & fix linewidths
         for ax in fig.axes:
@@ -8732,8 +8739,9 @@ if SCRIPT_MODE >= 0: # plot if > 0
         # plt.subplots_adjust(wspace=0.05, hspace=0.1)
         # plt.subplots_adjust(wspace=0.05)
     
-        from matplotlib.collections import PathCollection
         from collections.abc import Sequence
+
+        from matplotlib.collections import PathCollection
 
         # --- Axes: remove empty collections & fix linewidths
         for ax in fig.axes:

@@ -67,16 +67,60 @@ for ax, col in zip(axes, var_columns):
     ax.grid(True)
 
 # Label the shared x-axis
-axes[-1].set_xlabel('Time')
+axes[-1].set_xlabel('Time (ps)')
 
 # increase label font size
 for ax in axes:
     ax.yaxis.label.set_size(20)
+    ax.tick_params(axis='both', which='major', labelsize=16)
 axes[-1].xaxis.label.set_size(20)
 
-# font size of tick labels
-for ax in axes:
-    ax.tick_params(axis='both', which='major', labelsize=16)
+
+# set y axes limits to exclude outliers (robust to NaN/Inf)
+for ax, col in zip(axes, var_columns):
+    data = pd.to_numeric(df[col], errors="coerce").to_numpy()
+    data = data[np.isfinite(data)]   # drop NaN/Inf
+
+    if data.size < 5:
+        # not enough finite data to set limits safely
+        continue
+
+    lower = np.percentile(data, 1)
+    if lower < 0:
+        lower = lower * 1.10
+    else:
+        lower = lower * 0.90
+
+    upper = np.percentile(data, 99)
+    if upper < 0:
+        upper = upper * 0.90
+    else:
+        upper = upper * 1.10
+
+    # if still bad / identical (flat signal), skip or add tiny padding
+    if (not np.isfinite(lower)) or (not np.isfinite(upper)):
+        continue
+    if lower == upper:
+        pad = 1e-12 if lower == 0 else 1e-6 * abs(lower)
+        ax.set_ylim(lower - pad, upper + pad)
+    else:
+        ax.set_ylim(lower, upper)
+
+    # set x axis limit to 0 to 600 or df['time'].max()
+    # x_axis_max = max(df['time'].max(), 600)
+    # ax.set_xlim(0, x_axis_max)
+
+    # if col="cn_Ratio", set y axis limit to 0 to 1
+    if col == "cn_Ratio" or col == "cn_ratio":
+        ax.set_ylim(0, 1)
+        # ax.set_ylim(0.15, .6)
+    # if col == "vol":
+    #     ax.set_ylim(500, 2000)
+    # if col == "energy":
+    #     ax.set_ylim(-90000, -60000)
+
+
+
 
 # decrease vertical distance between subplots
 # plt.subplots_adjust(hspace=0.01)
