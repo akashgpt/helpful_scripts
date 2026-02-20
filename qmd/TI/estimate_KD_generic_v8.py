@@ -12,91 +12,90 @@ ab-initio molecular dynamics (AIMD) simulations.
 Physical background
 -------------------
 The script implements and improves the thermodynamic framework described in:
-  Li et al. 2022, "Primitive noble gases sampled from ocean island basalts
-  cannot be from the Earth's core", Nature Communications.
+Li et al. 2022 and Luo et al. 2023.
 
 The core idea:
-  1. For each simulation cell (Fe + X or MgSiO3 + X at various compositions),
-     the Gibbs free energy per "species unit" (G_hp_per_species) is obtained
-     from TI and/or GH analysis.
-  2. A linear fit of G_hp_per_species vs mole fraction X gives the slope (b) and
-     intercept (a). The excess chemical potential is mu_excess = a + b (i.e.
-     the value of the tangent line at X = 1).
-  3. The equilibrium constant for the reaction
-         X_{silicate} <-> X_{metal}
-     is:
-         K_D = exp(-(mu_excess_Fe - mu_excess_MgSiO3) / (k_B * T)) / (5 - 4*X_sil)
-     where the (5 - 4*X_sil) factor accounts for the MgSiO3 stoichiometry
-     (5 atoms per formula unit) and X_sil is the mole fraction of X in silicate.
-  4. D_wt = K_D * (M_MgSiO3 / M_Fe) converts to a weight-based partition
-     coefficient using atomic masses.
+    1. For each simulation cell (Fe + X or MgSiO3 + X at various compositions),
+        the Gibbs free energy per "species unit" (G_hp_per_species) is obtained
+        from TI and/or GH analysis.
+    2. A linear fit of G_hp_per_species vs mole fraction X gives the slope (b) and
+        intercept (a). The excess chemical potential is mu_excess = a + b (i.e.
+        the value of the tangent line at X = 1).
+    3. The equilibrium constant for the reaction
+            X_{silicate} <-> X_{metal}
+        is:
+            K_D = exp(-(mu_excess_Fe - mu_excess_MgSiO3) / (k_B * T)) / (5 - 4*X_sil)
+        where the (5 - 4*X_sil) factor accounts for the MgSiO3 stoichiometry
+        (5 atoms per formula unit) and X_sil is the mole fraction of X in silicate.
+    4. D_wt = K_D * (M_MgSiO3 / M_Fe) converts to a weight-based partition
+        coefficient using atomic masses.
 
 Workflow overview
 -----------------
-  STEP 0  - Parse command-line arguments (secondary species).
-  STEP 1  - Traverse Fe_{species}/ and MgSiO3_{species}/ directory trees; parse
-             log.Ghp_analysis files into a master DataFrame (df).
-  STEP 2  - Clean and convert columns (lists, scalars, pressure/temperature).
-  STEP 3  - Initialize per-row array columns for composition-dependent K_D, D_wt,
-             etc. (log-spaced mole-fraction grids).
-  STEP 4  - Compute mole fractions X = n_secondary / (n_primary + n_secondary).
-  STEP 5  - Compute per-species Gibbs energies and entropy corrections (TS).
-  STEP 6  - Fit linear mu_excess(X) for each (Phase, P_T_folder) group using
-             weighted least-squares (scipy.optimize.curve_fit).
-  STEP 7  - Compute the ideal-mixing entropy term mu_TS = k_B*T*ln(X / ...)
-             and total chemical potential mu = mu_excess + mu_TS.
-  STEP 8  - Compute K_D and D_wt for each row, with asymmetric Monte Carlo error
-             propagation.
-  STEP 9  - Incorporate Gibbs-Helmholtz (isobar_calc) data to extend results to
-             additional temperatures along each isobar, constructing df_superset.
-  STEP 10 - Compute "exact" K_D arrays (as a function of X_sil) with full error
-             propagation via fn_for_all_v2 and vectorized MC sampling. Store arrays
-             for K_D, K_D', D_wt, X_w, X_Fe, etc.
-  STEP 11 - Write output CSVs (all_TI_results.csv, all_TI_results_superset.csv).
-  STEP 12 - (PLOT_MODE) Generate publication-quality figures:
-             - G_hp vs X scatter + linear fits (PLOT_MODE 1)
-             - mu vs X scatter (PLOT_MODE 2)
-             - K_D / D_wt vs Pressure, colored by T (PLOT_MODE 3)
-             - K_D / D_wt vs Temperature, colored by P (PLOT_MODE 4)
-             - Low-P regime zooms (PLOT_MODE 5, 6)
-             - P-T phase-space scatter colored by K_D (PLOT_MODE 7)
-             - Composition-dependent K_D / D_wt panels (PLOT_MODE 8)
-             - Publication-ready combined panels (PLOT_MODE 31)
+    STEP 0  - Parse command-line arguments (secondary species).
+    STEP 1  - Traverse Fe_{species}/ and MgSiO3_{species}/ directory trees; parse
+                log.Ghp_analysis files into a master DataFrame (df).
+    STEP 2  - Clean and convert columns (lists, scalars, pressure/temperature).
+    STEP 3  - Initialize per-row array columns for composition-dependent K_D, D_wt,
+                etc. (log-spaced mole-fraction grids).
+    STEP 4  - Compute mole fractions X = n_secondary / (n_primary + n_secondary).
+    STEP 5  - Compute per-species Gibbs energies and entropy corrections (TS).
+    STEP 6  - Fit linear mu_excess(X) for each (Phase, P_T_folder) group using
+                weighted least-squares (scipy.optimize.curve_fit).
+    STEP 7  - Compute the ideal-mixing entropy term mu_TS = k_B*T*ln(X / ...)
+                and total chemical potential mu = mu_excess + mu_TS.
+    STEP 8  - Compute K_D and D_wt for each row, with asymmetric Monte Carlo error
+                propagation.
+    STEP 9  - Incorporate Gibbs-Helmholtz (isobar_calc) data to extend results to
+                additional temperatures along each isobar, constructing df_superset.
+    STEP 10 - Compute "exact" K_D arrays (as a function of X_sil) with full error
+                propagation via fn_for_all_v2 and vectorized MC sampling. Store arrays
+                for K_D, K_D', D_wt, X_w, X_Fe, etc.
+    STEP 11 - Write output CSVs (all_TI_results.csv, all_TI_results_superset.csv).
+    STEP 12 - (PLOT_MODE) Generate publication-quality figures:
+                - G_hp vs X scatter + linear fits (PLOT_MODE 1)
+                - mu vs X scatter (PLOT_MODE 2)
+                - K_D / D_wt vs Pressure, colored by T (PLOT_MODE 3)
+                - K_D / D_wt vs Temperature, colored by P (PLOT_MODE 4)
+                - Low-P regime zooms (PLOT_MODE 5, 6)
+                - P-T phase-space scatter colored by K_D (PLOT_MODE 7)
+                - Composition-dependent K_D / D_wt panels (PLOT_MODE 8)
+                - Publication-ready combined panels (PLOT_MODE 31)
 
 Version history
 ---------------
-  v2 : Evaluates isobar_calc (Gibbs-Helmholtz analysis).
-  v3 : Adds asymmetric error propagation for K_D, etc.
-  v7 : Generic framework supporting He and H; includes best-fit models from
-       symbolic regression; publication-quality plotting.
-  v8 : Comprehensive commenting and documentation pass (no logic changes).
+    v2 : Evaluates isobar_calc (Gibbs-Helmholtz analysis).
+    v3 : Adds asymmetric error propagation for K_D, etc.
+    v7 : Generic framework supporting He and H; includes best-fit models from
+        symbolic regression; publication-quality plotting.
+    v8 : Comprehensive commenting and documentation pass (no logic changes).
 
 Usage
 -----
-  python $HELP_SCRIPTS_TI/estimate_KD_generic_v8.py -s He > log.estimate_KD_generic_v8 2>&1
+    python $HELP_SCRIPTS_TI/estimate_KD_generic_v8.py -s He > log.estimate_KD_generic_v8 2>&1
 
 Expected directory structure
 ----------------------------
-  Fe_{secondary_species}/
-      P50_T3500/
-          Config1/
-              log.Ghp_analysis, TI_analysis.csv, isobar_calc/GH_analysis.csv
-          Config2/
-              ...
-      P100_T4000/
-          ...
-  MgSiO3_{secondary_species}/
-      P50_T3500/
-          Config1/
-              log.Ghp_analysis, TI_analysis.csv, isobar_calc/GH_analysis.csv
-          ...
+    Fe_{secondary_species}/
+        P50_T3500/
+            Config1/
+                log.Ghp_analysis, TI_analysis.csv, isobar_calc/GH_analysis.csv
+            Config2/
+                ...
+        P100_T4000/
+            ...
+    MgSiO3_{secondary_species}/
+        P50_T3500/
+            Config1/
+                log.Ghp_analysis, TI_analysis.csv, isobar_calc/GH_analysis.csv
+            ...
 
 Output files
 ------------
-  all_TI_results.csv          - TI-only results (one row per configuration).
-  all_TI_results_superset.csv - TI + GH combined results (includes isobar temps).
-  all_TI_results_selection.csv- Subset filtered to a specific P_T_folder.
-  Various .png/.svg plots depending on PLOT_MODE.
+    all_TI_results.csv          - TI-only results (one row per configuration).
+    all_TI_results_superset.csv - TI + GH combined results (includes isobar temps).
+    all_TI_results_selection.csv- Subset filtered to a specific P_T_folder.
+    Various .png/.svg plots depending on PLOT_MODE.
 
 Author: Akash Gupta
 """
@@ -882,6 +881,8 @@ if SCRIPT_MODE <= 0:
     # D_wt = K_D * (M_MgSiO3 / M_Fe) ≈ K_D * (100/56) ≈ K_D * 1.786
     df["D_wt"] = df["KD_sil_to_metal"] * (100/56)
     df["D_wt_error"] = df["KD_sil_to_metal_error"] * (100/56)
+    df["D_wt_low"]  = df["D_wt"] - df["D_wt_error"]
+    df["D_wt_high"] = df["D_wt"] + df["D_wt_error"]
 
 
 
@@ -959,6 +960,7 @@ if SCRIPT_MODE <= 0:
     ###########################################################################
     counter_GH_analysis = 0
     df_superset = pd.DataFrame()
+    df_ultra_superset = pd.DataFrame() # this has all the data -- not restricted to _8H configs -- for sanity checking and diagnostics
     counter_err_update = 0
 
     for (phase, pt), df_subset in df.groupby(["Phase", "P_T_folder"]):
@@ -1202,7 +1204,7 @@ if SCRIPT_MODE <= 0:
     print(f"\nNOTE: Assuming fractional errors in slope and intercept for Gibbs-Helmholtz analysis are same as that for TI!\n\n")
 
 
-
+    df_ultra_superset = pd.concat([df_ultra_superset, df_superset], ignore_index=True)
 
     # narrow down to Config_folder with *_8H*
     df_superset = df_superset[df_superset["Config_folder"].str.contains("_8H")]
@@ -1238,6 +1240,13 @@ if SCRIPT_MODE <= 0:
     df_superset.sort_values(["Phase", "Config_folder", "Target temperature (K)"], inplace=True)
 
 
+    # df_ultra_superset
+    df_ultra_superset = pd.concat([df_ultra_superset, df], ignore_index=True)
+    df_ultra_superset.sort_values(["Phase", "Config_folder", "Target temperature (K)"], inplace=True)
+
+    # print df_ultra_superset csv
+    df_ultra_superset.to_csv("all_TI_results_ultra_superset.csv", index=False)
+    print(f"Saved all TI results (ultra_superset) to all_TI_results_ultra_superset.csv\n")
 
 
 

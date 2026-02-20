@@ -405,8 +405,8 @@ export LARS_SCRIPTS_DIR="$AG_BURROWS/misc_libraries/Box_Lars"
 export LOCAL_LARS_SCRIPTS_DIR="$LOCAL_AG_BURROWS/misc_libraries/Box_Lars"
 export MY_MLMD_SCRIPTS="$AG_BURROWS/run_scripts/MLMD_scripts"
 export APPTAINER_REPO="$SCRATCH/softwares/APPTAINER_REPO"
-export DPAL__dev="$AG_BURROWS/run_scripts/DPAL__dev"
-export DPAL__main="$AG_BURROWS/run_scripts/DPAL__in_use"
+export ALCHEMY__dev="$AG_BURROWS/run_scripts/ALCHEMY__dev"
+export ALCHEMY__main="$AG_BURROWS/run_scripts/ALCHEMY__in_use"
 export CONDA_SECONDARY_DIR="$SCRATCH/softwares/conda_envs_dir_secondary"
 
 export HELP_SCRIPTS="$AG_BURROWS/run_scripts/helpful_scripts"
@@ -419,8 +419,8 @@ export HELP_SCRIPTS_plmd="$AG_BURROWS/run_scripts/helpful_scripts/qmd/plmd"
 export LOCAL_HELP_SCRIPTS_plmd="$LOCAL_AG_BURROWS/run_scripts/helpful_scripts/qmd/plmd"
 export HELP_SCRIPTS_TI="$AG_BURROWS/run_scripts/helpful_scripts/qmd/TI"
 export LOCAL_HELP_SCRIPTS_TI="$LOCAL_AG_BURROWS/run_scripts/helpful_scripts/qmd/TI"
-export HELP_SCRIPTS_DPAL="$AG_BURROWS/run_scripts/helpful_scripts/qmd/DPAL"
-export LOCAL_HELP_SCRIPTS_DPAL="$LOCAL_AG_BURROWS/run_scripts/helpful_scripts/qmd/DPAL"
+export HELP_SCRIPTS_ALCHEMY="$AG_BURROWS/run_scripts/helpful_scripts/qmd/ALCHEMY"
+export LOCAL_HELP_SCRIPTS_ALCHEMY="$LOCAL_AG_BURROWS/run_scripts/helpful_scripts/qmd/ALCHEMY"
 export HELP_SCRIPTS_general="$AG_BURROWS/run_scripts/helpful_scripts/general"
 export LOCAL_HELP_SCRIPTS_general="$LOCAL_AG_BURROWS/run_scripts/helpful_scripts/general"
 
@@ -484,7 +484,7 @@ DIR3="misc_libraries/vatic-master"
 DIR4="misc_libraries/XDATCAR_toolkit"
 # DIR5="run_scripts/MLMD_scripts/mol_systems/MgSiOHN"
 DIR6="run_scripts/helpful_scripts"
-DIR7="run_scripts/DPAL__in_use"
+DIR7="run_scripts/ALCHEMY__in_use"
 DIR8=
 
 FILE1="myshortcuts.sh"
@@ -517,20 +517,36 @@ start_block9=$(date +%s)
 if [ $verbose -eq 1 ]; then
   echo "Running rsync operations at $(date) ..."
 fi
+
+warn_rsync_seconds=10
+
+run_rsync_timed() {
+  local label="$1"
+  shift
+  local start_rsync end_rsync elapsed_rsync
+  start_rsync=$(date +%s)
+  "$@" > /dev/null 2>&1
+  end_rsync=$(date +%s)
+  elapsed_rsync=$(( end_rsync - start_rsync ))
+  if [ "$elapsed_rsync" -gt "$warn_rsync_seconds" ]; then
+    echo "WARNING: rsync [$label] took $elapsed_rsync seconds!"
+  fi
+}
+
 # # only update new or recently updated files in the local copy of the BURROWS and JIEDENG directory
 # rsync -av --update --progress $AG_BURROWS/* $SCRATCH/local_copy__projects/BURROWS/akashgpt/ --exclude='/projects/BURROWS/akashgpt/run_scripts/MLMD_scripts/iteration_CROSS_CLUSTER' --exclude='/projects/BURROWS/akashgpt/VASP_POTPAW' --exclude='run_scripts/MLMD_scripts/mol_systems/MgSiOHN/deepmd_collection_TRAIN'  --exclude='run_scripts/MLMD_scripts/mol_systems/MgSiOHN/deepmd_collection_TEST'
-rsync -av --update --progress --delete $AG_BURROWS/$DIR1/*  $LOCAL_AG_BURROWS/$DIR1 > /dev/null 2>&1
-rsync -av --update --progress --delete $AG_BURROWS/$DIR2/*  $LOCAL_AG_BURROWS/$DIR2 > /dev/null 2>&1
-rsync -av --update --progress --delete $AG_BURROWS/$DIR3/*  $LOCAL_AG_BURROWS/$DIR3 > /dev/null 2>&1
-rsync -av --update --progress --delete $AG_BURROWS/$DIR4/*  $LOCAL_AG_BURROWS/$DIR4 > /dev/null 2>&1
+run_rsync_timed "$DIR1" rsync -av --update --progress --delete $AG_BURROWS/$DIR1/*  $LOCAL_AG_BURROWS/$DIR1
+run_rsync_timed "$DIR2" rsync -av --update --progress --delete $AG_BURROWS/$DIR2/*  $LOCAL_AG_BURROWS/$DIR2
+run_rsync_timed "$DIR3" rsync -av --update --progress --delete $AG_BURROWS/$DIR3/*  $LOCAL_AG_BURROWS/$DIR3
+run_rsync_timed "$DIR4" rsync -av --update --progress --delete $AG_BURROWS/$DIR4/*  $LOCAL_AG_BURROWS/$DIR4
 # rsync -av --update --progress --delete  --exclude='$AG_BURROWS/$DIR5/deepmd_collection_TRAIN' --exclude='$AG_BURROWS/$DIR5/deepmd_collection_TEST' --exclude='deepmd_collection_TRAIN' --exclude='deepmd_collection_TEST' $AG_BURROWS/$DIR5/*  $LOCAL_AG_BURROWS/$DIR5 > /dev/null 2>&1
-rsync -av --update --progress --delete $AG_BURROWS/$DIR6/*  $LOCAL_AG_BURROWS/$DIR6 > /dev/null 2>&1
-rsync -av --update --progress --delete --exclude='iteration_CROSS_CLUSTER' "$AG_BURROWS/$DIR7/" "$LOCAL_AG_BURROWS/$DIR7" > /dev/null 2>&1
+run_rsync_timed "$DIR6" rsync -av --update --progress --delete $AG_BURROWS/$DIR6/*  $LOCAL_AG_BURROWS/$DIR6
+run_rsync_timed "$DIR7" rsync -av --update --progress --delete --exclude='iteration_CROSS_CLUSTER' "$AG_BURROWS/$DIR7/" "$LOCAL_AG_BURROWS/$DIR7"
 
 # rsync -av --update --progress --delete $AG_BURROWS/$FILE1  $LOCAL_AG_BURROWS/$FILE1 > /dev/null 2>&1
 # rsync -av --update --progress --delete $AG_BURROWS/$FILE1  $HELP_SCRIPTS/sys/$FILE1 > /dev/null 2>&1
-rsync -av --update --progress --delete $HOME/$FILE2  $HELP_SCRIPTS/sys/${CLUSTER}${FILE2} > /dev/null 2>&1
-rsync -av --update --progress --delete $HOME/$FILE3  $HELP_SCRIPTS/sys/${CLUSTER}${FILE3} > /dev/null 2>&1
+run_rsync_timed "${CLUSTER}${FILE2}" rsync -av --update --progress --delete $HOME/$FILE2  $HELP_SCRIPTS/sys/${CLUSTER}${FILE2}
+run_rsync_timed "${CLUSTER}${FILE3}" rsync -av --update --progress --delete $HOME/$FILE3  $HELP_SCRIPTS/sys/${CLUSTER}${FILE3}
 # rsync -av --update --progress $AG_BURROWS/VASP_POTPAW/* $SCRATCH/local_copy__projects/BURROWS/VASP_POTPAW
 end_block9=$(date +%s)
 elapsed_block9=$(( end_block9 - start_block9 ))
