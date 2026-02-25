@@ -407,6 +407,7 @@ export MY_MLMD_SCRIPTS="$AG_BURROWS/run_scripts/MLMD_scripts"
 export APPTAINER_REPO="$SCRATCH/softwares/APPTAINER_REPO"
 export ALCHEMY__dev="$AG_BURROWS/run_scripts/ALCHEMY__dev"
 export ALCHEMY__main="$AG_BURROWS/run_scripts/ALCHEMY__in_use"
+export PLANET_EVO__main="$AG_BURROWS/run_scripts/planet_evo_x_qmd"
 export CONDA_SECONDARY_DIR="$SCRATCH/softwares/conda_envs_dir_secondary"
 
 export HELP_SCRIPTS="$AG_BURROWS/run_scripts/helpful_scripts"
