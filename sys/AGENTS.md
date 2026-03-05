@@ -1,6 +1,17 @@
 # AGENTS
 
 
+## Standard instructions for coding and related tasks:
+- Always write type lists for all functions and other code elements that take arguments or return values.
+- Always write Google-style docstrings for functions and other code elements.
+- Prefer clear and explicit code with good variable names and comments over terseness or cleverness.
+- Prefer modular code with well-defined functions and classes over monolithic scripts.
+- Prefer using standard libraries and well-known third-party libraries over custom implementations, unless there is a clear reason to do otherwise.
+- Always consider the context of the project (the scientific idea/domain) and the specific requirements of the task.
+- Always consider the maintainability and readability of the code for future users and developers, including yourself.
+- Consider the trade-offs between different approaches and explain the reasoning behind your suggestions.
+
+
 ## Repository Lookup Policy
 
 - When suggesting commands, workflows, scripts, or implementation patterns, check known repos first.
