@@ -52,7 +52,7 @@ for d in */pre/recal/*/; do
 
     # --- Check for empty values ---
     if [[ -z "$ev" ]] || [[ -z "$vv" ]] || [[ -z "$tempK" ]] || [[ -z "$pressurekBar" ]]; then
-        echo "⚠️  WARNING: One or more value extractions failed in: $dir/OUTCAR"
+        echo "WARNING: One or more value extractions failed in: $dir/OUTCAR"
         MISSING_DATA_FLAG=true
         MISSING_DATA_DIRS+=("$dir")
         continue  # Skip adding this empty value to the arrays
@@ -67,7 +67,7 @@ done
 
 # print warning if any directories had missing data
 if [ "$MISSING_DATA_FLAG" = true ]; then
-    echo "⚠️  WARNING: Some directories had missing data and were skipped:"
+    echo "WARNING: Some directories had missing data and were skipped:"
     for missing_dir in "${MISSING_DATA_DIRS[@]}"; do
         echo "    - $missing_dir"
     done

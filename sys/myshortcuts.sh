@@ -298,7 +298,7 @@ fi
 #
 # List: modl, sb, js, jspending
 #        conda_a, conda_d, l_base, l_hpc, l_deepmd_gpu, l_deepmd_cpu, l_dp_plmd, l_mda, l_asap
-#        git_merge_main, git_update_dev, git_update_main  
+#        git_merge_main, git_update_dev, git_update_main, git_last_update
 ##########################################
 start_block6=$(date +%s)
 if [ $verbose -eq 1 ]; then
@@ -320,17 +320,20 @@ alias l_planet_evo='module load anaconda3/2021.5; conda activate planet_evo'
 alias l_chhota_apple='module load anaconda3/2024.6; conda activate chhota_apple'
 # alias l_deepmd_cpu='module load anaconda3/2021.5; conda activate deepmd_cpu'
 
+alias l_deepmd_cpu='module load anaconda3/2025.12; conda activate deepmd_cpu' #DELLA/STELLAR; deepmd-kit 3.1.2 -- deepmd_cpu is different from deepmd-cpu
+
 if [[ $CLUSTER == "DELLA" ]]; then
   alias l_deepmd_gpu='module load anaconda3/2021.5; conda activate deepmd_gpu' #DELLA; deepmd-kit 2.1.1
-  alias l_deepmd_cpu='module load anaconda3/2024.6; conda activate deepmd_cpu' #DELLA; deepmd-kit 2.2.10
+  alias l_deepmd-cpu='module load anaconda3/2025.12; conda activate deepmd-cpu' #DELLA; deepmd-kit 2.2.10
 elif [[ $CLUSTER == "TIGER" ]]; then
   alias l_dp='module load anaconda3/2024.2; conda activate deepmd' #TIGER
 elif [[ $CLUSTER == "TIGER3" ]]; then
   alias l_deepmd='module load anaconda3/2024.6; conda activate deepmd' #TIGER3
-  alias l_deepmd_cpu='module load anaconda3/2024.6; conda activate deepmd_cpu' #TIGER3
+  # alias l_deepmd_cpu='module load anaconda3/2024.6; conda activate deepmd_cpu' #TIGER3
 elif [[ $CLUSTER == "STELLAR" ]]; then
   alias l_deepmd='module load anaconda3/2024.6; conda activate deepmd' #STELLAR
 fi
+
 
 # alias l_dp2='module load anaconda3/2021.5; conda activate dp2.2.7; export PLUMED_KERNEL=$CONDA_PREFIX/lib/libplumedKernel.so; LAMMPS_PLUGIN_PATH=$CONDA_PREFIX/lib/deepmd_lmp; patchelf --add-rpath $CONDA_PREFIX/lib dpplugin.so'
 alias l_dp_plmd='module load anaconda3/2024.10; conda activate dp_plmd_09' #STELLAR | DELLA
@@ -371,6 +374,62 @@ git_update_main() {
   git add .
   git commit -m "$message_commit"
   git push origin main
+}
+
+git_last_update() {
+  local target_path repo_root abs_target rel_target current_folder created_line updated_line repo_name repo_display_name origin_url
+  target_path="${1:-.}"
+
+  if ! abs_target=$(realpath "$target_path" 2>/dev/null); then
+    echo "Error: path not found: $target_path"
+    return 1
+  fi
+
+  if ! repo_root=$(git -C "$abs_target" rev-parse --show-toplevel 2>/dev/null); then
+    echo "Error: not inside a git repository: $abs_target"
+    return 1
+  fi
+
+  rel_target=$(realpath --relative-to="$repo_root" "$abs_target")
+  current_folder=$(basename "$abs_target")
+
+  origin_url=$(git -C "$repo_root" remote get-url origin 2>/dev/null)
+  if [ -n "$origin_url" ]; then
+    repo_name=$(basename "$origin_url")
+    repo_display_name="${repo_name%.git}"
+  else
+    repo_name=$(basename "$repo_root")
+    repo_display_name="$repo_name"
+  fi
+
+  updated_line=$(git -C "$repo_root" log -1 --date=iso --pretty=format:'%ad  %s' -- "$rel_target")
+  created_line=$(git -C "$repo_root" log --reverse --date=iso --pretty=format:'%ad  %s' -- "$rel_target" | head -n 1)
+
+  if [ -z "$updated_line" ]; then
+    echo "Error: no git history found for: $rel_target"
+    return 1
+  fi
+
+  if [ -z "$created_line" ]; then
+    created_line="$updated_line"
+  fi
+
+  echo ""
+  if [ -n "$origin_url" ]; then
+    repo_name=$(basename "$origin_url")
+    repo_display_name="${repo_name%.git}"
+    echo "Parent Git Repo: $repo_display_name"
+  else
+    repo_name=$(basename "$repo_root")
+    repo_display_name="$repo_name"
+    echo "Parent Git Repo: $repo_display_name (repo dir name; no origin URL found)"
+  fi
+  # echo "Parent Git Repo: $repo_display_name"
+  echo "Git Folder Root: $repo_root"
+  echo "Current Folder: $rel_target"
+  echo "Created: $created_line"
+  echo "Updated: $updated_line"
+  echo ""
 }
 
 end_block6=$(date +%s)
