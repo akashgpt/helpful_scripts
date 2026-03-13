@@ -46,18 +46,17 @@ start_block1=$(date +%s)
 # check name of current cluster
 if [[ $(hostname) == *"della"* ]]; then
   export CLUSTER="DELLA"
-  export SCRATCH="/scratch/gpfs/BURROWS/akashgpt"
 elif [[ $(hostname) == *"tigercpu"* ]]; then
   # export CLUSTER="TIGER"
   # export SCRATCH="/scratch/gpfs/$USER"
   echo "*** TIGER CPU node detected. Not supposed to exist. Revisit settings if you see this message. ***"
 elif [[ $(hostname) == *"tiger3"* ]]; then
   export CLUSTER="TIGER3"
-  export SCRATCH="/scratch/gpfs/BURROWS/akashgpt"
 elif [[ $(hostname) == *"stellar"* ]]; then
   export CLUSTER="STELLAR"
-  export SCRATCH="/scratch/gpfs/BURROWS/akashgpt"
 fi
+export SCRATCH="/scratch/gpfs/BURROWS/akashgpt"
+
 end_block1=$(date +%s)
 elapsed_block1=$(( end_block1 - start_block1 ))
 if [ $elapsed_block1 -gt 10 ]; then

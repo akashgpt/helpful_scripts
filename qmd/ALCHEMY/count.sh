@@ -158,6 +158,12 @@ process_files_v2() {
         # echo ""
         # continue
 
+        # Skip files where dp test crashed or produced no valid output
+        if ! [[ "$frame_count" =~ ^[0-9]+$ ]] || [ -z "$energy_rmse_per_atom" ] || [ -z "$force_rmse" ] || [ -z "$virial_rmse_per_atom" ]; then
+            echo "Warning: Skipping $file (invalid or missing dp test output)"
+            continue
+        fi
+
         energy_rmse_per_atom=$(printf "%.10f" "$energy_rmse_per_atom")
         force_rmse=$(printf "%.10f" "$force_rmse")
         virial_rmse_per_atom=$(printf "%.10f" "$virial_rmse_per_atom")
@@ -184,6 +190,13 @@ process_files_v2() {
     local energy_rmse_per_atom_avg
     local force_rmse_avg
     local virial_rmse_per_atom_avg
+    if [ "$total_frame_count" -eq 0 ]; then
+        echo ""
+        echo "### \"$pattern\" ###"
+        echo "Warning: No valid dp test data found. Skipping RMSE statistics."
+        echo ""
+        return
+    fi
     energy_rmse_per_atom_avg=$(echo "scale=8; $sum_energy / $total_frame_count" | bc -l)
     force_rmse_avg=$(echo "scale=8; $sum_force / $total_frame_count" | bc -l)
     virial_rmse_per_atom_avg=$(echo "scale=8; $sum_virial / $total_frame_count" | bc -l)
@@ -232,6 +245,11 @@ process_files_v2() {
         # echo "force_rmse: $force_rmse"
         # echo "virial_rmse_per_atom: $virial_rmse_per_atom"
         # echo ""
+
+        # Skip files where dp test crashed or produced no valid output
+        if ! [[ "$frame_count" =~ ^[0-9]+$ ]] || [ -z "$energy_rmse_per_atom" ] || [ -z "$force_rmse" ] || [ -z "$virial_rmse_per_atom" ]; then
+            continue
+        fi
 
         energy_rmse_per_atom=$(printf "%.10f" "$energy_rmse_per_atom")
         force_rmse=$(printf "%.10f" "$force_rmse")
