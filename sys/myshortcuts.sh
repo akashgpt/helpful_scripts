@@ -161,6 +161,7 @@ fi
 #       hog_summary [days] [useraccount]
 ##########################################
 start_block4=$(date +%s)
+
 # to find files within the current directory; myfind 1061560[2-3] == myfind 10615602 && myfind 10615603
 myfind() {
   if [ "$#" -eq 1 ]; then
@@ -175,35 +176,35 @@ alias myfindscript='ps aux | grep'
 
 hog() {
   # Default values
-  days=${1:-30}
-  account=${2:-astro}
-  topcount=${3:-20}
+  local days=${1:-30}
+  local account=${2:-astro}
+  local topcount=${3:-20}
 
   # Calculate the start date based on the provided number of days
-  start_date=$(date -d"${days} days ago" +%D)
+  local start_date=$(date -d"${days} days ago" +%D)
 
   # Construct the sreport command based on whether 'all' is specified
   if [ "$account" == "all" ]; then
-    sreport user topusage start=${start_date} end=now TopCount=${topcount} -t hourper --tres=cpu
+    sreport user top start=${start_date} end=now TopCount=${topcount} -t hourper --tres=cpu
   else
-    sreport user topusage start=${start_date} end=now TopCount=${topcount} accounts=${account} -t hourper --tres=cpu
+    sreport user top start=${start_date} end=now TopCount=${topcount} accounts=${account} -t hourper --tres=cpu
   fi
 }
 
 hog_gpu() {
   # Default values
-  days=${1:-30}
-  account=${2:-astro}
-  topcount=${3:-20}
-  
+  local days=${1:-30}
+  local account=${2:-astro}
+  local topcount=${3:-20}
+
   # Calculate the start date based on the provided number of days
-  start_date=$(date -d"${days} days ago" +%D)
+  local start_date=$(date -d"${days} days ago" +%D)
 
   # Construct the sreport command based on whether 'all' is specified
   if [ "$account" == "all" ]; then
-    sreport user topusage start=${start_date} end=now TopCount=${topcount} -t hourper --tres=gres/gpu;
+    sreport user top start=${start_date} end=now TopCount=${topcount} -t hourper --tres=gres/gpu;
   else
-    sreport user topusage start=${start_date} end=now TopCount=${topcount} accounts=${account} -t hourper --tres=gres/gpu;
+    sreport user top start=${start_date} end=now TopCount=${topcount} accounts=${account} -t hourper --tres=gres/gpu;
   fi
 }
 
@@ -229,13 +230,71 @@ hog_summary() {
 }
 
 
+hog_OG() {
+  start_date=$(date -d"30 days ago" +%D);
+  account=$(sshare | grep $USER | awk '{print $1}' | head -n 1);
+  sreport user top start=${start_date} end=now TopCount=100 accounts=${account} -t hourper --tres=cpu;
+}
 
-# # Function to list all running scripts for the current user
+
+# Function to list and summarize all running non-SLURM scripts/programs for the current user
+# Usage: myscripts [-v] [filter]
+#   -v      : verbose, show full process list (default: summary only)
+#   filter  : optional grep pattern to filter results (e.g. "CROSS_CLUSTER")
 myscripts() {
-  echo "Your running scripts:"
-  ps -u "$USER" -o pid,cmd --sort=cmd \
-    | grep -E '\.sh\b|\.py\b|\.pl\b|\.R\b' \
-    | grep -v grep
+  local verbose_flag=0
+  local filter=""
+
+  # Parse arguments
+  for arg in "$@"; do
+    if [ "$arg" == "-v" ]; then
+      verbose_flag=1
+    else
+      filter="$arg"
+    fi
+  done
+
+  # Get all user processes that are scripts/programs (exclude SLURM daemons, grep, and IDE internals)
+  local proc_list
+  proc_list=$(ps -u "$(whoami)" -o pid,ppid,etime,cmd --sort=cmd \
+    | grep -E '\.sh\b|\.py\b|\.pl\b|\.R\b|\.jl\b' \
+    | grep -v -E 'grep|shellIntegration|vscode')
+
+  # Apply optional filter
+  if [ -n "$filter" ]; then
+    proc_list=$(echo "$proc_list" | grep "$filter")
+  fi
+
+  if [ -z "$proc_list" ]; then
+    echo "No running scripts found."
+    return 0
+  fi
+
+  local total
+  total=$(echo "$proc_list" | wc -l)
+
+  echo "====================================="
+  echo " Running scripts for $(whoami): $total"
+  echo "====================================="
+
+  # Summary: count by script name
+  echo ""
+  echo "  Script                              Count"
+  echo "  -----------------------------------+------"
+  echo "$proc_list" \
+    | grep -oP '[^\s/]+\.(sh|py|pl|R|jl)\b' \
+    | sort | uniq -c | sort -rn \
+    | awk '{printf "  %-37s %s\n", $2, $1}'
+
+  # Verbose: full process list
+  if [ $verbose_flag -eq 1 ]; then
+    echo ""
+    echo "  PID      PPID     ELAPSED   CMD"
+    echo "  ------   ------   --------  ---"
+    echo "$proc_list" | awk '{printf "  %-8s %-8s %-9s %s\n", $1, $2, $3, substr($0, index($0,$4))}'
+  fi
+
+  echo ""
 }
 
 
@@ -256,7 +315,7 @@ fi
 ##########################################
 start_block5=$(date +%s)
 myjobs() {
-  core_flag=${1:-0}
+  # core_flag=${1:-0}
   
   # Default values
   jobs_running=$(squeue -u $USER -h -t R -o "%.18i %.9P %.8j %.8u %.10a %.2t %.10M %.10L %.6C %R" | wc -l)
