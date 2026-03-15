@@ -2,6 +2,7 @@
 
 ## Standard instructions for coding and related tasks:
 
+- Prefer simplicity and clarity in code and explanations, while still being thorough and complete.
 - Always write type lists for all functions and similar constructs but not simple variables.
 - Always write Google-style docstrings for functions and other code elements.
 - Prefer clear and explicit code with good variable names and comments over terseness or cleverness.
