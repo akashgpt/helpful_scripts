@@ -7,7 +7,7 @@
 # Summary:
 # - Iterates through directories starting with a given prefix (default: "v8").
 # - Processes only those directories that contain "done_iteration" file.
-# - Runs $HELP_SCRIPTS_ALCHEMY/count.sh in each directory.
+# - Runs $HELP_SCRIPTS_DPAL/count.sh in each directory.
 # - Logs output to `log.count` and extracts relevant details into `log.track_progress`.
 # - Ensures directories are sorted in **true numerical order**.
 #
@@ -18,22 +18,12 @@
 
 PREFIX=${1:-v8}
 
-# ADDRESS = $HELP_SCRIPTS_ALCHEMY/count.sh
-HELP_SCRIPTS_ALCHEMY=${HELP_SCRIPTS_ALCHEMY:-"/projects/BURROWS/akashgpt/run_scripts/helpful_scripts/qmd/ALCHEMY"}
-ADDRESS_COUNT_FILE=${2:-"${HELP_SCRIPTS_ALCHEMY}/count.sh"}
+# ADDRESS = $HELP_SCRIPTS_DPAL/count.sh
+ADDRESS_COUNT_FILE=${2:-"${HELP_SCRIPTS_DPAL}/count.sh"}
 
 # Get the current directory
 parent_dir=$(pwd)
 echo "Starting track_progress.sh in $parent_dir"
-
-# Read RECAL cutoffs from TRAIN_MLMD_parameters.txt (used by compute_filtered_rmse.py
-# to exclude outlier frames from RMSE metrics, consistent with analysis_v3.py filtering)
-if [[ -f "TRAIN_MLMD_parameters.txt" ]]; then
-    RECAL_CUTOFF_E_HIGH=$(awk '/^RECAL_CUTOFF_e_high/{getline; print}' TRAIN_MLMD_parameters.txt)
-    RECAL_CUTOFF_F_HIGH=$(awk '/^RECAL_CUTOFF_f_high/{getline; print}' TRAIN_MLMD_parameters.txt)
-    export RECAL_CUTOFF_E_HIGH RECAL_CUTOFF_F_HIGH
-    echo "Using RECAL cutoffs: e_high=$RECAL_CUTOFF_E_HIGH eV/atom, f_high=$RECAL_CUTOFF_F_HIGH eV/A"
-fi
 
 # Initialize log file
 echo "#################" > log.track_progress
@@ -42,14 +32,13 @@ echo "#################" >> log.track_progress
 echo "" >> log.track_progress
 
 # Get directories matching $PREFIX* and sort them numerically
-# OLD: dirs=($(ls -d ${PREFIX}* 2>/dev/null | sort -V))
-mapfile -t dirs < <(find . -maxdepth 1 -mindepth 1 -type d -name "${PREFIX}*" -printf '%f\n' | sort -V)
+dirs=($(ls -d ${PREFIX}* 2>/dev/null | sort -V))
 
 # Process each directory in sorted order
 for dir in "${dirs[@]}"; do
     if [ -f "$dir/done_iteration" ]; then
         echo "Processing $dir"
-        cd "$dir" || { echo "Failed to enter $dir. Exiting."; exit 1; }
+        cd "$dir" || { echo "Failed to enter $dir"; continue; }
 
         # Initialize log.count
         echo "====================" > log.count
@@ -61,10 +50,8 @@ for dir in "${dirs[@]}"; do
         echo "====================" >> "$parent_dir/log.track_progress"
 
         # Execute count.sh and append output to log.count
-        # source "$HELP_SCRIPTS_ALCHEMY/count.sh" >> log.count
-        # OLD: source $ADDRESS_COUNT_FILE >> log.count
-        # shellcheck source=/dev/null
-        source "$ADDRESS_COUNT_FILE" >> log.count
+        # source "$HELP_SCRIPTS_DPAL/count.sh" >> log.count
+        source $ADDRESS_COUNT_FILE >> log.count
 
         # Extract "Fraction of frames selected" from log.count and append to log.track_progress
         for i in {1..4}; do

@@ -71,22 +71,14 @@ process_files() {
     if [ "$file_count" -gt 0 ]; then
         average_frame_selected=$(echo "scale=2; $total_lines / $file_count" | bc)
 
-        # Calculate standard deviation (guard against negative variance from bc rounding)
-        variance=$(echo "scale=8; ($total_lines_squared - $total_lines * $average_frame_selected) / $file_count" | bc)
-        if (( $(echo "$variance < 0" | bc -l) )); then
-            variance=0
-        fi
+        # Calculate standard deviation
+        variance=$(echo "scale=2; ($total_lines_squared - $total_lines * $average_frame_selected) / $file_count" | bc)
         standard_deviation=$(echo "scale=2; sqrt($variance)" | bc)
 
         average_frame_count=$(echo "scale=2; $total_frame_count / $file_count" | bc)
 
-        if [ "$total_frame_count" -gt 0 ]; then
-            fraction_frame_selected=$(echo "scale=2; $total_lines / $total_frame_count" | bc)
-            std_fraction_frame_selected=$(echo "scale=2; $standard_deviation*$file_count / $total_frame_count" | bc)
-        else
-            fraction_frame_selected=0
-            std_fraction_frame_selected=0
-        fi
+        fraction_frame_selected=$(echo "scale=2; $total_lines / $total_frame_count" | bc)
+        std_fraction_frame_selected=$(echo "scale=2; $standard_deviation*$file_count / $total_frame_count" | bc)
 
     else
         average_frame_selected=0
@@ -149,11 +141,26 @@ process_files_v2() {
             energy_rmse_per_atom=$(grep -m 1 "Energy RMSE/Natoms" "$file" | awk '{print $8}') # eV
             force_rmse=$(grep -m 1 "Force  RMSE" "$file" | awk '{print $8}') # eV/Angstrom
             virial_rmse_per_atom=$(grep -m 1 "Virial RMSE/Natoms" "$file" | awk '{print $8}') # eV
+            # continue
         fi
 
-        # Skip files with missing/empty data (e.g., empty or corrupted log.dp_test)
+
+        # echo "file: $file"
+        # echo "$(grep -m 1 "number of test data" "$file"  | awk '{print $9}')"
+        # echo "$(grep -m 1 "number of test data" "$file"  | awk '{print $11}')"
+        # echo "$(grep -m 1 "Energy RMSE/Natoms" "$file")"
+        # echo "$(grep -m 1 "Force  RMSE" "$file")"
+        # echo "$(grep -m 1 "Virial RMSE/Natoms" "$file")"
+        # echo "frame_count: $frame_count"
+        # echo "energy_rmse_per_atom: $energy_rmse_per_atom"
+        # echo "force_rmse: $force_rmse"
+        # echo "virial_rmse_per_atom: $virial_rmse_per_atom"
+        # echo ""
+        # continue
+
+        # Skip files where dp test crashed or produced no valid output
         if ! [[ "$frame_count" =~ ^[0-9]+$ ]] || [ -z "$energy_rmse_per_atom" ] || [ -z "$force_rmse" ] || [ -z "$virial_rmse_per_atom" ]; then
-            echo "WARNING: Skipping $file (missing or unparseable dp_test data)"
+            echo "Warning: Skipping $file (invalid or missing dp test output)"
             continue
         fi
 
@@ -179,23 +186,17 @@ process_files_v2() {
     # echo "sum_force: $sum_force"
     # echo "sum_virial: $sum_virial"
 
-    # Guard against empty datasets so the summary script remains usable
-    # before any dp-test logs have been generated.
-    if [ "$total_frame_count" -eq 0 ]; then
-        echo ""
-        echo "### \"$pattern\" ###"
-        echo "Total number of test data frames: 0"
-        echo "Average Energy RMSE/Natoms: 0.0000 +/- 0.0000 meV"
-        echo "Average Force RMSE: 0.0000 +/- 0.0000 eV/A"
-        echo "Average Virial RMSE/Natoms: 0.0000 +/- 0.0000 eV"
-        echo ""
-        return 0
-    fi
-
     # Calculate weighted averages.
     local energy_rmse_per_atom_avg
     local force_rmse_avg
     local virial_rmse_per_atom_avg
+    if [ "$total_frame_count" -eq 0 ]; then
+        echo ""
+        echo "### \"$pattern\" ###"
+        echo "Warning: No valid dp test data found. Skipping RMSE statistics."
+        echo ""
+        return
+    fi
     energy_rmse_per_atom_avg=$(echo "scale=8; $sum_energy / $total_frame_count" | bc -l)
     force_rmse_avg=$(echo "scale=8; $sum_force / $total_frame_count" | bc -l)
     virial_rmse_per_atom_avg=$(echo "scale=8; $sum_virial / $total_frame_count" | bc -l)
@@ -238,7 +239,14 @@ process_files_v2() {
             virial_rmse_per_atom=$(grep -m 1 "Virial RMSE/Natoms" "$file" | awk '{print $8}')
         fi
 
-        # Skip files with missing/empty data (same guard as first pass)
+        # echo "file: $file"
+        # echo "frame_count: $frame_count"
+        # echo "energy_rmse_per_atom: $energy_rmse_per_atom"
+        # echo "force_rmse: $force_rmse"
+        # echo "virial_rmse_per_atom: $virial_rmse_per_atom"
+        # echo ""
+
+        # Skip files where dp test crashed or produced no valid output
         if ! [[ "$frame_count" =~ ^[0-9]+$ ]] || [ -z "$energy_rmse_per_atom" ] || [ -z "$force_rmse" ] || [ -z "$virial_rmse_per_atom" ]; then
             continue
         fi
@@ -296,16 +304,4 @@ process_files "dp_test_id_e_or_f"
 process_files "dp_test_id_e_and_f_optimum_range"
 process_files "dp_test_id_e_or_f_optimum_range"
 
-# OLD: process_files_v2 "log.dp_test"
-# process_files_v2 reads aggregate per-system RMSE from log.dp_test, which
-# includes outlier frames (|dE/atom| > RECAL_CUTOFF_e_high). These frames are
-# correctly excluded from training by analysis_v3.py, but process_files_v2
-# does not apply the same filter, inflating the reported metrics.
-#
-# NEW: compute_filtered_rmse.py reads per-frame data (dp_test.e_peratom.out,
-# dp_test.f.out, dp_test.v_peratom.out) and excludes outlier frames using the
-# same energy_upper_cutoff as analysis_v3.py.
-_COUNT_SH_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-python3 "$_COUNT_SH_DIR/compute_filtered_rmse.py" \
-    --energy_upper_cutoff "${RECAL_CUTOFF_E_HIGH:-10}" \
-    --force_upper_cutoff "${RECAL_CUTOFF_F_HIGH:-100}"
+process_files_v2 "log.dp_test"
