@@ -603,3 +603,10 @@ find . -regextype posix-extended \
 
 # for Claude/Codex
 Look at the precise last run of the TRAIN_MLMD_LEVEL* scripts and all the corresponding ones in /scratch/gpfs/BURROWS/akashgpt/qmd_data/NH3_H2/sim_data_ML_v3__plumed_test -- these can be tracked beginning log.TRAIN_MLMD_LEVEL_1. And show that the last run of these simulations started with v7_i27 and ended with v7_i29. So just have a look at how well did they finish. Primarily to figure out if the code repo ALCHEMY is working well or not -- this is not a production run (@ /projects/BURROWS/akashgpt/run_scripts/ALCHEMY__dev/TRAIN_MLMD_scripts)
+
+# for Prinecton Clusters usage across groups 
+sshare -l 
+
+
+# example: docker deepmd-kit install -- apptainer
+apptainer pull $APPTAINER_REPO/deepmd-kit_3.1.3.sif docker://ghcr.io/deepmodeling/deepmd-kit:latest

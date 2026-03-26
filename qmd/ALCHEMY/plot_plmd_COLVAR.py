@@ -11,7 +11,7 @@ import pandas as pd
 # Usage:
 # python $HELP_SCRIPTS_plmd/plot_plmd_COLVAR.py > log.plot_plmd_COLVAR 2>&1 &
 #
-# Author: @akashgpt
+# Author: @akashgpt (v20260224)
 # ================================================================= #
 
 # Set up command-line argument parsing
@@ -119,7 +119,7 @@ for ax, col in zip(axes, var_columns):
     # ax.set_xlim(0, x_axis_max)
 
     # if col="cn_Ratio", set y axis limit to 0 to 1
-    if col == "cn_Ratio" or col == "cn_ratio":
+    if col == "cn_Ratio" or col == "cn_ratio" or col == "demix_param":
         ax.set_ylim(0, 1)
         # ax.set_ylim(0.15, .6)
     # if col == "vol":

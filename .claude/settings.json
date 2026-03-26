@@ -1,0 +1,47 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//scratch/gpfs/BURROWS/akashgpt/qmd_data/test/TEST__u.pro.E.l.j.pv_hf_copy.8k.r3-3100.recal/1_GPU/**)",
+      "Read(//scratch/gpfs/BURROWS/akashgpt/softwares/**)",
+      "Bash(sinfo -p gpu)",
+      "Bash(sinfo)",
+      "Bash(sinfo -p gpu -N -l)",
+      "Bash(sinfo -p gpu -o \"%P %G\")",
+      "Bash(module avail:*)",
+      "Bash(ldd /scratch/gpfs/BURROWS/akashgpt/softwares/vasp.6.4.3/bin/vasp_std)",
+      "Read(//scratch/gpfs/BURROWS/akashgpt/qmd_data/MgSiOH__R2SCAN/deepmd_collection_TRAIN_OG/**)",
+      "Bash(ls /scratch/gpfs/BURROWS/akashgpt/qmd_data/MgSiOH__R2SCAN/deepmd_collection_TRAIN_OG/*.err /scratch/gpfs/BURROWS/akashgpt/qmd_data/MgSiOH__R2SCAN/deepmd_collection_TRAIN_OG/*.out)",
+      "Bash(wc -l /scratch/gpfs/BURROWS/akashgpt/qmd_data/MgSiOH__R2SCAN/deepmd_collection_TRAIN_OG/multi_run_*.out)",
+      "Bash(ls /scratch/gpfs/BURROWS/akashgpt/qmd_data/MgSiOH__R2SCAN/deepmd_collection_TRAIN_OG/*.sh /scratch/gpfs/BURROWS/akashgpt/qmd_data/MgSiOH__R2SCAN/deepmd_collection_TRAIN_OG/*.slurm)",
+      "Bash(ls -d /scratch/gpfs/BURROWS/akashgpt/qmd_data/MgSiOH__R2SCAN/deepmd_collection_TRAIN_OG/*/to_RUN)",
+      "Bash(ls -d /scratch/gpfs/BURROWS/akashgpt/qmd_data/MgSiOH__R2SCAN/deepmd_collection_TRAIN_OG/*/*to_RUN*)",
+      "Bash(ls -d /scratch/gpfs/BURROWS/akashgpt/qmd_data/MgSiOH__R2SCAN/deepmd_collection_TRAIN_OG/*/)",
+      "Bash(sacctmgr show:*)",
+      "Bash(squeue -u $USER -o '%.10i %.15j %.8Q %.6C %.10P')",
+      "Bash(squeue -u $USER -o '%.10i %.6C %.15q %.10l %.10P')",
+      "Bash(squeue -u $USER -o \"%.10i %.6C %.20q %.12l %.10P\")",
+      "Bash(squeue -p pu -q pu-long-stellar -o '%.10i %.8u %.6C %.8T')",
+      "Bash(squeue -p pu -q pu-long-stellar -t RUNNING -o '%.8u %.6C' --noheader)",
+      "Read(//projects/BURROWS/akashgpt/run_scripts/helpful_scripts/{sum[$1]+=$2} END {total=0; for\\(u in sum\\){printf \"\"\"\"\"\"\"\"%s: %d cores\\\\n\"\"\"\"\"\"\"\",u,sum[u]; total+=sum[u]} printf \"\"\"\"\"\"\"\"\\\\nTotal RUNNING: %d /**)",
+      "Bash(seff 2680217)",
+      "Bash(scontrol show:*)",
+      "Bash(sacct -j 2680217 --format=JobID,JobName,NNodes,NCPUs,Elapsed,State,ExitCode,WorkDir%100)",
+      "Bash(sacct -j 2680217 --format=JobID,NNodes,NCPUs,Elapsed -n)",
+      "Bash(sacct -j 2680217 --format=JobID%15,JobName%12,NNodes,NCPUs,Elapsed -n)",
+      "Bash(sacct -j 2680217 --format=JobID%15,NNodes,NCPUs -n)",
+      "Bash(sacct -j 2680217 -n --format=JobID%15,JobName%12)",
+      "Bash(sacct -j 2680217 --format=JobID%15,Elapsed -n)",
+      "Read(//projects/BURROWS/akashgpt/run_scripts/helpful_scripts/{h=$\\(NF-2\\); m=$\\(NF-1\\); s=$NF; total+=h*3600+m*60+s; count++} END {printf \"\"\"\"\"\"\"\"Total steps: %d\\\\nAvg time: %.0f sec \\(%.1f min\\)\\\\nTotal compute: %.1f node-hours\\\\nAllocated: %.1f node-hours \\(50 nodes x 4.55h\\)\\\\n\"\"\"\"\"\"\"\", count, total/count, total/count/60, total/**)",
+      "Bash(sacct -j 2680217 --format=Elapsed -n)",
+      "Bash(grep -v \"^\\\\s*$\")",
+      "Bash(sacct -j 2680217 --format=JobName%12,Elapsed -n)",
+      "Read(//vasp_std/ {split\\($2,t,\"\"\"\"\"\"\"\":\"\"\"\"\"\"\"\"\\); secs=t[1]*3600+t[2]*60+t[3]; total+=secs; count++} END {printf \"\"\"\"\"\"\"\"Total steps: %d\\\\nAvg time: %.0f sec \\(%.1f min\\)\\\\nTotal compute: %.1f node-hours\\\\nAllocated: %.1f node-hours \\(50 nodes x 4.55h\\)\\\\nEfficiency from compute alone: %.1f%%\\\\n\"\"\"\"\"\"\"\", count, total/count, total/count/60, total/3600, 50*4.55, \\(total/3600\\)/**)",
+      "Bash(sacct -j 2680217 --format=JobName%12,Start,End -n)",
+      "Bash(sacct -j 2680217 --format=JobName%12,State%12 -n)",
+      "Read(//projects/BURROWS/akashgpt/run_scripts/helpful_scripts/**)"
+    ],
+    "additionalDirectories": [
+      "/scratch/gpfs/BURROWS/akashgpt/qmd_data/test/TEST__u.pro.E.l.j.pv_hf_copy.8k.r3-3100.recal/1_GPU"
+    ]
+  }
+}
