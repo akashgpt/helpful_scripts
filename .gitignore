@@ -1,0 +1,35 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+*.egg
+dist/
+build/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# NFS stale file handles
+.nfs*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor / IDE
+*.swp
+*.swo
+*~
+.vscode/
+.idea/
+
+# Claude Code
+.claude/.nfs*
+
+# Logs (keep tracked ones, ignore temp)
+*.log.tmp
+
+# Large data files (don't accidentally commit)
+*.dump
+*.WAVECAR
+*.CHGCAR
