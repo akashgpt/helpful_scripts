@@ -45,7 +45,7 @@ module load hdf5/oneapi-2024.2/1.14.4
 touch running_RUN_VASP
 
 if [ -f log.run_sim ]; then
-    cat log.run_sim >> old.log.run_sim
+    rm log.run_sim
 fi
 echo "Job ID: $SLURM_JOB_ID" > log.run_sim
 echo "# =========================================" >> log.run_sim
@@ -59,8 +59,6 @@ srun vasp_std >> log.run_sim
 echo "" >> log.run_sim
 echo "# =========================================" >> log.run_sim
 echo "Job $SLURM_JOB_ID completed at" `date ` >> log.run_sim
-echo "# =========================================" >> log.run_sim
-echo "" >> log.run_sim
 
 rm running_RUN_VASP
 touch done_RUN_VASP

@@ -38,10 +38,13 @@
       "Read(//vasp_std/ {split\\($2,t,\"\"\"\"\"\"\"\":\"\"\"\"\"\"\"\"\\); secs=t[1]*3600+t[2]*60+t[3]; total+=secs; count++} END {printf \"\"\"\"\"\"\"\"Total steps: %d\\\\nAvg time: %.0f sec \\(%.1f min\\)\\\\nTotal compute: %.1f node-hours\\\\nAllocated: %.1f node-hours \\(50 nodes x 4.55h\\)\\\\nEfficiency from compute alone: %.1f%%\\\\n\"\"\"\"\"\"\"\", count, total/count, total/count/60, total/3600, 50*4.55, \\(total/3600\\)/**)",
       "Bash(sacct -j 2680217 --format=JobName%12,Start,End -n)",
       "Bash(sacct -j 2680217 --format=JobName%12,State%12 -n)",
-      "Read(//projects/BURROWS/akashgpt/run_scripts/helpful_scripts/**)"
+      "Read(//projects/BURROWS/akashgpt/run_scripts/helpful_scripts/**)",
+      "Read(//scratch/gpfs/BURROWS/akashgpt/qmd_data/MgSiOH__R2SCAN/deepmd_collection_TEST_OG_pt2/**)",
+      "Read(//scratch/gpfs/BURROWS/akashgpt/qmd_data/MgSiOH__R2SCAN/**)"
     ],
     "additionalDirectories": [
-      "/scratch/gpfs/BURROWS/akashgpt/qmd_data/test/TEST__u.pro.E.l.j.pv_hf_copy.8k.r3-3100.recal/1_GPU"
+      "/scratch/gpfs/BURROWS/akashgpt/qmd_data/test/TEST__u.pro.E.l.j.pv_hf_copy.8k.r3-3100.recal/1_GPU",
+      "/scratch/gpfs/BURROWS/akashgpt/qmd_data/MgSiOH__R2SCAN/deepmd_collection_TRAIN_OG"
     ]
   }
 }
