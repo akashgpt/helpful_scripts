@@ -54,8 +54,17 @@ elif [[ $(hostname) == *"tiger3"* ]]; then
   export CLUSTER="TIGER3"
 elif [[ $(hostname) == *"stellar"* ]]; then
   export CLUSTER="STELLAR"
+elif [[ $(hostname) == *"delta"* ]]; then
+  export CLUSTER="DELTA" # NCSA (via ACCESS)
 fi
-export SCRATCH="/scratch/gpfs/BURROWS/akashgpt"
+
+if [ "$CLUSTER" == "DELLA" ] || [ "$CLUSTER" == "TIGER3" ] || [ "$CLUSTER" == "STELLAR" ]; then
+  export SCRATCH="/scratch/gpfs/BURROWS/akashgpt"
+elif [ "$CLUSTER" == "DELTA" ]; then
+  export SCRATCH="/work/hdd/bguf/akashgpt"
+else
+  echo "WARNING: Cluster name detection failed. CLUSTER variable not set. SCRATCH variable not set."
+fi
 
 end_block1=$(date +%s)
 elapsed_block1=$(( end_block1 - start_block1 ))
@@ -76,7 +85,7 @@ if [ $verbose -eq 1 ]; then
   echo "Setting up aliases at $(date) ..."
 fi
 # squeue
-alias sqp='squeue -o "%.18i %Q %.9q %.8j %.8u %.10a %.2t %.10M %.10L %.6C %R" | more' #priority rating
+alias sqp='squeue -u $USER -o "%.18i %.9P %.12j %.8u %.2t %.10M %.6D %.8C %.10l"' #priority rating
 alias sqpmy='squeue -o "%.18i %Q %.9q %.8j %.8u %.10a %.2t %.10M %.10L %.6C %R" | grep $USER' #priority rating
 alias sq='squeue -u $USER -o "%.18i %.9P %.12j %.8u %.2t %.10M %.6D %.8C %.10l"'
 
@@ -177,8 +186,12 @@ alias myfindscript='ps aux | grep'
 hog() {
   # Default values
   local days=${1:-30}
-  local account=${2:-astro}
   local topcount=${3:-20}
+  if [ "$CLUSTER" == "DELLA" ] || [ "$CLUSTER" == "TIGER3" ] || [ "$CLUSTER" == "STELLAR" ]; then
+    local account=${2:-astro}
+  elif [ "$CLUSTER" == "DELTA" ]; then
+    local account=${2:-bguf}
+  fi
 
   # Calculate the start date based on the provided number of days
   local start_date=$(date -d"${days} days ago" +%D)
@@ -194,8 +207,12 @@ hog() {
 hog_gpu() {
   # Default values
   local days=${1:-30}
-  local account=${2:-astro}
   local topcount=${3:-20}
+    if [ "$CLUSTER" == "DELLA" ] || [ "$CLUSTER" == "TIGER3" ] || [ "$CLUSTER" == "STELLAR" ]; then
+    local account=${2:-astro}
+  elif [ "$CLUSTER" == "DELTA" ]; then
+    local account=${2:-bguf}
+  fi
 
   # Calculate the start date based on the provided number of days
   local start_date=$(date -d"${days} days ago" +%D)
@@ -314,40 +331,52 @@ fi
 # List: myjobs [core_flag]
 ##########################################
 start_block5=$(date +%s)
-myjobs() {
-  # core_flag=${1:-0}
-  
-  # Default values
-  jobs_running=$(squeue -u $USER -h -t R -o "%.18i %.9P %.8j %.8u %.10a %.2t %.10M %.10L %.6C %R" | wc -l)
-  jobs_pending=$(squeue -u $USER -h -t PD -o "%.18i %.9P %.8j %.8u %.10a %.2t %.10M %.10L %.6C %R" | wc -l)
-  total_jobs=$(($jobs_running + $jobs_pending))
+if [ "$CLUSTER" == "DELLA" ] || [ "$CLUSTER" == "TIGER3" ] || [ "$CLUSTER" == "STELLAR" ]; then
+  myjobs() {
+    # core_flag=${1:-0}
+    
+    # Default values
+    jobs_running=$(squeue -u $USER -h -t R -o "%.18i %.9P %.8j %.8u %.10a %.2t %.10M %.10L %.6C %R" | wc -l)
+    jobs_pending=$(squeue -u $USER -h -t PD -o "%.18i %.9P %.8j %.8u %.10a %.2t %.10M %.10L %.6C %R" | wc -l)
+    total_jobs=$(($jobs_running + $jobs_pending))
+
+    echo "####################"
+    echo "Jobs for user $USER"
+    echo "####################"
+    echo "Total jobs: $total_jobs"
+
+    cores_list=$(sqp | grep ag5805 | grep " R " | awk '{print $10}')
+
+    # Sum all instances of total_cores
+    total_cores_sum=0
+    for core in $cores_list; do
+        total_cores_sum=$((total_cores_sum + core))
+    done
+
+    echo "Running jobs: $jobs_running, procs $total_cores_sum";
+    echo "Pending jobs: $jobs_pending"
+  }
+  end_block5=$(date +%s)
+  elapsed_block5=$(( end_block5 - start_block5 ))
+  if [ $elapsed_block5 -gt 10 ]; then
+    echo "WARNING: myjobs function block took $elapsed_block5 seconds!"
+  fi
+elif [ "$CLUSTER" == "DELTA" ]; then
+  myjobs() {
+  local jobs_running jobs_pending total_jobs total_cores_sum
+
+  jobs_running=$(squeue -u "$USER" -h -t R | wc -l)
+  jobs_pending=$(squeue -u "$USER" -h -t PD | wc -l)
+  total_jobs=$((jobs_running + jobs_pending))
+  total_cores_sum=$(squeue -u "$USER" -h -t R -o "%C" | awk '{sum += $1} END {print sum+0}')
 
   echo "####################"
   echo "Jobs for user $USER"
   echo "####################"
   echo "Total jobs: $total_jobs"
-
-  # if [ "$core_flag" == "-v" ]; then
-  # cores_list=$(qos | grep "$USER" | awk '{print $3}')
-  cores_list=$(sqp | grep ag5805 | grep " R " | awk '{print $10}')
-
-  # Sum all instances of total_cores
-  total_cores_sum=0
-  for core in $cores_list; do
-      total_cores_sum=$((total_cores_sum + core))
-  done
-
-  echo "Running jobs: $jobs_running, procs $total_cores_sum";
-  # else
-  #   echo "Running jobs: $jobs_running";
-  # fi
-
+  echo "Running jobs: $jobs_running, procs $total_cores_sum"
   echo "Pending jobs: $jobs_pending"
 }
-end_block5=$(date +%s)
-elapsed_block5=$(( end_block5 - start_block5 ))
-if [ $elapsed_block5 -gt 10 ]; then
-  echo "WARNING: myjobs function block took $elapsed_block5 seconds!"
 fi
 
 
@@ -369,45 +398,48 @@ alias js='jobstats'
 alias jspending='scontrol show job'
 
 # conda related alias
-alias conda_a='conda activate'
-alias conda_d='conda deactivate'
-alias l_base='module load anaconda3/2025.12; conda activate base'
-alias l_hpc='module load anaconda3/2025.12; conda activate hpc-tools'
-# alias l_dpdev='module load anaconda3/2021.5; conda activate dpdev'
-alias l_planet_evo='module load anaconda3/2021.5; conda activate planet_evo'
-alias l_chhota_apple='module load anaconda3/2024.6; conda activate chhota_apple'
-# alias l_deepmd_cpu='module load anaconda3/2021.5; conda activate deepmd_cpu'
+if [ "$CLUSTER" == "DELLA" ] || [ "$CLUSTER" == "TIGER" ] || [ "$CLUSTER" == "STELLAR" ]; then
+  alias conda_a='conda activate'
+  alias conda_d='conda deactivate'
+  alias l_base='module load anaconda3/2025.12; conda activate base'
+  alias l_hpc='module load anaconda3/2025.12; conda activate hpc-tools'
+  # alias l_dpdev='module load anaconda3/2021.5; conda activate dpdev'
+  alias l_planet_evo='module load anaconda3/2021.5; conda activate planet_evo'
+  alias l_chhota_apple='module load anaconda3/2024.6; conda activate chhota_apple'
+  # alias l_deepmd_cpu='module load anaconda3/2021.5; conda activate deepmd_cpu'
 
-alias l_deepmd_cpu='module load anaconda3/2025.12; conda activate deepmd_cpu' #DELLA/STELLAR; deepmd-kit 3.1.2 -- deepmd_cpu is different from deepmd-cpu
+  alias l_deepmd_cpu='module load anaconda3/2025.12; conda activate deepmd_cpu' #DELLA/STELLAR; deepmd-kit 3.1.2 -- deepmd_cpu is different from deepmd-cpu
 
-if [[ $CLUSTER == "DELLA" ]]; then
-  alias l_deepmd_gpu='module load anaconda3/2021.5; conda activate deepmd_gpu' #DELLA; deepmd-kit 2.1.1
-  alias l_deepmd-cpu='module load anaconda3/2025.12; conda activate deepmd-cpu' #DELLA; deepmd-kit 2.2.10
-elif [[ $CLUSTER == "TIGER" ]]; then
-  alias l_dp='module load anaconda3/2024.2; conda activate deepmd' #TIGER
-elif [[ $CLUSTER == "TIGER3" ]]; then
-  alias l_deepmd='module load anaconda3/2024.6; conda activate deepmd' #TIGER3
-  # alias l_deepmd_cpu='module load anaconda3/2024.6; conda activate deepmd_cpu' #TIGER3
-elif [[ $CLUSTER == "STELLAR" ]]; then
-  alias l_deepmd='module load anaconda3/2024.6; conda activate deepmd' #STELLAR
+  if [[ $CLUSTER == "DELLA" ]]; then
+    alias l_deepmd_gpu='module load anaconda3/2021.5; conda activate deepmd_gpu' #DELLA; deepmd-kit 2.1.1
+    alias l_deepmd-cpu='module load anaconda3/2025.12; conda activate deepmd-cpu' #DELLA; deepmd-kit 2.2.10
+  elif [[ $CLUSTER == "TIGER3" ]]; then
+    alias l_deepmd='module load anaconda3/2024.6; conda activate deepmd' #TIGER3
+    # alias l_deepmd_cpu='module load anaconda3/2024.6; conda activate deepmd_cpu' #TIGER3
+  elif [[ $CLUSTER == "STELLAR" ]]; then
+    alias l_deepmd='module load anaconda3/2024.6; conda activate deepmd' #STELLAR
+  fi
+
+  # alias l_dp2='module load anaconda3/2021.5; conda activate dp2.2.7; export PLUMED_KERNEL=$CONDA_PREFIX/lib/libplumedKernel.so; LAMMPS_PLUGIN_PATH=$CONDA_PREFIX/lib/deepmd_lmp; patchelf --add-rpath $CONDA_PREFIX/lib dpplugin.so'
+  alias l_dp_plmd='module load anaconda3/2024.10; conda activate dp_plmd_09' #STELLAR | DELLA
+  alias l_mda='module load anaconda3/2025.12; conda activate mda_env' #TIGER3 | STELLAR | DELLA
+  alias l_asap='module load anaconda3/2024.6; conda activate asap'
+  alias l_pysr='module load anaconda3/2025.12; conda activate pysr_env' # TIGER3
+
+  if [[ $CLUSTER == "STELLAR" ]]; then
+    alias l_qmda='module load anaconda3/2025.12; conda activate qmda' #STELLAR
+  elif [[ $CLUSTER == "DELLA" ]]; then
+    alias l_qmda='module load anaconda3/2025.12; conda activate qmda' #DELLA
+  fi 
+  # alias l_dp_plmd='module load anaconda3/2024.2; conda activate dp_plmd' #DELLA; deepmd-kit 2.2.12-dev
+  # alias l_dpdev='module load anaconda3/2024.6; conda activate dpdev' #DELLA; deepmd-kit 2.2.12-dev
+
+  alias l_ase='module load anaconda3/2025.12; conda activate ase_env'
+
+elif [ "$CLUSTER" == "DELTA" ]; then
+  alias conda_a='module load miniforge3-python >/dev/null 2>&1; conda activate'
+  alias conda_d='conda deactivate'
 fi
-
-
-# alias l_dp2='module load anaconda3/2021.5; conda activate dp2.2.7; export PLUMED_KERNEL=$CONDA_PREFIX/lib/libplumedKernel.so; LAMMPS_PLUGIN_PATH=$CONDA_PREFIX/lib/deepmd_lmp; patchelf --add-rpath $CONDA_PREFIX/lib dpplugin.so'
-alias l_dp_plmd='module load anaconda3/2024.10; conda activate dp_plmd_09' #STELLAR | DELLA
-alias l_mda='module load anaconda3/2025.12; conda activate mda_env' #TIGER3 | STELLAR | DELLA
-alias l_asap='module load anaconda3/2024.6; conda activate asap'
-alias l_pysr='module load anaconda3/2025.12; conda activate pysr_env' # TIGER3
-
-if [[ $CLUSTER == "STELLAR" ]]; then
-  alias l_qmda='module load anaconda3/2025.12; conda activate qmda' #STELLAR
-elif [[ $CLUSTER == "DELLA" ]]; then
-  alias l_qmda='module load anaconda3/2025.12; conda activate qmda' #DELLA
-fi 
-# alias l_dp_plmd='module load anaconda3/2024.2; conda activate dp_plmd' #DELLA; deepmd-kit 2.2.12-dev
-# alias l_dpdev='module load anaconda3/2024.6; conda activate dpdev' #DELLA; deepmd-kit 2.2.12-dev
-
-alias l_ase='module load anaconda3/2025.12; conda activate ase_env'
 
 # git aliases
 alias git_merge_main="git switch main; git merge dev; git push origin main; git switch dev"
@@ -509,45 +541,57 @@ fi
 export AG_BURROWS="/projects/BURROWS/akashgpt"
 export LOCAL_AG_BURROWS="$SCRATCH/local_copy__projects/BURROWS/akashgpt"
 export AG_JIEDENG="/projects/JIEDENG/akashgpt"
+export AG_bguf="/projects/bguf/akashgpt"
+export LOCAL_AG_bguf="$SCRATCH/local_copy__projects/bguf/akashgpt"
 export AG_TIGERDATA="/tigerdata/burrows/planet_evo/akashgpt"
 export AG_TIGERDATA_2="/tigerdata/jiedeng/exoplanet/akashgpt"
+
+if [ "$CLUSTER" == "DELLA" ] || [ "$CLUSTER" == "TIGER3" ] || [ "$CLUSTER" == "STELLAR" ]; then
+  export PRIMARY_PROJECTS_FOLDER=$AG_BURROWS
+  export LOCAL_PRIMARY_PROJECTS_FOLDER=$LOCAL_AG_BURROWS
+elif [ "$CLUSTER" == "DELTA" ]; then
+  export PRIMARY_PROJECTS_FOLDER=$AG_bguf
+  export LOCAL_PRIMARY_PROJECTS_FOLDER=$LOCAL_AG_bguf
+fi
+
+
 export BACKUP_DIR="$SCRATCH/akashgpt_ucla_desktop_backup_20231231"
 export VASP_ANALYSIS="$AG_BACKUP/Academics/Research/VASP/analysis_codes"
 export VASP_DATA="$SCRATCH/qmd_data"
-export mldp="$AG_BURROWS/misc_libraries/scripts_Jie/mldp"
-export LOCAL_mldp="$LOCAL_AG_BURROWS/misc_libraries/scripts_Jie/mldp"
-export JIE_SCRIPTS_DIR="$AG_BURROWS/misc_libraries/scripts_Jie"
-export LOCAL_JIE_SCRIPTS_DIR="$LOCAL_AG_BURROWS/misc_libraries/scripts_Jie"
-export LARS_SCRIPTS_DIR="$AG_BURROWS/misc_libraries/Box_Lars"
-export LOCAL_LARS_SCRIPTS_DIR="$LOCAL_AG_BURROWS/misc_libraries/Box_Lars"
-export MY_MLMD_SCRIPTS="$AG_BURROWS/run_scripts/MLMD_scripts"
+export mldp="$PRIMARY_PROJECTS_FOLDER/misc_libraries/scripts_Jie/mldp"
+export LOCAL_mldp="$LOCAL_PRIMARY_PROJECTS_FOLDER/misc_libraries/scripts_Jie/mldp"
+export JIE_SCRIPTS_DIR="$PRIMARY_PROJECTS_FOLDER/misc_libraries/scripts_Jie"
+export LOCAL_JIE_SCRIPTS_DIR="$LOCAL_PRIMARY_PROJECTS_FOLDER/misc_libraries/scripts_Jie"
+export LARS_SCRIPTS_DIR="$PRIMARY_PROJECTS_FOLDER/misc_libraries/Box_Lars"
+export LOCAL_LARS_SCRIPTS_DIR="$LOCAL_PRIMARY_PROJECTS_FOLDER/misc_libraries/Box_Lars"
+export MY_MLMD_SCRIPTS="$PRIMARY_PROJECTS_FOLDER/run_scripts/MLMD_scripts"
 export APPTAINER_REPO="$SCRATCH/softwares/APPTAINER_REPO"
-export ALCHEMY__dev="$AG_BURROWS/run_scripts/ALCHEMY__dev"
-export ALCHEMY__dev__HEALTH="$AG_BURROWS/run_scripts/ALCHEMY__dev/TRAIN_MLMD_scripts/ANALYSIS/HEALTH_CHECK_UP"
-export ALCHEMY__dev__MLDP="$AG_BURROWS/run_scripts/ALCHEMY__dev/TRAIN_MLMD_scripts/ANALYSIS/mldp"
-export LOCAL__ALCHEMY__main="$LOCAL_AG_BURROWS/run_scripts/ALCHEMY__in_use"
-export ALCHEMY__main="$AG_BURROWS/run_scripts/ALCHEMY__in_use"
-export ALCHEMY__main__HEALTH="$AG_BURROWS/run_scripts/ALCHEMY__in_use/TRAIN_MLMD_scripts/ANALYSIS/HEALTH_CHECK_UP"
-export ALCHEMY__main__MLDP="$AG_BURROWS/run_scripts/ALCHEMY__in_use/TRAIN_MLMD_scripts/ANALYSIS/mldp"
-export LOCAL__ALCHEMY__main__HEALTH="$LOCAL_AG_BURROWS/run_scripts/ALCHEMY__in_use/TRAIN_MLMD_scripts/ANALYSIS/HEALTH_CHECK_UP"
-export LOCAL__ALCHEMY__main__MLDP="$LOCAL_AG_BURROWS/run_scripts/ALCHEMY__in_use/TRAIN_MLMD_scripts/ANALYSIS/mldp"
-export PLANET_EVO__main="$AG_BURROWS/run_scripts/planet_evo_x_qmd"
+export ALCHEMY__dev="$PRIMARY_PROJECTS_FOLDER/run_scripts/ALCHEMY__dev"
+export ALCHEMY__dev__HEALTH="$PRIMARY_PROJECTS_FOLDER/run_scripts/ALCHEMY__dev/TRAIN_MLMD_scripts/ANALYSIS/HEALTH_CHECK_UP"
+export ALCHEMY__dev__MLDP="$PRIMARY_PROJECTS_FOLDER/run_scripts/ALCHEMY__dev/TRAIN_MLMD_scripts/ANALYSIS/mldp"
+export LOCAL__ALCHEMY__main="$LOCAL_PRIMARY_PROJECTS_FOLDER/run_scripts/ALCHEMY__in_use"
+export ALCHEMY__main="$PRIMARY_PROJECTS_FOLDER/run_scripts/ALCHEMY__in_use"
+export ALCHEMY__main__HEALTH="$PRIMARY_PROJECTS_FOLDER/run_scripts/ALCHEMY__in_use/TRAIN_MLMD_scripts/ANALYSIS/HEALTH_CHECK_UP"
+export ALCHEMY__main__MLDP="$PRIMARY_PROJECTS_FOLDER/run_scripts/ALCHEMY__in_use/TRAIN_MLMD_scripts/ANALYSIS/mldp"
+export LOCAL__ALCHEMY__main__HEALTH="$LOCAL_PRIMARY_PROJECTS_FOLDER/run_scripts/ALCHEMY__in_use/TRAIN_MLMD_scripts/ANALYSIS/HEALTH_CHECK_UP"
+export LOCAL__ALCHEMY__main__MLDP="$LOCAL_PRIMARY_PROJECTS_FOLDER/run_scripts/ALCHEMY__in_use/TRAIN_MLMD_scripts/ANALYSIS/mldp"
+export PLANET_EVO__main="$PRIMARY_PROJECTS_FOLDER/run_scripts/planet_evo_x_qmd"
 export CONDA_SECONDARY_DIR="$SCRATCH/softwares/conda_envs_dir_secondary"
 
-export HELP_SCRIPTS="$AG_BURROWS/run_scripts/helpful_scripts"
-export LOCAL_HELP_SCRIPTS="$LOCAL_AG_BURROWS/run_scripts/helpful_scripts"
-export HELP_SCRIPTS_qmd="$AG_BURROWS/run_scripts/helpful_scripts/qmd"
-export LOCAL_HELP_SCRIPTS_qmd="$LOCAL_AG_BURROWS/run_scripts/helpful_scripts/qmd"
-export HELP_SCRIPTS_vasp="$AG_BURROWS/run_scripts/helpful_scripts/qmd/vasp"
-export LOCAL_HELP_SCRIPTS_vasp="$LOCAL_AG_BURROWS/run_scripts/helpful_scripts/qmd/vasp"
-export HELP_SCRIPTS_plmd="$AG_BURROWS/run_scripts/helpful_scripts/qmd/plmd"
-export LOCAL_HELP_SCRIPTS_plmd="$LOCAL_AG_BURROWS/run_scripts/helpful_scripts/qmd/plmd"
-export HELP_SCRIPTS_TI="$AG_BURROWS/run_scripts/helpful_scripts/qmd/TI"
-export LOCAL_HELP_SCRIPTS_TI="$LOCAL_AG_BURROWS/run_scripts/helpful_scripts/qmd/TI"
-export HELP_SCRIPTS_ALCHEMY="$AG_BURROWS/run_scripts/helpful_scripts/qmd/ALCHEMY"
-export LOCAL_HELP_SCRIPTS_ALCHEMY="$LOCAL_AG_BURROWS/run_scripts/helpful_scripts/qmd/ALCHEMY"
-export HELP_SCRIPTS_general="$AG_BURROWS/run_scripts/helpful_scripts/general"
-export LOCAL_HELP_SCRIPTS_general="$LOCAL_AG_BURROWS/run_scripts/helpful_scripts/general"
+export HELP_SCRIPTS="$PRIMARY_PROJECTS_FOLDER/run_scripts/helpful_scripts"
+export LOCAL_HELP_SCRIPTS="$LOCAL_PRIMARY_PROJECTS_FOLDER/run_scripts/helpful_scripts"
+export HELP_SCRIPTS_qmd="$PRIMARY_PROJECTS_FOLDER/run_scripts/helpful_scripts/qmd"
+export LOCAL_HELP_SCRIPTS_qmd="$LOCAL_PRIMARY_PROJECTS_FOLDER/run_scripts/helpful_scripts/qmd"
+export HELP_SCRIPTS_vasp="$PRIMARY_PROJECTS_FOLDER/run_scripts/helpful_scripts/qmd/vasp"
+export LOCAL_HELP_SCRIPTS_vasp="$LOCAL_PRIMARY_PROJECTS_FOLDER/run_scripts/helpful_scripts/qmd/vasp"
+export HELP_SCRIPTS_plmd="$PRIMARY_PROJECTS_FOLDER/run_scripts/helpful_scripts/qmd/plmd"
+export LOCAL_HELP_SCRIPTS_plmd="$LOCAL_PRIMARY_PROJECTS_FOLDER/run_scripts/helpful_scripts/qmd/plmd"
+export HELP_SCRIPTS_TI="$PRIMARY_PROJECTS_FOLDER/run_scripts/helpful_scripts/qmd/TI"
+export LOCAL_HELP_SCRIPTS_TI="$LOCAL_PRIMARY_PROJECTS_FOLDER/run_scripts/helpful_scripts/qmd/TI"
+export HELP_SCRIPTS_ALCHEMY="$PRIMARY_PROJECTS_FOLDER/run_scripts/helpful_scripts/qmd/ALCHEMY"
+export LOCAL_HELP_SCRIPTS_ALCHEMY="$LOCAL_PRIMARY_PROJECTS_FOLDER/run_scripts/helpful_scripts/qmd/ALCHEMY"
+export HELP_SCRIPTS_general="$PRIMARY_PROJECTS_FOLDER/run_scripts/helpful_scripts/general"
+export LOCAL_HELP_SCRIPTS_general="$LOCAL_PRIMARY_PROJECTS_FOLDER/run_scripts/helpful_scripts/general"
 
 
 
@@ -556,14 +600,14 @@ export LOCAL_HELP_SCRIPTS_general="$LOCAL_AG_BURROWS/run_scripts/helpful_scripts
 ##########
 # Adding to different default paths
 ##########
-export PATH=$PATH:$LOCAL_AG_BURROWS/misc_libraries/
+export PATH=$PATH:$LOCAL_PRIMARY_PROJECTS_FOLDER/misc_libraries/
 export PATH=$PATH:$LOCAL_LARS_SCRIPTS_DIR
 export PATH=$PATH:$LOCAL_JIE_SCRIPTS_DIR
 export PATH=$PATH:$LOCAL_mldp
 export PATH=$HOME/local/bin:$PATH # for patchelf
 
 
-export PYTHONPATH=$PYTHONPATH:$LOCAL_AG_BURROWS/misc_libraries/
+export PYTHONPATH=$PYTHONPATH:$LOCAL_PRIMARY_PROJECTS_FOLDER/misc_libraries/
 export PYTHONPATH=$HELP_SCRIPTS:$PYTHONPATH
 export PYTHONPATH=$HELP_SCRIPTS/general:$PYTHONPATH
 # export PYTHONPATH=$LOCAL_HELP_SCRIPTS/general:$PYTHONPATH
@@ -615,13 +659,13 @@ FILE1="myshortcuts.sh"
 FILE2=".bashrc"
 FILE3=".condarc"
 
-mkdir -p $LOCAL_AG_BURROWS/$DIR1
-mkdir -p $LOCAL_AG_BURROWS/$DIR2
-mkdir -p $LOCAL_AG_BURROWS/$DIR3
-mkdir -p $LOCAL_AG_BURROWS/$DIR4
-# mkdir -p $LOCAL_AG_BURROWS/$DIR5
-mkdir -p $LOCAL_AG_BURROWS/$DIR6
-mkdir -p $LOCAL_AG_BURROWS/$DIR7
+mkdir -p $LOCAL_PRIMARY_PROJECTS_FOLDER/$DIR1
+mkdir -p $LOCAL_PRIMARY_PROJECTS_FOLDER/$DIR2
+mkdir -p $LOCAL_PRIMARY_PROJECTS_FOLDER/$DIR3
+mkdir -p $LOCAL_PRIMARY_PROJECTS_FOLDER/$DIR4
+# mkdir -p $LOCAL_PRIMARY_PROJECTS_FOLDER/$DIR5
+mkdir -p $LOCAL_PRIMARY_PROJECTS_FOLDER/$DIR6
+mkdir -p $LOCAL_PRIMARY_PROJECTS_FOLDER/$DIR7
 end_block8=$(date +%s)
 elapsed_block8=$(( end_block8 - start_block8 ))
 if [ $elapsed_block8 -gt 10 ]; then
@@ -658,20 +702,20 @@ run_rsync_timed() {
 }
 
 # # only update new or recently updated files in the local copy of the BURROWS and JIEDENG directory
-# rsync -av --update --progress $AG_BURROWS/* $SCRATCH/local_copy__projects/BURROWS/akashgpt/ --exclude='/projects/BURROWS/akashgpt/run_scripts/MLMD_scripts/iteration_CROSS_CLUSTER' --exclude='/projects/BURROWS/akashgpt/VASP_POTPAW' --exclude='run_scripts/MLMD_scripts/mol_systems/MgSiOHN/deepmd_collection_TRAIN'  --exclude='run_scripts/MLMD_scripts/mol_systems/MgSiOHN/deepmd_collection_TEST'
-run_rsync_timed "$DIR1" rsync -av --update --progress --delete $AG_BURROWS/$DIR1/*  $LOCAL_AG_BURROWS/$DIR1
-run_rsync_timed "$DIR2" rsync -av --update --progress --delete $AG_BURROWS/$DIR2/*  $LOCAL_AG_BURROWS/$DIR2
-run_rsync_timed "$DIR3" rsync -av --update --progress --delete $AG_BURROWS/$DIR3/*  $LOCAL_AG_BURROWS/$DIR3
-run_rsync_timed "$DIR4" rsync -av --update --progress --delete $AG_BURROWS/$DIR4/*  $LOCAL_AG_BURROWS/$DIR4
-# rsync -av --update --progress --delete  --exclude='$AG_BURROWS/$DIR5/deepmd_collection_TRAIN' --exclude='$AG_BURROWS/$DIR5/deepmd_collection_TEST' --exclude='deepmd_collection_TRAIN' --exclude='deepmd_collection_TEST' $AG_BURROWS/$DIR5/*  $LOCAL_AG_BURROWS/$DIR5 > /dev/null 2>&1
-run_rsync_timed "$DIR6" rsync -av --update --progress --delete $AG_BURROWS/$DIR6/*  $LOCAL_AG_BURROWS/$DIR6
-run_rsync_timed "$DIR7" rsync -av --update --progress --delete --exclude='iteration_CROSS_CLUSTER' "$AG_BURROWS/$DIR7/" "$LOCAL_AG_BURROWS/$DIR7"
+# rsync -av --update --progress $PRIMARY_PROJECTS_FOLDER/* $SCRATCH/local_copy__projects/BURROWS/akashgpt/ --exclude='/projects/BURROWS/akashgpt/run_scripts/MLMD_scripts/iteration_CROSS_CLUSTER' --exclude='/projects/BURROWS/akashgpt/VASP_POTPAW' --exclude='run_scripts/MLMD_scripts/mol_systems/MgSiOHN/deepmd_collection_TRAIN'  --exclude='run_scripts/MLMD_scripts/mol_systems/MgSiOHN/deepmd_collection_TEST'
+run_rsync_timed "$DIR1" rsync -av --update --progress --delete $PRIMARY_PROJECTS_FOLDER/$DIR1/*  $LOCAL_PRIMARY_PROJECTS_FOLDER/$DIR1
+run_rsync_timed "$DIR2" rsync -av --update --progress --delete $PRIMARY_PROJECTS_FOLDER/$DIR2/*  $LOCAL_PRIMARY_PROJECTS_FOLDER/$DIR2
+run_rsync_timed "$DIR3" rsync -av --update --progress --delete $PRIMARY_PROJECTS_FOLDER/$DIR3/*  $LOCAL_PRIMARY_PROJECTS_FOLDER/$DIR3
+run_rsync_timed "$DIR4" rsync -av --update --progress --delete $PRIMARY_PROJECTS_FOLDER/$DIR4/*  $LOCAL_PRIMARY_PROJECTS_FOLDER/$DIR4
+# rsync -av --update --progress --delete  --exclude='$PRIMARY_PROJECTS_FOLDER/$DIR5/deepmd_collection_TRAIN' --exclude='$PRIMARY_PROJECTS_FOLDER/$DIR5/deepmd_collection_TEST' --exclude='deepmd_collection_TRAIN' --exclude='deepmd_collection_TEST' $PRIMARY_PROJECTS_FOLDER/$DIR5/*  $LOCAL_PRIMARY_PROJECTS_FOLDER/$DIR5 > /dev/null 2>&1
+run_rsync_timed "$DIR6" rsync -av --update --progress --delete $PRIMARY_PROJECTS_FOLDER/$DIR6/*  $LOCAL_PRIMARY_PROJECTS_FOLDER/$DIR6
+run_rsync_timed "$DIR7" rsync -av --update --progress --delete --exclude='iteration_CROSS_CLUSTER' "$PRIMARY_PROJECTS_FOLDER/$DIR7/" "$LOCAL_PRIMARY_PROJECTS_FOLDER/$DIR7"
 
-# rsync -av --update --progress --delete $AG_BURROWS/$FILE1  $LOCAL_AG_BURROWS/$FILE1 > /dev/null 2>&1
-# rsync -av --update --progress --delete $AG_BURROWS/$FILE1  $HELP_SCRIPTS/sys/$FILE1 > /dev/null 2>&1
+# rsync -av --update --progress --delete $PRIMARY_PROJECTS_FOLDER/$FILE1  $LOCAL_PRIMARY_PROJECTS_FOLDER/$FILE1 > /dev/null 2>&1
+# rsync -av --update --progress --delete $PRIMARY_PROJECTS_FOLDER/$FILE1  $HELP_SCRIPTS/sys/$FILE1 > /dev/null 2>&1
 run_rsync_timed "${CLUSTER}${FILE2}" rsync -av --update --progress --delete $HOME/$FILE2  $HELP_SCRIPTS/sys/${CLUSTER}${FILE2}
 run_rsync_timed "${CLUSTER}${FILE3}" rsync -av --update --progress --delete $HOME/$FILE3  $HELP_SCRIPTS/sys/${CLUSTER}${FILE3}
-# rsync -av --update --progress $AG_BURROWS/VASP_POTPAW/* $SCRATCH/local_copy__projects/BURROWS/VASP_POTPAW
+# rsync -av --update --progress $PRIMARY_PROJECTS_FOLDER/VASP_POTPAW/* $SCRATCH/local_copy__projects/BURROWS/VASP_POTPAW
 end_block9=$(date +%s)
 elapsed_block9=$(( end_block9 - start_block9 ))
 if [ $elapsed_block9 -gt 10 ]; then
