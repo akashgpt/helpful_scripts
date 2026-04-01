@@ -22,7 +22,7 @@
 # Set default recalculation cutoff thresholds and deepMD test input file
 RECAL_CUTOFF_e_low=${1:-0.005}
 RECAL_CUTOFF_f_low=${2:-0.15}
-DP_TEST_INPUT_FILE=${3:-"dp_test_id_e_and_f_sweet_range"} # dp_test_id_e_and_f or dp_test_id_e_or_f
+DP_TEST_INPUT_FILE=${3:-"dp_test_id_e_and_f"} # dp_test_id_e_and_f or dp_test_id_e_or_f
 RECAL_CUTOFF_e_high=10
 RECAL_CUTOFF_f_high=100
 
@@ -53,7 +53,7 @@ for dir in $(find . -type d -name 'recal'); do
     # - Merge outputs using merge_out.py and extract data using extract_deepmd.py
     # - Execute deepMD test via apptainer and analyze using analysis_v2.py
     # - Finally, clean up the deepmd directory and extract deepmd data again with the specified input file
-    l_deepmd && rm -rf OUTCAR deepmd && python $mldp/merge_out.py -o OUTCAR && python $mldp/extract_deepmd.py -d deepmd -ttr 10000 && apptainer exec $APPTAINER_REPO/deepmd-kit_latest.sif dp test -m /scratch/gpfs/ag5805/qmd_data/NH3_MgSiO3/sim_data_ML_v2/setup_MLMD/latest_trained_potential/pv_comp.pb -d dp_test -n 0 > log.dp_test 2>&1 && python $mldp/model_dev/analysis_v2.py -tf . -mp dp_test -rf . -euc ${RECAL_CUTOFF_e_high} -fuc ${RECAL_CUTOFF_f_high} -flc ${RECAL_CUTOFF_f_low} -elc ${RECAL_CUTOFF_e_low} && rm -rf deepmd && python $mldp/extract_deepmd.py -f OUTCAR -d deepmd -id ${DP_TEST_INPUT_FILE} &
+    l_deepmd_cpu && rm -rf OUTCAR deepmd && python $mldp/merge_out.py -o OUTCAR && python $mldp/extract_deepmd.py -d deepmd -ttr 10000 && apptainer exec $APPTAINER_REPO/deepmd-kit_latest.sif dp test -m /scratch/gpfs/ag5805/qmd_data/NH3_MgSiO3/sim_data_ML_v2/setup_MLMD/latest_trained_potential/pv_comp.pb -d dp_test -n 0 > log.dp_test 2>&1 && python $mldp/model_dev/analysis_v2.py -tf . -mp dp_test -rf . -euc ${RECAL_CUTOFF_e_high} -fuc ${RECAL_CUTOFF_f_high} -flc ${RECAL_CUTOFF_f_low} -elc ${RECAL_CUTOFF_e_low} && rm -rf deepmd && python $mldp/extract_deepmd.py -f OUTCAR -d deepmd -id ${DP_TEST_INPUT_FILE} &
     
     # Grab the job ID of the last background command
     job_id=$!
@@ -63,7 +63,7 @@ for dir in $(find . -type d -name 'recal'); do
 
     # Return to the master directory
     cd $current_master_dir
-#   l_deepmd && rm -rf OUTCAR deepmd && python $mldp/merge_out.py -o OUTCAR && python $mldp/extract_deepmd.py -d deepmd -ttr 10000 && apptainer exec $APPTAINER_REPO/deepmd-kit_latest.sif dp test -m /scratch/gpfs/ag5805/qmd_data/NH3_MgSiO3/sim_data_ML_v2/setup_MLMD/latest_trained_potential/pv_comp.pb -d dp_test -n 0 > log.dp_test 2>&1 && python $mldp/model_dev/analysis.py -tf . -mp dp_test -rf . -euc 10 -fuc 100 -flc 0.8 -elc 0.02 && code vasp* && rm -rf deepmd && python $mldp/extract_deepmd.py -f OUTCAR -d deepmd -id dp_test_id_e_and_f &
+#   l_deepmd_cpu && rm -rf OUTCAR deepmd && python $mldp/merge_out.py -o OUTCAR && python $mldp/extract_deepmd.py -d deepmd -ttr 10000 && apptainer exec $APPTAINER_REPO/deepmd-kit_latest.sif dp test -m /scratch/gpfs/ag5805/qmd_data/NH3_MgSiO3/sim_data_ML_v2/setup_MLMD/latest_trained_potential/pv_comp.pb -d dp_test -n 0 > log.dp_test 2>&1 && python $mldp/model_dev/analysis.py -tf . -mp dp_test -rf . -euc 10 -fuc 100 -flc 0.8 -elc 0.02 && code vasp* && rm -rf deepmd && python $mldp/extract_deepmd.py -f OUTCAR -d deepmd -id dp_test_id_e_and_f &
 done
 
 # Wait for all background jobs to complete

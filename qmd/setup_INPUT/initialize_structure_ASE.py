@@ -109,7 +109,8 @@ if __name__ == "__main__":
     # user parameters
     # comp = {'Fe': 10, 'O': 20, 'Sc': 5}
     # comp = {'Fe': 128}
-    comp = {'Mg': 64, "Si": 64, "O": 192, "H":80}  # MgSiO3 perovskite + H
+    # comp = {'Mg': 64, "Si": 64, "O": 192, "H":80}  # MgSiO3 perovskite + H
+    comp = {"H":216}  # MgSiO3 perovskite + H
     # define non-cubic cell matrix
     cell_L = 9.373
     cell = [[1.0, 0.0, 0.0],

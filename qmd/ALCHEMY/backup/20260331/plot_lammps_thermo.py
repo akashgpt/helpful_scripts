@@ -12,8 +12,8 @@
 #   python plot_lammps_thermo.py path/to/log.lammps -o custom_plot.png
 #
 # Example:
-#   python plot_lammps_thermo.py \
-#       sim_data_ML_v4/v8_i2/md/ZONE_8/40H2_40NH3/log.lammps
+#   python plot_lammps_thermo.py sim_data_ML_v4/v8_i2/md/ZONE_8/40H2_40NH3/log.lammps
+#   python $HELP_SCRIPTS_ALCHEMY/plot_lammps_thermo.py log.lammps
 #
 # Notes:
 #   - The script looks for thermo tables that contain Step, Temp, Press,
@@ -39,7 +39,7 @@ import re
 from typing import Iterable
 
 # Keep matplotlib cache files in a writable location on the cluster.
-os.environ.setdefault("MPLCONFIGDIR", "/tmp/matplotlib")
+os.environ.setdefault("MPLCONFIGDIR", os.path.join("/tmp", f"matplotlib_{os.getenv('USER', 'user')}"))
 
 import matplotlib
 
@@ -364,35 +364,44 @@ def plot_thermo(data: list[dict[str, float]], boundaries: list[float], timestep_
     """
 
     time_ps = [row["StitchedStep"] * timestep_ps for row in data]
-    pressure = [row["Press"] for row in data]
+    pressure = [bar_to_gpa(row["Press"]) for row in data]  # convert to GPa for left axis
     volume = [row["Volume"] for row in data]
     temperature = [row["Temp"] for row in data]
     total_energy = [row["TotEng"] for row in data]
 
     fig, axes = plt.subplots(4, 1, sharex=True, figsize=(11, 11), constrained_layout=True)
 
+    # Each entry: (values, ylabel, color, padding_fraction, primary_unit, secondary_convert_fn, secondary_unit)
+    # secondary_convert_fn is None when there is no secondary y-axis.
     series = [
-        (pressure, "Pressure (bar)", "tab:red", DEFAULT_PADDING_FRACTION),
-        (volume, r"Volume ($\AA^3$)", "tab:blue", DEFAULT_PADDING_FRACTION),
-        (temperature, "Temperature (K)", "tab:orange", DEFAULT_PADDING_FRACTION),
-        (total_energy, "Total Energy (eV)", "tab:green", ENERGY_PADDING_FRACTION),
+        (pressure,     "Pressure (GPa)",           "tab:red",    DEFAULT_PADDING_FRACTION, "GPa", gpa_to_bar,  "bar"),
+        (volume,       r"Volume ($\AA^3$)",        "tab:blue",   DEFAULT_PADDING_FRACTION, r"Å³", None,        None),
+        (temperature,  "Temperature (K)",          "tab:orange", DEFAULT_PADDING_FRACTION, "K",   None,        None),
+        (total_energy, "Total Energy (eV)",        "tab:green",  ENERGY_PADDING_FRACTION,  "eV",  ev_to_kjmol, "kJ/mol"),
     ]
 
-    for ax, (values, ylabel, color, padding_fraction) in zip(axes, series):
-        ax.plot(time_ps, values, color=color, linewidth=1.0)
+    for ax, (values, ylabel, color, padding_fraction, primary_unit, sec_fn, sec_unit) in zip(axes, series):
+        # Compute mean and std over the last 25% of data points for converged statistics.
+        n_last = max(1, len(values) // 4)
+        tail_values = values[-n_last:]
+        mean_val = float(np.mean(tail_values))
+        std_val = float(np.std(tail_values))
+        legend_label = f"$\\mu$ = {mean_val:.4g} {primary_unit},  $\\sigma$ = {std_val:.4g} {primary_unit}"
+        ax.plot(time_ps, values, color=color, linewidth=1.0, label=legend_label)
         # Mark where the log transitions from one thermo block to the next.
         for boundary_step in boundaries:
             ax.axvline(boundary_step * timestep_ps, color="0.6", linestyle="--", linewidth=0.9)
         ax.set_ylim(*compute_axis_limits(values, padding_fraction))
         ax.set_ylabel(ylabel)
+        ax.legend(loc="upper right", fontsize=8, framealpha=0.7)
         ax.grid(True, alpha=0.3)
 
-    pressure_axis_gpa = axes[0].secondary_yaxis("right", functions=(bar_to_gpa, gpa_to_bar))
-    pressure_axis_gpa.set_ylabel("Pressure (GPa)")
+    pressure_axis_bar = axes[0].secondary_yaxis("right", functions=(gpa_to_bar, bar_to_gpa))
+    pressure_axis_bar.set_ylabel("Pressure (bar)")
     energy_axis_kjmol = axes[3].secondary_yaxis("right", functions=(ev_to_kjmol, kjmol_to_ev))
     energy_axis_kjmol.set_ylabel("Total Energy (kJ/mol)")
 
-    axes[0].set_title("LAMMPS Thermo Data vs Time")
+    axes[0].set_title("LAMMPS Thermo Data vs Time  ($\\mu$, $\\sigma$ computed over last 25% of steps)")
     axes[-1].set_xlabel("Time (ps)")
 
     output_path.parent.mkdir(parents=True, exist_ok=True)

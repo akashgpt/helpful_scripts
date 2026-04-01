@@ -22,7 +22,7 @@
 
 # Define paths to scripts and files
 MLDP_SCRIPTS="/projects/BURROWS/akashgpt/misc_libraries/scripts_Jie/mldp"
-DP_TEST_INPUT_FILE="dp_test_id_e_or_f"
+DP_TEST_INPUT_FILE="dp_test_id_e_and_f"
 dir_to_be_searched="old_recal"
 
 parent_dir=$(pwd)

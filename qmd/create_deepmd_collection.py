@@ -1,3 +1,92 @@
+"""
+create_deepmd_collection.py
+============================
+Master script for managing DeePMD-kit training/test data collections and
+running model-accuracy diagnostics (dp test, RMSE histograms, outlier detection).
+
+Canonical location:  $HELPFUL_SCRIPTS/qmd/create_deepmd_collection.py
+Originally written for the MgSiOH(N) system (PBE/R2SCAN potentials), but
+designed to be re-usable for any system by editing the CONFIGURATION section below.
+
+PURPOSE
+-------
+In a ALCHEMY active-learning workflow, DFT recalculations produce
+``deepmd/`` folders inside ``recal`` directories, each containing
+``set.000`` (training frames) and ``set.001`` (test frames).  This script:
+
+1. **Collects** those scattered deepmd directories into a single flat
+    ``deepmd_collection_TRAIN/`` and ``deepmd_collection_TEST/`` tree — one
+    subfolder per simulation, containing only the relevant set and metadata.
+
+2. **Runs ``dp test``** against a specified DeePMD model on every collected
+    system (parallelised, with a semaphore to limit concurrency).
+
+3. **Concatenates** per-system dp_test output into global
+    ``all_dp_test.{e,f,v,...}.out`` files and summary CSVs.
+
+4. **Analyses** the concatenated results: RMSE histograms, percentile-based
+    outlier detection (A-sigma / B-sigma), and per-frame bad-index mappings.
+
+5. **Validates** that the collected TRAIN/TEST directories match the systems
+    listed in ``myinput.json`` (the DeePMD training config).
+
+6. **Visualises** composition-resolved error distributions (e.g. Energy RMSE
+    vs X_NH3 proxy) for multi-component systems.
+
+MODES
+-----
+Set ``mode`` below to control which pipeline stage runs:
+
+  mode  1 : Search ``base_dir`` for ``recal/deepmd/`` folders, copy them into
+             TRAIN and TEST collections, and optionally run dp test.
+             Searches by matching directory name == "deepmd".
+  mode  2 : Concatenate individual dp_test output files (e.out, f.out, v.out,
+             etc.) from all systems in the TRAIN/TEST collections into global
+             ``all_dp_test.*.out`` files.  Also extracts per-system RMSE from
+             ``log.dp_test`` into ``all_log.dp_test`` CSV summary.
+  mode  3 : Run ``dp test`` on every system already present in the TRAIN/TEST
+             collections (no copying).  Waits for all background dp_test
+             processes to finish before exiting.
+  mode  4 : Like mode 1, but searches for any directory containing "deepmd"
+             in its name (more flexible matching).  PREFERRED over mode 1.
+  mode  5 : Compare TRAIN/TEST collection directories against the ``systems``
+             list in ``myinput.json`` — prints what is in JSON but missing on
+             disk, and vice versa.
+  mode  6 : Analyse concatenated ``all_dp_test.{e_peratom,f}.out`` files:
+             compute per-frame RMSE, percentile thresholds (A/B-sigma),
+             identify outlier frames, and produce per-system mapping CSVs.
+  mode  7 : (Within mode 3 / dp_test_base_dir) If ``update_deepmd_w_OUTCAR``
+             is True, re-extract deepmd data from OUTCARs excluding bad frames
+             identified in mode 6, then re-run dp test.
+  mode  8 : Composition-resolved analysis — plot histograms of X_NH3 proxy
+             (= n_N / (n_Mg + n_N)) weighted by n_frames, and compute
+             weighted-average Energy RMSE per composition bin.
+  mode -1 : Run both mode 1 and mode 2 sequentially.
+
+TYPICAL USAGE ORDER
+-------------------
+    mode 4 → mode 2 → mode 3 → (wait) → mode 2 → mode 6 → mode 7 → mode 2
+
+ENVIRONMENT VARIABLES REQUIRED
+------------------------------
+    $SCRATCH          : Path to scratch filesystem (e.g. /scratch/gpfs/BURROWS/akashgpt)
+    $APPTAINER_REPO   : Path to directory containing Apptainer/Singularity .sif images
+    $local_mldp       : (for mode 7) Path to local mldp repo containing extract_deepmd.py
+
+ADAPTING FOR A NEW SYSTEM
+-------------------------
+To use this script for a different system (e.g. MgSiOH__R2SCAN on Tiger):
+    1. Change ``primary_base_dir`` to point to where raw DFT data lives.
+    2. Change ``destination_dir`` and ``base_destination_dir`` to the new
+        collection output location.
+    3. Change ``setup_MLMD_dir`` to the new system's setup directory.
+    4. Update ``dp_model_version``, ``dp_model_file_name``, and ``RUNID_PREFIX``.
+    5. If the system has no N atoms, the mode 8 X_NH3 proxy will need to be
+        adapted or skipped.
+    6. The element-counting block in ``process_base_dir()`` hard-codes
+        Mg/Si/O/H/N — add or remove elements as needed.
+"""
+
 from __future__ import print_function
 import os
 import pandas as pd
@@ -13,7 +102,12 @@ import logging
 import sys
 
 
-# import $SCRATCH environment variable
+# =====================================================================================
+# ENVIRONMENT SETUP
+# =====================================================================================
+# These env vars must be set before running.  On Princeton clusters:
+#   $SCRATCH = /scratch/gpfs/BURROWS/akashgpt   (or /scratch/gpfs/$USER)
+#   $APPTAINER_REPO = path to .sif container images
 MY_SCRATCH = os.environ['SCRATCH']
 MY_SCRATCH = MY_SCRATCH+"/"
 
@@ -21,65 +115,88 @@ MY_APPTAINER_REPO = os.environ['APPTAINER_REPO']
 MY_APPTAINER_REPO = MY_APPTAINER_REPO+"/"
 
 
-### mode ###
-#  1: create deepmd_collection (by searching "recal") and run dp test; 
-#  2: concatenate individual e,f,v files; 
-#  3: just run dp test;
-#  4: like mode=1 by searching for "deepmd" (PREFERRED vs 1)
-# -1: both 1 and 2;
-#  5: compare TRAIN and TEST folder sub-directories versus myinput.json file
-#  6: anaylze distribution of errors in all_dp_test.{e_peratom,f,v_peratom}.out files -> create histograms,
-#     detail rmse values of bad simulations and the respective frame numbers and other stats
-#  7: delete the frames with high errors from the respective sims in the *TRAIN and *TEST folders and recompile
-#  8: histograms for distribution of compositions and their E errors
+# =====================================================================================
+# CONFIGURATION — EDIT THIS SECTION FOR EACH SYSTEM / ANALYSIS RUN
+# =====================================================================================
+
+### mode — see docstring above for details ###
 mode = 2
 
-n_parallel_analysis = 40 # no. of parallel analysis runs to do
+# Maximum number of dp_test processes to run simultaneously (modes 3, 4).
+# Each dp_test is launched in the background; the script polls .active files
+# to enforce this concurrency limit.
+n_parallel_analysis = 40
 
-# Fresh analysis?
-fresh_analysis = False #for mode 1, 3 and 4 only
+# If True, wipe existing dp_test output and re-run from scratch (modes 1, 3, 4).
+# If False, skip directories where dp_test output already exists.
+fresh_analysis = False
 
 verbose = True
 
-skip_dp_test = True #for mode 4 only
+# If True (mode 4 only), copy deepmd directories without running dp_test.
+# Useful for first building the collection, then running dp_test in a separate
+# step (mode 3).
+skip_dp_test = True
 
-update_deepmd_w_OUTCAR = False #for mode 3 only and only after mode 3, 2 and 6 have been run once
+# If True (mode 3 only, after modes 3→2→6 have been run once): re-extract
+# deepmd data from OUTCARs, excluding bad frames identified in mode 6
+# (stored in exclude_index_file).  This is the "mode 7" data-cleaning path.
+update_deepmd_w_OUTCAR = False
 exclude_index_file = "mapping__B_sigma_details.f.csv"
 
-virial_conversion = False #for mode 3 only
+# If True (mode 3 only), convert virial dp_test output from eV/A^3 to GPa.
+virial_conversion = False
 
 enable_debug = False
 
-# dp_model_version = f"v5_i57__v5_only" # ~ label for current analysis run
-dp_model_version = f"v5_i71__all_960X3_fittingNN" # ~ label for current analysis run
+# Label for the current analysis run — used to name the reference_analysis_runs
+# subdirectory where results are archived.
+# dp_model_version = f"v5_i57__v5_only"
+dp_model_version = f"v5_i71__all_960X3_fittingNN"
 dp_model_file_name = "v5_i71__all_960X3_fittingNN__pv_comp.pb"
 
-percentile__A_sigma = 99.74#[95]
-percentile__B_sigma = 99.994#[99.74]
+# Percentile thresholds for outlier detection in mode 6.
+# A-sigma: frames above this percentile are "moderately bad"
+# B-sigma: frames above this percentile are "severely bad"
+# Loosely inspired by 3-sigma (99.74%) and 4-sigma (99.994%) Gaussian thresholds.
+percentile__A_sigma = 99.74   # e.g. 95, 99.74
+percentile__B_sigma = 99.994  # e.g. 99.74, 99.994
 
-f_threshold = 0.1 #ev A^-1
-v_threshold = 0.1 #ev A^3
-v_GPa_threshold = 0.1 #GPa
-e_threshold = 10e-3 #ev
+# Absolute RMSE thresholds (not currently used in the main logic, but kept as
+# reference values for manual inspection).
+f_threshold = 0.1     # eV/A
+v_threshold = 0.1     # eV/A^3
+v_GPa_threshold = 0.1 # GPa
+e_threshold = 10e-3   # eV
 
-### Define the base directory where raw data is searched for ###
+# --- PRIMARY BASE DIRECTORY ---
+# Where the raw DFT simulation data lives.  The script walks this tree to find
+# recal/deepmd directories (modes 1, 4).
 # primary_base_dir = "/scratch/gpfs/ag5805/qmd_data/NH3_MgSiO3/sim_data_ML/"
 # primary_base_dir = MY_SCRATCH+"qmd_data/YihangDengetal2024/MgSiOH_dataset/train_test_data"
 primary_base_dir = MY_SCRATCH+"qmd_data/NH3_MgSiO3/sim_data_ML/"
 # primary_base_dir = MY_SCRATCH+"qmd_data/H2O_H2/sim_data"
 base_dir = primary_base_dir
 
-### Define the file path ###
-# file_path = os.path.join(base_dir, "TRAIN_MLMD_parameters.txt")
-# RUNID_PREFIX=get_next_line_after_keyword(file_path, "RUNID_PREFIX")
+# Prefix filter: only process directories whose names start with this string.
+# For ALCHEMY iterations this is typically "v5_", "v8_", etc.
+# For non-ALCHEMY (standalone) data, use the appropriate prefix (e.g. "n0").
 RUNID_PREFIX = "v5_"
 
+# Apptainer container with DeePMD-kit (used for dp test in modes 1, 3, 4).
 dp_container = f"{MY_APPTAINER_REPO}deepmd-kit_latest.sif"
 
-####################################################################################################################
 
-
-### Define the destination directories -- Defaults ###
+# =====================================================================================
+# OUTPUT / DESTINATION DIRECTORIES
+# =====================================================================================
+# The deepmd_collection_TRAIN and _TEST directories are the flat collections where
+# each system's deepmd data is gathered.  These are the directories that dp_test,
+# mode 2 concatenation, and mode 6 analysis operate on.
+#
+# IMPORTANT: TRAIN collections keep only set.000 (training frames).
+#            TEST  collections keep only set.001 (test frames).
+# This mirrors the LEVEL_3.sh logic where set.000 = training split, set.001 = test split.
 destination_dir= MY_SCRATCH+"qmd_data/MgSiOHN/"
 base_destination_dir = destination_dir+"deepmd_collection"
 # destination_dir_TRAIN = base_destination_dir+"_TRAIN__v5_only/"
@@ -87,6 +204,12 @@ base_destination_dir = destination_dir+"deepmd_collection"
 destination_dir_TRAIN = base_destination_dir+"_TRAIN_master_v2/"
 destination_dir_TEST = base_destination_dir+"_TEST_master_v2/"
 
+# --- SETUP / REFERENCE DIRECTORIES ---
+# setup_MLMD_dir: central config directory for the molecular system.
+#   Expected subdirectories:
+#     input_JSON/myinput.json         — DeePMD training config (used by mode 5)
+#     latest_trained_potential/*.pb   — the model to test against
+#     reference_analysis_runs/        — archived results per dp_model_version
 setup_MLMD_dir = MY_SCRATCH+"qmd_data/MgSiOHN/setup_MLMD/"
 
 myinput_json_dir = setup_MLMD_dir+"input_JSON/"
@@ -95,26 +218,25 @@ myinput_json_file = myinput_json_dir+"myinput.json"
 dp_model_dir = setup_MLMD_dir+"latest_trained_potential/"
 dp_model = dp_model_dir+dp_model_file_name
 
+# Each analysis run gets its own subdirectory named after dp_model_version,
+# where results (CSVs, histograms, copies of the model) are archived.
 reference_analysis_runs_dir = setup_MLMD_dir+"reference_analysis_runs/"
 dp_model_version_dir = os.path.join(reference_analysis_runs_dir, dp_model_version)
 os.system(f"mkdir -p {dp_model_version_dir}")
 
-# initialize the output log file
+# Initialize the output log file (all print output also goes here via logging)
 output_log_file = os.path.join(dp_model_version_dir, "log.output")
 os.system(f"rm -f {output_log_file}")
 os.system(f"touch {output_log_file}")
 
-# also make a copy of dp_model in dp_model_version_dir
+# Archive a copy of the model being tested alongside the results
 os.system(f"cp {dp_model} {dp_model_version_dir}")
-
-
-# exclude_index_file_dir = 
 
 # Initialize an empty list to store data
 data_list = []
 
-
-# erase any previous "*.active" files
+# Clean up stale .active semaphore files from previous interrupted runs.
+# These files are used to track concurrent dp_test processes.
 os.system(f"rm -f {destination_dir_TRAIN}*.active")
 os.system(f"rm -f {destination_dir_TEST}*.active")
 
