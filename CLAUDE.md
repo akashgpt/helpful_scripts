@@ -15,6 +15,7 @@
 - Feel free to create new files or directories if needed for your own experimentation to help me in any way possible, but do not modify or delete any existing files or directories (those created by me) without explicit asking me to do so.
 - Always explain in simple words the logic and reasoning of the code just implemented, and how it relates to the scientific idea/domain and the specific requirements of the task. The changes or improvements you made, etc. I should know what you did and why, and how it helps the project. This is important for me to understand the code and to learn from it, and also for future reference when I or others look at the code later on.
 - Always consider the best practices and conventions of the programming language and the scientific domain, and try to follow them as much as possible, unless there is a good reason to deviate from them.
+- Always use tab indentation for code blocks, and avoid mixing tabs and spaces.
 
 ## Repository Lookup Policy
 

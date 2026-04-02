@@ -228,7 +228,7 @@ run_hog_report() {
 
 # NCSA_DELTA_conda_init
 #
-# Loads the NCSA_DELTA Miniforge module and sources the conda shell hook so that
+# Bootstraps the shared NCSA Delta Miniforge install directly so that
 # interactive activation works without a prior conda init.
 #
 # Args:
@@ -238,32 +238,38 @@ run_hog_report() {
 NCSA_DELTA_conda_init() {
   local miniforge_root="/sw/rh9.4/python/miniforge3"
   local miniforge_bin="${miniforge_root}/bin"
-  local conda_init_script="/sw/rh9.4/python/miniforge3/etc/profile.d/conda.sh"
+  local conda_init_script="${miniforge_root}/etc/profile.d/conda.sh"
 
-  if ! module load miniforge3-python >/dev/null 2>&1; then
-    if [ -d "$miniforge_bin" ]; then
-      case ":$PATH:" in
-        *":$miniforge_bin:"*)
-          ;;
-        *)
-          export PATH="$miniforge_bin:$PATH"
-          ;;
-      esac
-      export CONDA_EXE="${miniforge_bin}/conda"
-      export CONDA_PYTHON_EXE="${miniforge_bin}/python"
-    else
-      echo "ERROR: Failed to load the NCSA_DELTA module miniforge3-python and no fallback Miniforge install was found."
-      return 1
-    fi
+  if [ ! -d "$miniforge_bin" ]; then
+    echo "ERROR: Shared NCSA_DELTA Miniforge install not found at $miniforge_root."
+    return 1
   fi
 
-  if [ -f "$conda_init_script" ]; then
-    # shellcheck disable=SC1091
-    . "$conda_init_script"
+  if [ -n "${CONDA_EXE:-}" ] && command -v conda >/dev/null 2>&1; then
+    return 0
   fi
+
+  case ":$PATH:" in
+    *":$miniforge_bin:"*)
+      ;;
+    *)
+      export PATH="$miniforge_bin:$PATH"
+      ;;
+  esac
+
+  export CONDA_EXE="${miniforge_bin}/conda"
+  export CONDA_PYTHON_EXE="${miniforge_bin}/python"
+
+  if [ ! -f "$conda_init_script" ]; then
+    echo "ERROR: Conda shell hook not found at $conda_init_script."
+    return 1
+  fi
+
+  # shellcheck disable=SC1091
+  . "$conda_init_script"
 
   if ! command -v conda >/dev/null 2>&1; then
-    echo "ERROR: conda is still unavailable after loading miniforge3-python."
+    echo "ERROR: conda is still unavailable after sourcing $conda_init_script."
     return 1
   fi
 }
@@ -634,6 +640,7 @@ elif [ "$CLUSTER" == "NCSA_DELTA" ]; then
       conda activate "$@"
     fi
   }
+  l_base='conda_a base'
 
   # conda_d
   #
@@ -966,7 +973,8 @@ fi
 
 ##########################################
 if [ "$CLUSTER" == "NCSA_DELTA" ]; then
-  module reset >/dev/null 2>&1
+  # module reset >/dev/null 2>&1
+  echo 
 elif [ "$CLUSTER" == "DELLA" ] || [ "$CLUSTER" == "TIGER3" ] || [ "$CLUSTER" == "STELLAR" ]; then
   module purge >/dev/null 2>&1
 fi
