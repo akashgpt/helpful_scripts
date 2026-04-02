@@ -146,7 +146,12 @@ alias llf='ls --color=auto -hlctur -p -v' # only files + sort by time
 alias lls='ls --color=auto -vlhcS' # sort by size
 alias ll='ls --color=auto -lhc -v'
 alias du='du -csh'
-alias cq='checkquota'
+
+if [ "$CLUSTER" == "DELLA" ] || [ "$CLUSTER" == "TIGER3" ] || [ "$CLUSTER" == "STELLAR" ]; then
+  alias checkquota='checkquota'
+elif [ "$CLUSTER" == "DELTA" ]; then
+  alias checkquota='quota'
+fi
 
 mk() { mkdir -p "$1" && cd "$1"; }
 cl() { cd "$1" && ll; } # uses alias defined above
@@ -394,8 +399,15 @@ fi
 # setting up environment in cluster
 alias modl='module load'
 alias sb='sbatch'
-alias js='jobstats'
-alias jspending='scontrol show job'
+
+if [ "$CLUSTER" == "DELLA" ] || [ "$CLUSTER" == "TIGER3" ] || [ "$CLUSTER" == "STELLAR" ]; then
+  alias js='jobstats'
+  alias jspending='scontrol show job'
+elif [ "$CLUSTER" == "DELTA" ]; then
+  js() { seff "$@"; }
+  alias jspending='sstat'
+fi
+
 
 # conda related alias
 if [ "$CLUSTER" == "DELLA" ] || [ "$CLUSTER" == "TIGER" ] || [ "$CLUSTER" == "STELLAR" ]; then
