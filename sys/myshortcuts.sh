@@ -3,7 +3,8 @@
 ####################################################################################################
 # Summary:
 #   This script is meant to be sourced in the .bashrc file to set up useful aliases and environment variables.
-#   It is meant to be used in the Princeton clusters (DELLA, TIGER, TIGER3, STELLAR).
+#   It is meant to be used in the Princeton clusters (DELLA, TIGER, TIGER3, STELLAR)
+#   and on NCSA_DELTA at NCSA.
 #   The script sets up the following:
 #   1. Detects the cluster name and sets the SCRATCH directory accordingly.
 #   2. Sets up aliases for squeue commands.
@@ -14,6 +15,8 @@
 #   7. Exports useful folder paths.
 #   8. Creates local copy of useful directories from the projects/ directory.
 #   9. Runs rsync operations to update the local copy of the directories.
+#   On NCSA_DELTA, PRIMARY_PROJECTS_FOLDER is expected to host active project content such as
+#   misc_libraries and run_scripts/ALCHEMY__in_use, while other trees may still be optional.
 #
 # Usage: source myshortcuts.sh [verbose]
 #   verbose: 0 (default) or 1
@@ -55,13 +58,14 @@ elif [[ $(hostname) == *"tiger3"* ]]; then
 elif [[ $(hostname) == *"stellar"* ]]; then
   export CLUSTER="STELLAR"
 elif [[ $(hostname) == *"delta"* ]]; then
-  export CLUSTER="DELTA" # NCSA (via ACCESS)
+  export CLUSTER="NCSA_DELTA" # NCSA (via ACCESS)
 fi
 
 if [ "$CLUSTER" == "DELLA" ] || [ "$CLUSTER" == "TIGER3" ] || [ "$CLUSTER" == "STELLAR" ]; then
   export SCRATCH="/scratch/gpfs/BURROWS/akashgpt"
-elif [ "$CLUSTER" == "DELTA" ]; then
-  export SCRATCH="/work/hdd/bguf/akashgpt"
+elif [ "$CLUSTER" == "NCSA_DELTA" ]; then
+  export SCRATCH="/work/nvme/bguf/akashgpt"
+  export SCRATCH_2="/work/hdd/bguf/akashgpt"
 else
   echo "WARNING: Cluster name detection failed. CLUSTER variable not set. SCRATCH variable not set."
 fi
@@ -69,9 +73,200 @@ fi
 end_block1=$(date +%s)
 elapsed_block1=$(( end_block1 - start_block1 ))
 if [ $elapsed_block1 -gt 10 ]; then
-  echo "WARNING: Cluster name detection took $elapsed_block1 seconds!"
+  echo "WARNING: Cluster name detection (block 1) took $elapsed_block1 seconds!"
 fi
 
+
+##########################################
+# SHARED HELPERS
+##########################################
+
+# append_to_env_var_if_dir
+#
+# Appends a directory to a colon-separated environment variable when the
+# directory exists and is not already present.
+#
+# Args:
+#   var_name: Name of the environment variable to update.
+#   target_dir: Directory path to append.
+# Returns:
+#   0 if the variable is updated or left unchanged.
+append_to_env_var_if_dir() {
+  local var_name="$1"
+  local target_dir="$2"
+  local current_value=""
+
+  if [ ! -d "$target_dir" ]; then
+    return 0
+  fi
+
+  current_value="${!var_name}"
+
+  case ":$current_value:" in
+    *":$target_dir:"*)
+      return 0
+      ;;
+  esac
+
+  if [ -n "$current_value" ]; then
+    export "$var_name=$current_value:$target_dir"
+  else
+    export "$var_name=$target_dir"
+  fi
+}
+
+# ensure_local_copy_dir
+#
+# Creates a local mirror directory only when the matching source directory
+# exists in the primary project tree.
+#
+# Args:
+#   source_dir: Source directory to mirror.
+#   target_dir: Local destination directory to create.
+#   label: Human-readable label used in verbose messages.
+# Returns:
+#   0 if the directory is created or skipped safely.
+ensure_local_copy_dir() {
+  local source_dir="$1"
+  local target_dir="$2"
+  local label="$3"
+
+  if [ -d "$source_dir" ]; then
+    if ! mkdir -p "$target_dir" >/dev/null 2>&1; then
+      if [ "$verbose" -eq 1 ]; then
+        echo "Skipping local copy [$label]: unable to create $target_dir"
+      fi
+    fi
+    return 0
+  fi
+
+  if [ "$verbose" -eq 1 ]; then
+    echo "Skipping local copy [$label]: source not found at $source_dir"
+  fi
+}
+
+# resolve_NCSA_DELTA_account
+#
+# Resolves the default NCSA_DELTA account name for CPU or GPU usage reports.
+#
+# Args:
+#   requested_account: Explicit account passed by the user, if any.
+#   resource_type: One of cpu or gpu.
+# Returns:
+#   0 and prints the chosen account when available; 1 otherwise.
+resolve_NCSA_DELTA_account() {
+  local requested_account="$1"
+  local resource_type="$2"
+
+  if [ -n "$requested_account" ]; then
+    printf "%s\n" "$requested_account"
+    return 0
+  fi
+
+  if [ "$resource_type" == "cpu" ] && [ -n "$NCSA_DELTA_CPU_ACCOUNT" ]; then
+    printf "%s\n" "$NCSA_DELTA_CPU_ACCOUNT"
+    return 0
+  fi
+
+  if [ "$resource_type" == "gpu" ] && [ -n "$NCSA_DELTA_GPU_ACCOUNT" ]; then
+    printf "%s\n" "$NCSA_DELTA_GPU_ACCOUNT"
+    return 0
+  fi
+
+  if [ -n "$NCSA_DELTA_ACCOUNT" ]; then
+    printf "%s\n" "$NCSA_DELTA_ACCOUNT"
+    return 0
+  fi
+
+  return 1
+}
+
+# run_hog_report
+#
+# Runs a Slurm usage summary with cluster-aware account defaults.
+#
+# Args:
+#   days: Number of days to include.
+#   requested_account: Explicit account filter, all, or empty for defaulting.
+#   topcount: Number of rows to show.
+#   tres_name: Slurm TRES name such as cpu or gres/gpu.
+#   resource_type: One of cpu or gpu.
+# Returns:
+#   Exit status from sreport.
+run_hog_report() {
+  local days="${1:-30}"
+  local requested_account="$2"
+  local topcount="${3:-20}"
+  local tres_name="$4"
+  local resource_type="$5"
+  local account=""
+  local start_date=""
+
+  start_date=$(date -d"${days} days ago" +%D)
+
+  if [ "$CLUSTER" == "DELLA" ] || [ "$CLUSTER" == "TIGER3" ] || [ "$CLUSTER" == "STELLAR" ]; then
+    account="${requested_account:-astro}"
+  elif [ "$CLUSTER" == "NCSA_DELTA" ]; then
+    if resolve_NCSA_DELTA_account "$requested_account" "$resource_type" >/dev/null; then
+      account=$(resolve_NCSA_DELTA_account "$requested_account" "$resource_type")
+    else
+      if [ -z "$requested_account" ]; then
+        echo "WARNING: No NCSA_DELTA default account configured for ${resource_type} usage. Set NCSA_DELTA_${resource_type^^}_ACCOUNT or NCSA_DELTA_ACCOUNT, or pass an explicit account. Running unfiltered sreport."
+      fi
+      account=""
+    fi
+  else
+    account="$requested_account"
+  fi
+
+  if [ "$account" == "all" ] || [ -z "$account" ]; then
+    sreport user top start=${start_date} end=now TopCount=${topcount} -t hourper --tres="${tres_name}"
+  else
+    sreport user top start=${start_date} end=now TopCount=${topcount} accounts=${account} -t hourper --tres="${tres_name}"
+  fi
+}
+
+# NCSA_DELTA_conda_init
+#
+# Loads the NCSA_DELTA Miniforge module and sources the conda shell hook so that
+# interactive activation works without a prior conda init.
+#
+# Args:
+#   None.
+# Returns:
+#   0 if conda is ready to use; 1 otherwise.
+NCSA_DELTA_conda_init() {
+  local miniforge_root="/sw/rh9.4/python/miniforge3"
+  local miniforge_bin="${miniforge_root}/bin"
+  local conda_init_script="/sw/rh9.4/python/miniforge3/etc/profile.d/conda.sh"
+
+  if ! module load miniforge3-python >/dev/null 2>&1; then
+    if [ -d "$miniforge_bin" ]; then
+      case ":$PATH:" in
+        *":$miniforge_bin:"*)
+          ;;
+        *)
+          export PATH="$miniforge_bin:$PATH"
+          ;;
+      esac
+      export CONDA_EXE="${miniforge_bin}/conda"
+      export CONDA_PYTHON_EXE="${miniforge_bin}/python"
+    else
+      echo "ERROR: Failed to load the NCSA_DELTA module miniforge3-python and no fallback Miniforge install was found."
+      return 1
+    fi
+  fi
+
+  if [ -f "$conda_init_script" ]; then
+    # shellcheck disable=SC1091
+    . "$conda_init_script"
+  fi
+
+  if ! command -v conda >/dev/null 2>&1; then
+    echo "ERROR: conda is still unavailable after loading miniforge3-python."
+    return 1
+  fi
+}
 
 ##########################################
 # BLOCK 2: squeue aliases
@@ -108,7 +303,7 @@ jobpath() {
 end_block2=$(date +%s)
 elapsed_block2=$(( end_block2 - start_block2 ))
 if [ $elapsed_block2 -gt 10 ]; then
-  echo "WARNING: Defining squeue aliases took $elapsed_block2 seconds!"
+  echo "WARNING: Defining squeue aliases (block 2) took $elapsed_block2 seconds!"
 fi
 
 
@@ -149,7 +344,7 @@ alias du='du -csh'
 
 if [ "$CLUSTER" == "DELLA" ] || [ "$CLUSTER" == "TIGER3" ] || [ "$CLUSTER" == "STELLAR" ]; then
   alias checkquota='checkquota'
-elif [ "$CLUSTER" == "DELTA" ]; then
+elif [ "$CLUSTER" == "NCSA_DELTA" ]; then
   alias checkquota='quota'
 fi
 
@@ -162,7 +357,7 @@ alias pwd='pwd -P'
 end_block3=$(date +%s)
 elapsed_block3=$(( end_block3 - start_block3 ))
 if [ $elapsed_block3 -gt 10 ]; then
-  echo "WARNING: Color/ls aliases block took $elapsed_block3 seconds!"
+  echo "WARNING: Color/ls aliases block (block 3) took $elapsed_block3 seconds!"
 fi
 
 
@@ -189,52 +384,27 @@ alias myfindscript='ps aux | grep'
 
 
 hog() {
-  # Default values
-  local days=${1:-30}
-  local topcount=${3:-20}
-  if [ "$CLUSTER" == "DELLA" ] || [ "$CLUSTER" == "TIGER3" ] || [ "$CLUSTER" == "STELLAR" ]; then
-    local account=${2:-astro}
-  elif [ "$CLUSTER" == "DELTA" ]; then
-    local account=${2:-bguf}
-  fi
+  local days="${1:-30}"
+  local account="${2:-}"
+  local topcount="${3:-20}"
 
-  # Calculate the start date based on the provided number of days
-  local start_date=$(date -d"${days} days ago" +%D)
-
-  # Construct the sreport command based on whether 'all' is specified
-  if [ "$account" == "all" ]; then
-    sreport user top start=${start_date} end=now TopCount=${topcount} -t hourper --tres=cpu
-  else
-    sreport user top start=${start_date} end=now TopCount=${topcount} accounts=${account} -t hourper --tres=cpu
-  fi
+  run_hog_report "$days" "$account" "$topcount" "cpu" "cpu"
 }
 
 hog_gpu() {
-  # Default values
-  local days=${1:-30}
-  local topcount=${3:-20}
-    if [ "$CLUSTER" == "DELLA" ] || [ "$CLUSTER" == "TIGER3" ] || [ "$CLUSTER" == "STELLAR" ]; then
-    local account=${2:-astro}
-  elif [ "$CLUSTER" == "DELTA" ]; then
-    local account=${2:-bguf}
-  fi
+  local days="${1:-30}"
+  local account="${2:-}"
+  local topcount="${3:-20}"
 
-  # Calculate the start date based on the provided number of days
-  local start_date=$(date -d"${days} days ago" +%D)
-
-  # Construct the sreport command based on whether 'all' is specified
-  if [ "$account" == "all" ]; then
-    sreport user top start=${start_date} end=now TopCount=${topcount} -t hourper --tres=gres/gpu;
-  else
-    sreport user top start=${start_date} end=now TopCount=${topcount} accounts=${account} -t hourper --tres=gres/gpu;
-  fi
+  run_hog_report "$days" "$account" "$topcount" "gres/gpu" "gpu"
 }
 
 
 hog_summary() {
   # Default values
-  days=${1:-30}
-  useraccount=${2:-$USER}
+  local days=${1:-30}
+  local useraccount=${2:-$USER}
+  local start_date=""
   
   # Calculate the start date based on the provided number of days
   start_date=$(date -d"${days} days ago" +%D)
@@ -325,7 +495,7 @@ myscripts() {
 end_block4=$(date +%s)
 elapsed_block4=$(( end_block4 - start_block4 ))
 if [ $elapsed_block4 -gt 10 ]; then
-  echo "WARNING: hog/hog_gpu definition block took $elapsed_block4 seconds!"
+  echo "WARNING: hog/hog_gpu definition block (block 4) took $elapsed_block4 seconds!"
 fi
 
 
@@ -364,9 +534,9 @@ if [ "$CLUSTER" == "DELLA" ] || [ "$CLUSTER" == "TIGER3" ] || [ "$CLUSTER" == "S
   end_block5=$(date +%s)
   elapsed_block5=$(( end_block5 - start_block5 ))
   if [ $elapsed_block5 -gt 10 ]; then
-    echo "WARNING: myjobs function block took $elapsed_block5 seconds!"
+    echo "WARNING: myjobs function block (block 5) took $elapsed_block5 seconds!"
   fi
-elif [ "$CLUSTER" == "DELTA" ]; then
+elif [ "$CLUSTER" == "NCSA_DELTA" ]; then
   myjobs() {
   local jobs_running jobs_pending total_jobs total_cores_sum
 
@@ -402,15 +572,13 @@ alias sb='sbatch'
 
 if [ "$CLUSTER" == "DELLA" ] || [ "$CLUSTER" == "TIGER3" ] || [ "$CLUSTER" == "STELLAR" ]; then
   alias js='jobstats'
-  alias jspending='scontrol show job'
-elif [ "$CLUSTER" == "DELTA" ]; then
+elif [ "$CLUSTER" == "NCSA_DELTA" ]; then
   js() { seff "$@"; }
-  alias jspending='sstat'
 fi
-
+alias jspending='scontrol show job'
 
 # conda related alias
-if [ "$CLUSTER" == "DELLA" ] || [ "$CLUSTER" == "TIGER" ] || [ "$CLUSTER" == "STELLAR" ]; then
+if [ "$CLUSTER" == "DELLA" ] || [ "$CLUSTER" == "TIGER" ] || [ "$CLUSTER" == "TIGER3" ] || [ "$CLUSTER" == "STELLAR" ]; then
   alias conda_a='conda activate'
   alias conda_d='conda deactivate'
   alias l_base='module load anaconda3/2025.12; conda activate base'
@@ -448,9 +616,37 @@ if [ "$CLUSTER" == "DELLA" ] || [ "$CLUSTER" == "TIGER" ] || [ "$CLUSTER" == "ST
 
   alias l_ase='module load anaconda3/2025.12; conda activate ase_env'
 
-elif [ "$CLUSTER" == "DELTA" ]; then
-  alias conda_a='module load miniforge3-python >/dev/null 2>&1; conda activate'
-  alias conda_d='conda deactivate'
+elif [ "$CLUSTER" == "NCSA_DELTA" ]; then
+  # conda_a
+  #
+  # Activates a NCSA_DELTA conda environment after loading Miniforge and the shell hook.
+  #
+  # Args:
+  #   env_name: Optional conda environment name. Defaults to conda's default activation.
+  # Returns:
+  #   Exit status from conda activate.
+  conda_a() {
+    NCSA_DELTA_conda_init || return 1
+
+    if [ $# -eq 0 ]; then
+      conda activate
+    else
+      conda activate "$@"
+    fi
+  }
+
+  # conda_d
+  #
+  # Deactivates the current NCSA_DELTA conda environment after initializing the shell hook.
+  #
+  # Args:
+  #   None.
+  # Returns:
+  #   Exit status from conda deactivate.
+  conda_d() {
+    NCSA_DELTA_conda_init || return 1
+    conda deactivate
+  }
 fi
 
 # git aliases
@@ -537,7 +733,7 @@ git_last_update() {
 end_block6=$(date +%s)
 elapsed_block6=$(( end_block6 - start_block6 ))
 if [ $elapsed_block6 -gt 10 ]; then
-  echo "WARNING: environment/conda aliases block took $elapsed_block6 seconds!"
+  echo "WARNING: environment/conda aliases (block 6) took $elapsed_block6 seconds!"
 fi
 
 
@@ -561,7 +757,7 @@ export AG_TIGERDATA_2="/tigerdata/jiedeng/exoplanet/akashgpt"
 if [ "$CLUSTER" == "DELLA" ] || [ "$CLUSTER" == "TIGER3" ] || [ "$CLUSTER" == "STELLAR" ]; then
   export PRIMARY_PROJECTS_FOLDER=$AG_BURROWS
   export LOCAL_PRIMARY_PROJECTS_FOLDER=$LOCAL_AG_BURROWS
-elif [ "$CLUSTER" == "DELTA" ]; then
+elif [ "$CLUSTER" == "NCSA_DELTA" ]; then
   export PRIMARY_PROJECTS_FOLDER=$AG_bguf
   export LOCAL_PRIMARY_PROJECTS_FOLDER=$LOCAL_AG_bguf
 fi
@@ -612,16 +808,16 @@ export LOCAL_HELP_SCRIPTS_general="$LOCAL_PRIMARY_PROJECTS_FOLDER/run_scripts/he
 ##########
 # Adding to different default paths
 ##########
-export PATH=$PATH:$LOCAL_PRIMARY_PROJECTS_FOLDER/misc_libraries/
-export PATH=$PATH:$LOCAL_LARS_SCRIPTS_DIR
-export PATH=$PATH:$LOCAL_JIE_SCRIPTS_DIR
-export PATH=$PATH:$LOCAL_mldp
-export PATH=$HOME/local/bin:$PATH # for patchelf
+append_to_env_var_if_dir "PATH" "$LOCAL_PRIMARY_PROJECTS_FOLDER/misc_libraries"
+append_to_env_var_if_dir "PATH" "$LOCAL_LARS_SCRIPTS_DIR"
+append_to_env_var_if_dir "PATH" "$LOCAL_JIE_SCRIPTS_DIR"
+append_to_env_var_if_dir "PATH" "$LOCAL_mldp"
+append_to_env_var_if_dir "PATH" "$HOME/local/bin" # for patchelf
 
 
-export PYTHONPATH=$PYTHONPATH:$LOCAL_PRIMARY_PROJECTS_FOLDER/misc_libraries/
-export PYTHONPATH=$HELP_SCRIPTS:$PYTHONPATH
-export PYTHONPATH=$HELP_SCRIPTS/general:$PYTHONPATH
+append_to_env_var_if_dir "PYTHONPATH" "$LOCAL_PRIMARY_PROJECTS_FOLDER/misc_libraries"
+append_to_env_var_if_dir "PYTHONPATH" "$HELP_SCRIPTS"
+append_to_env_var_if_dir "PYTHONPATH" "$HELP_SCRIPTS/general"
 # export PYTHONPATH=$LOCAL_HELP_SCRIPTS/general:$PYTHONPATH
 # export PATH=$PATH:$LARS_SCRIPTS_DIR
 # export PATH=$PATH:$JIE_SCRIPTS_DIR
@@ -640,7 +836,7 @@ HISTFILESIZE=100000 # number of lines in history file
 end_block7=$(date +%s)
 elapsed_block7=$(( end_block7 - start_block7 ))
 if [ $elapsed_block7 -gt 10 ]; then
-  echo "WARNING: Exporting folder paths block took $elapsed_block7 seconds!"
+  echo "WARNING: Exporting folder paths (block 7) took $elapsed_block7 seconds!"
 fi
 
 
@@ -658,7 +854,9 @@ if [ $verbose -eq 1 ]; then
   echo "Creating local copy of useful directories at $(date) ..."
 fi
 
-# Setting up local copy of folders and files from {/projects/BURROWS}++ directories
+# Setting up local copies for directories that currently exist in the chosen
+# PRIMARY_PROJECTS_FOLDER. This keeps active NCSA_DELTA trees synced while skipping
+# optional trees that are not present yet.
 DIR1="misc_libraries/scripts_Jie"
 DIR2="misc_libraries/Box_Lars"
 DIR3="misc_libraries/vatic-master"
@@ -671,17 +869,24 @@ FILE1="myshortcuts.sh"
 FILE2=".bashrc"
 FILE3=".condarc"
 
-mkdir -p $LOCAL_PRIMARY_PROJECTS_FOLDER/$DIR1
-mkdir -p $LOCAL_PRIMARY_PROJECTS_FOLDER/$DIR2
-mkdir -p $LOCAL_PRIMARY_PROJECTS_FOLDER/$DIR3
-mkdir -p $LOCAL_PRIMARY_PROJECTS_FOLDER/$DIR4
+ensure_local_copy_dir "$PRIMARY_PROJECTS_FOLDER/$DIR1" "$LOCAL_PRIMARY_PROJECTS_FOLDER/$DIR1" "$DIR1"
+ensure_local_copy_dir "$PRIMARY_PROJECTS_FOLDER/$DIR2" "$LOCAL_PRIMARY_PROJECTS_FOLDER/$DIR2" "$DIR2"
+ensure_local_copy_dir "$PRIMARY_PROJECTS_FOLDER/$DIR3" "$LOCAL_PRIMARY_PROJECTS_FOLDER/$DIR3" "$DIR3"
+ensure_local_copy_dir "$PRIMARY_PROJECTS_FOLDER/$DIR4" "$LOCAL_PRIMARY_PROJECTS_FOLDER/$DIR4" "$DIR4"
 # mkdir -p $LOCAL_PRIMARY_PROJECTS_FOLDER/$DIR5
-mkdir -p $LOCAL_PRIMARY_PROJECTS_FOLDER/$DIR6
-mkdir -p $LOCAL_PRIMARY_PROJECTS_FOLDER/$DIR7
+ensure_local_copy_dir "$PRIMARY_PROJECTS_FOLDER/$DIR6" "$LOCAL_PRIMARY_PROJECTS_FOLDER/$DIR6" "$DIR6"
+ensure_local_copy_dir "$PRIMARY_PROJECTS_FOLDER/$DIR7" "$LOCAL_PRIMARY_PROJECTS_FOLDER/$DIR7" "$DIR7"
+
+# Refresh local project paths after creating any missing local-copy directories.
+append_to_env_var_if_dir "PATH" "$LOCAL_PRIMARY_PROJECTS_FOLDER/misc_libraries"
+append_to_env_var_if_dir "PATH" "$LOCAL_LARS_SCRIPTS_DIR"
+append_to_env_var_if_dir "PATH" "$LOCAL_JIE_SCRIPTS_DIR"
+append_to_env_var_if_dir "PATH" "$LOCAL_mldp"
+append_to_env_var_if_dir "PYTHONPATH" "$LOCAL_PRIMARY_PROJECTS_FOLDER/misc_libraries"
 end_block8=$(date +%s)
 elapsed_block8=$(( end_block8 - start_block8 ))
 if [ $elapsed_block8 -gt 10 ]; then
-  echo "WARNING: Creating local copy directories took $elapsed_block8 seconds!"
+  echo "WARNING: Creating local copy directories (block 8) took $elapsed_block8 seconds!"
 fi
 
 
@@ -713,29 +918,58 @@ run_rsync_timed() {
   fi
 }
 
+# run_rsync_timed_if_source_exists
+#
+# Runs an rsync command only when the source path exists.
+#
+# Args:
+#   label: Human-readable label for timing and verbose messages.
+#   source_path: Source file or directory that must exist before rsync runs.
+#   ...: Full rsync command and arguments.
+# Returns:
+#   0 if rsync runs or is skipped safely.
+run_rsync_timed_if_source_exists() {
+  local label="$1"
+  local source_path="$2"
+  shift 2
+
+  if [ ! -e "$source_path" ]; then
+    if [ "$verbose" -eq 1 ]; then
+      echo "Skipping rsync [$label]: source not found at $source_path"
+    fi
+    return 0
+  fi
+
+  run_rsync_timed "$label" "$@"
+}
+
 # # only update new or recently updated files in the local copy of the BURROWS and JIEDENG directory
 # rsync -av --update --progress $PRIMARY_PROJECTS_FOLDER/* $SCRATCH/local_copy__projects/BURROWS/akashgpt/ --exclude='/projects/BURROWS/akashgpt/run_scripts/MLMD_scripts/iteration_CROSS_CLUSTER' --exclude='/projects/BURROWS/akashgpt/VASP_POTPAW' --exclude='run_scripts/MLMD_scripts/mol_systems/MgSiOHN/deepmd_collection_TRAIN'  --exclude='run_scripts/MLMD_scripts/mol_systems/MgSiOHN/deepmd_collection_TEST'
-run_rsync_timed "$DIR1" rsync -av --update --progress --delete $PRIMARY_PROJECTS_FOLDER/$DIR1/*  $LOCAL_PRIMARY_PROJECTS_FOLDER/$DIR1
-run_rsync_timed "$DIR2" rsync -av --update --progress --delete $PRIMARY_PROJECTS_FOLDER/$DIR2/*  $LOCAL_PRIMARY_PROJECTS_FOLDER/$DIR2
-run_rsync_timed "$DIR3" rsync -av --update --progress --delete $PRIMARY_PROJECTS_FOLDER/$DIR3/*  $LOCAL_PRIMARY_PROJECTS_FOLDER/$DIR3
-run_rsync_timed "$DIR4" rsync -av --update --progress --delete $PRIMARY_PROJECTS_FOLDER/$DIR4/*  $LOCAL_PRIMARY_PROJECTS_FOLDER/$DIR4
+run_rsync_timed_if_source_exists "$DIR1" "$PRIMARY_PROJECTS_FOLDER/$DIR1" rsync -av --update --progress --delete "$PRIMARY_PROJECTS_FOLDER/$DIR1/" "$LOCAL_PRIMARY_PROJECTS_FOLDER/$DIR1/"
+run_rsync_timed_if_source_exists "$DIR2" "$PRIMARY_PROJECTS_FOLDER/$DIR2" rsync -av --update --progress --delete "$PRIMARY_PROJECTS_FOLDER/$DIR2/" "$LOCAL_PRIMARY_PROJECTS_FOLDER/$DIR2/"
+run_rsync_timed_if_source_exists "$DIR3" "$PRIMARY_PROJECTS_FOLDER/$DIR3" rsync -av --update --progress --delete "$PRIMARY_PROJECTS_FOLDER/$DIR3/" "$LOCAL_PRIMARY_PROJECTS_FOLDER/$DIR3/"
+run_rsync_timed_if_source_exists "$DIR4" "$PRIMARY_PROJECTS_FOLDER/$DIR4" rsync -av --update --progress --delete "$PRIMARY_PROJECTS_FOLDER/$DIR4/" "$LOCAL_PRIMARY_PROJECTS_FOLDER/$DIR4/"
 # rsync -av --update --progress --delete  --exclude='$PRIMARY_PROJECTS_FOLDER/$DIR5/deepmd_collection_TRAIN' --exclude='$PRIMARY_PROJECTS_FOLDER/$DIR5/deepmd_collection_TEST' --exclude='deepmd_collection_TRAIN' --exclude='deepmd_collection_TEST' $PRIMARY_PROJECTS_FOLDER/$DIR5/*  $LOCAL_PRIMARY_PROJECTS_FOLDER/$DIR5 > /dev/null 2>&1
-run_rsync_timed "$DIR6" rsync -av --update --progress --delete $PRIMARY_PROJECTS_FOLDER/$DIR6/*  $LOCAL_PRIMARY_PROJECTS_FOLDER/$DIR6
-run_rsync_timed "$DIR7" rsync -av --update --progress --delete --exclude='iteration_CROSS_CLUSTER' "$PRIMARY_PROJECTS_FOLDER/$DIR7/" "$LOCAL_PRIMARY_PROJECTS_FOLDER/$DIR7"
+run_rsync_timed_if_source_exists "$DIR6" "$PRIMARY_PROJECTS_FOLDER/$DIR6" rsync -av --update --progress --delete "$PRIMARY_PROJECTS_FOLDER/$DIR6/" "$LOCAL_PRIMARY_PROJECTS_FOLDER/$DIR6/"
+run_rsync_timed_if_source_exists "$DIR7" "$PRIMARY_PROJECTS_FOLDER/$DIR7" rsync -av --update --progress --delete --exclude='iteration_CROSS_CLUSTER' "$PRIMARY_PROJECTS_FOLDER/$DIR7/" "$LOCAL_PRIMARY_PROJECTS_FOLDER/$DIR7/"
 
 # rsync -av --update --progress --delete $PRIMARY_PROJECTS_FOLDER/$FILE1  $LOCAL_PRIMARY_PROJECTS_FOLDER/$FILE1 > /dev/null 2>&1
 # rsync -av --update --progress --delete $PRIMARY_PROJECTS_FOLDER/$FILE1  $HELP_SCRIPTS/sys/$FILE1 > /dev/null 2>&1
-run_rsync_timed "${CLUSTER}${FILE2}" rsync -av --update --progress --delete $HOME/$FILE2  $HELP_SCRIPTS/sys/${CLUSTER}${FILE2}
-run_rsync_timed "${CLUSTER}${FILE3}" rsync -av --update --progress --delete $HOME/$FILE3  $HELP_SCRIPTS/sys/${CLUSTER}${FILE3}
+run_rsync_timed_if_source_exists "${CLUSTER}${FILE2}" "$HOME/$FILE2" rsync -av --update --progress --delete "$HOME/$FILE2" "$HELP_SCRIPTS/sys/${CLUSTER}${FILE2}"
+run_rsync_timed_if_source_exists "${CLUSTER}${FILE3}" "$HOME/$FILE3" rsync -av --update --progress --delete "$HOME/$FILE3" "$HELP_SCRIPTS/sys/${CLUSTER}${FILE3}"
 # rsync -av --update --progress $PRIMARY_PROJECTS_FOLDER/VASP_POTPAW/* $SCRATCH/local_copy__projects/BURROWS/VASP_POTPAW
 end_block9=$(date +%s)
 elapsed_block9=$(( end_block9 - start_block9 ))
 if [ $elapsed_block9 -gt 10 ]; then
-  echo "WARNING: rsync operations block took $elapsed_block9 seconds!"
+  echo "WARNING: rsync operations (block 9) took $elapsed_block9 seconds!"
 fi
 
 ##########################################
-module purge # clear all loaded modules
+if [ "$CLUSTER" == "NCSA_DELTA" ]; then
+  module reset >/dev/null 2>&1
+elif [ "$CLUSTER" == "DELLA" ] || [ "$CLUSTER" == "TIGER3" ] || [ "$CLUSTER" == "STELLAR" ]; then
+  module purge >/dev/null 2>&1
+fi
 ##########################################
 
 # Tag time when this script ends
