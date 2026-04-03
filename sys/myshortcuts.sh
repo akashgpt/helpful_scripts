@@ -3,7 +3,7 @@
 ####################################################################################################
 # Summary:
 #   This script is meant to be sourced in the .bashrc file to set up useful aliases and environment variables.
-#   It is meant to be used in the Princeton clusters (DELLA, TIGER, TIGER3, STELLAR)
+#   It is meant to be used in the Princeton clusters (DELLA, TIGER, STELLAR)
 #   and on NCSA_DELTA at NCSA.
 #   The script sets up the following:
 #   1. Detects the cluster name and sets the SCRATCH directory accordingly.
@@ -49,19 +49,15 @@ start_block1=$(date +%s)
 # check name of current cluster
 if [[ $(hostname) == *"della"* ]]; then
   export CLUSTER="DELLA"
-elif [[ $(hostname) == *"tigercpu"* ]]; then
-  # export CLUSTER="TIGER"
-  # export SCRATCH="/scratch/gpfs/$USER"
-  echo "*** TIGER CPU node detected. Not supposed to exist. Revisit settings if you see this message. ***"
-elif [[ $(hostname) == *"tiger3"* ]]; then
-  export CLUSTER="TIGER3"
+elif [[ $(hostname) == *"tiger"* ]]; then
+  export CLUSTER="TIGER"
 elif [[ $(hostname) == *"stellar"* ]]; then
   export CLUSTER="STELLAR"
 elif [[ $(hostname) == *"delta"* ]]; then
   export CLUSTER="NCSA_DELTA" # NCSA (via ACCESS)
 fi
 
-if [ "$CLUSTER" == "DELLA" ] || [ "$CLUSTER" == "TIGER3" ] || [ "$CLUSTER" == "STELLAR" ]; then
+if [ "$CLUSTER" == "DELLA" ] || [ "$CLUSTER" == "TIGER" ] || [ "$CLUSTER" == "STELLAR" ]; then
   export SCRATCH="/scratch/gpfs/BURROWS/akashgpt"
 elif [ "$CLUSTER" == "NCSA_DELTA" ]; then
   export SCRATCH="/work/nvme/bguf/akashgpt"
@@ -204,7 +200,7 @@ run_hog_report() {
 
   start_date=$(date -d"${days} days ago" +%D)
 
-  if [ "$CLUSTER" == "DELLA" ] || [ "$CLUSTER" == "TIGER3" ] || [ "$CLUSTER" == "STELLAR" ]; then
+  if [ "$CLUSTER" == "DELLA" ] || [ "$CLUSTER" == "TIGER" ] || [ "$CLUSTER" == "STELLAR" ]; then
     account="${requested_account:-astro}"
   elif [ "$CLUSTER" == "NCSA_DELTA" ]; then
     if resolve_NCSA_DELTA_account "$requested_account" "$resource_type" >/dev/null; then
@@ -348,7 +344,7 @@ alias lls='ls --color=auto -vlhcS' # sort by size
 alias ll='ls --color=auto -lhc -v'
 alias du='du -csh'
 
-if [ "$CLUSTER" == "DELLA" ] || [ "$CLUSTER" == "TIGER3" ] || [ "$CLUSTER" == "STELLAR" ]; then
+if [ "$CLUSTER" == "DELLA" ] || [ "$CLUSTER" == "TIGER" ] || [ "$CLUSTER" == "STELLAR" ]; then
   alias checkquota='checkquota'
 elif [ "$CLUSTER" == "NCSA_DELTA" ]; then
   alias checkquota='quota'
@@ -512,7 +508,7 @@ fi
 # List: myjobs [core_flag]
 ##########################################
 start_block5=$(date +%s)
-if [ "$CLUSTER" == "DELLA" ] || [ "$CLUSTER" == "TIGER3" ] || [ "$CLUSTER" == "STELLAR" ]; then
+if [ "$CLUSTER" == "DELLA" ] || [ "$CLUSTER" == "TIGER" ] || [ "$CLUSTER" == "STELLAR" ]; then
   myjobs() {
     # core_flag=${1:-0}
     
@@ -576,7 +572,7 @@ fi
 alias modl='module load'
 alias sb='sbatch'
 
-if [ "$CLUSTER" == "DELLA" ] || [ "$CLUSTER" == "TIGER3" ] || [ "$CLUSTER" == "STELLAR" ]; then
+if [ "$CLUSTER" == "DELLA" ] || [ "$CLUSTER" == "TIGER" ] || [ "$CLUSTER" == "STELLAR" ]; then
   alias js='jobstats'
 elif [ "$CLUSTER" == "NCSA_DELTA" ]; then
   js() { seff "$@"; }
@@ -584,7 +580,7 @@ fi
 alias jspending='scontrol show job'
 
 # conda related alias
-if [ "$CLUSTER" == "DELLA" ] || [ "$CLUSTER" == "TIGER" ] || [ "$CLUSTER" == "TIGER3" ] || [ "$CLUSTER" == "STELLAR" ]; then
+if [ "$CLUSTER" == "DELLA" ] || [ "$CLUSTER" == "TIGER" ] || [ "$CLUSTER" == "STELLAR" ]; then
   alias conda_a='conda activate'
   alias conda_d='conda deactivate'
   alias l_base='module load anaconda3/2025.12; conda activate base'
@@ -599,18 +595,18 @@ if [ "$CLUSTER" == "DELLA" ] || [ "$CLUSTER" == "TIGER" ] || [ "$CLUSTER" == "TI
   if [[ $CLUSTER == "DELLA" ]]; then
     alias l_deepmd_gpu='module load anaconda3/2021.5; conda activate deepmd_gpu' #DELLA; deepmd-kit 2.1.1
     alias l_deepmd-cpu='module load anaconda3/2025.12; conda activate deepmd-cpu' #DELLA; deepmd-kit 2.2.10
-  elif [[ $CLUSTER == "TIGER3" ]]; then
-    alias l_deepmd='module load anaconda3/2024.6; conda activate deepmd' #TIGER3
-    # alias l_deepmd_cpu='module load anaconda3/2024.6; conda activate deepmd_cpu' #TIGER3
+  elif [[ $CLUSTER == "TIGER" ]]; then
+    alias l_deepmd='module load anaconda3/2024.6; conda activate deepmd' #TIGER
+    # alias l_deepmd_cpu='module load anaconda3/2024.6; conda activate deepmd_cpu' #TIGER
   elif [[ $CLUSTER == "STELLAR" ]]; then
     alias l_deepmd='module load anaconda3/2024.6; conda activate deepmd' #STELLAR
   fi
 
   # alias l_dp2='module load anaconda3/2021.5; conda activate dp2.2.7; export PLUMED_KERNEL=$CONDA_PREFIX/lib/libplumedKernel.so; LAMMPS_PLUGIN_PATH=$CONDA_PREFIX/lib/deepmd_lmp; patchelf --add-rpath $CONDA_PREFIX/lib dpplugin.so'
   alias l_dp_plmd='module load anaconda3/2024.10; conda activate dp_plmd_09' #STELLAR | DELLA
-  alias l_mda='module load anaconda3/2025.12; conda activate mda_env' #TIGER3 | STELLAR | DELLA
+  alias l_mda='module load anaconda3/2025.12; conda activate mda_env' #TIGER | STELLAR | DELLA
   alias l_asap='module load anaconda3/2024.6; conda activate asap'
-  alias l_pysr='module load anaconda3/2025.12; conda activate pysr_env' # TIGER3
+  alias l_pysr='module load anaconda3/2025.12; conda activate pysr_env' # TIGER
 
   if [[ $CLUSTER == "STELLAR" ]]; then
     alias l_qmda='module load anaconda3/2025.12; conda activate qmda' #STELLAR
@@ -761,7 +757,7 @@ export LOCAL_AG_bguf="$SCRATCH/local_copy__projects/bguf/akashgpt"
 export AG_TIGERDATA="/tigerdata/burrows/planet_evo/akashgpt"
 export AG_TIGERDATA_2="/tigerdata/jiedeng/exoplanet/akashgpt"
 
-if [ "$CLUSTER" == "DELLA" ] || [ "$CLUSTER" == "TIGER3" ] || [ "$CLUSTER" == "STELLAR" ]; then
+if [ "$CLUSTER" == "DELLA" ] || [ "$CLUSTER" == "TIGER" ] || [ "$CLUSTER" == "STELLAR" ]; then
   export PRIMARY_PROJECTS_FOLDER=$AG_BURROWS
   export LOCAL_PRIMARY_PROJECTS_FOLDER=$LOCAL_AG_BURROWS
 elif [ "$CLUSTER" == "NCSA_DELTA" ]; then
@@ -975,7 +971,7 @@ fi
 if [ "$CLUSTER" == "NCSA_DELTA" ]; then
   # module reset >/dev/null 2>&1
   echo 
-elif [ "$CLUSTER" == "DELLA" ] || [ "$CLUSTER" == "TIGER3" ] || [ "$CLUSTER" == "STELLAR" ]; then
+elif [ "$CLUSTER" == "DELLA" ] || [ "$CLUSTER" == "TIGER" ] || [ "$CLUSTER" == "STELLAR" ]; then
   module purge >/dev/null 2>&1
 fi
 ##########################################
