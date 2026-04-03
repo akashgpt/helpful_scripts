@@ -34,10 +34,6 @@ unset rc
 
 if [ -f /projects/bguf/akashgpt/run_scripts/helpful_scripts/sys/myshortcuts.sh ] && [ ! -z "$PS1" ]; then
 	source /projects/bguf/akashgpt/run_scripts/helpful_scripts/sys/myshortcuts.sh ${verbose}
-	# echo "Sourced myshortcuts.sh from /projects/BURROWS/akashgpt/run_scripts/helpful_scripts/sys/myshortcuts.sh"
-fi
-
-if [ -f $SCRATCH/local_copy__projects/bguf/akashgpt/run_scripts/helpful_scripts/sys/myshortcuts.sh ]; then
+elif [ -f $SCRATCH/local_copy__projects/bguf/akashgpt/run_scripts/helpful_scripts/sys/myshortcuts.sh ] && [ ! -z "$PS1" ]; then
 	source $SCRATCH/local_copy__projects/bguf/akashgpt/run_scripts/helpful_scripts/sys/myshortcuts.sh ${verbose}
-	# echo "Sourced myshortcuts.sh from $SCRATCH/local_copy__projects/BURROWS/akashgpt/run_scripts/helpful_scripts/sys/myshortcuts.sh"
 fi
