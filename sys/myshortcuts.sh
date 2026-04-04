@@ -282,7 +282,7 @@ if [ $verbose -eq 1 ]; then
   echo "Setting up aliases at $(date) ..."
 fi
 # squeue
-alias sqp='squeue -u $USER -o "%.18i %.9P %.12j %.8u %.2t %.10M %.6D %.8C %.10l"' #priority rating
+alias sqp='squeue -o "%.18i %Q %.9q %.8j %.8u %.10a %.2t %.10M %.10L %.6C %R"' #priority rating
 alias sqpmy='squeue -o "%.18i %Q %.9q %.8j %.8u %.10a %.2t %.10M %.10L %.6C %R" | grep $USER' #priority rating
 alias sq='squeue -u $USER -o "%.18i %.9P %.12j %.8u %.2t %.10M %.6D %.8C %.10l"'
 
@@ -603,15 +603,16 @@ if [ "$CLUSTER" == "DELLA" ] || [ "$CLUSTER" == "TIGER" ] || [ "$CLUSTER" == "ST
   fi
 
   # alias l_dp2='module load anaconda3/2021.5; conda activate dp2.2.7; export PLUMED_KERNEL=$CONDA_PREFIX/lib/libplumedKernel.so; LAMMPS_PLUGIN_PATH=$CONDA_PREFIX/lib/deepmd_lmp; patchelf --add-rpath $CONDA_PREFIX/lib dpplugin.so'
-  alias l_dp_plmd='module load anaconda3/2024.10; conda activate dp_plmd_09' #STELLAR | DELLA
   alias l_mda='module load anaconda3/2025.12; conda activate mda_env' #TIGER | STELLAR | DELLA
   alias l_asap='module load anaconda3/2024.6; conda activate asap'
   alias l_pysr='module load anaconda3/2025.12; conda activate pysr_env' # TIGER
 
   if [[ $CLUSTER == "STELLAR" ]]; then
     alias l_qmda='module load anaconda3/2025.12; conda activate qmda' #STELLAR
+    alias l_dp_plmd='module load anaconda3/2025.12; conda activate dp_plmd_stellar' #STELLAR | DELLA
   elif [[ $CLUSTER == "DELLA" ]]; then
     alias l_qmda='module load anaconda3/2025.12; conda activate qmda' #DELLA
+    alias l_dp_plmd='module load anaconda3/2025.12; conda activate dp_plmd_della' #STELLAR | DELLA
   fi 
   # alias l_dp_plmd='module load anaconda3/2024.2; conda activate dp_plmd' #DELLA; deepmd-kit 2.2.12-dev
   # alias l_dpdev='module load anaconda3/2024.6; conda activate dpdev' #DELLA; deepmd-kit 2.2.12-dev
@@ -636,7 +637,9 @@ elif [ "$CLUSTER" == "NCSA_DELTA" ]; then
       conda activate "$@"
     fi
   }
-  l_base='conda_a base'
+  alias l_base='conda_a base'
+  alias l_dp_plmd='conda_a dp_plmd_ncsa_delta'
+  alias l_hpc='conda_a hpc-tools'
 
   # conda_d
   #
