@@ -356,6 +356,7 @@ alias ..='cd .. && ll'
 alias ...='cd ../.. && ll'
 alias pwd='pwd -P'
 
+
 end_block3=$(date +%s)
 elapsed_block3=$(( end_block3 - start_block3 ))
 if [ $elapsed_block3 -gt 10 ]; then
@@ -806,6 +807,15 @@ export HELP_SCRIPTS_ALCHEMY="$PRIMARY_PROJECTS_FOLDER/run_scripts/helpful_script
 export LOCAL_HELP_SCRIPTS_ALCHEMY="$LOCAL_PRIMARY_PROJECTS_FOLDER/run_scripts/helpful_scripts/qmd/ALCHEMY"
 export HELP_SCRIPTS_general="$PRIMARY_PROJECTS_FOLDER/run_scripts/helpful_scripts/general"
 export LOCAL_HELP_SCRIPTS_general="$LOCAL_PRIMARY_PROJECTS_FOLDER/run_scripts/helpful_scripts/general"
+
+
+
+
+# Some ALCHEMY related aliases
+alias ALCHEMY_status='$ALCHEMY__main__HEALTH/ALCHEMY_status.sh'
+alias ALCHEMY_timing='$ALCHEMY__main__HEALTH/ALCHEMY_timing.sh'
+alias ALCHEMY_performance='python $ALCHEMY__main__HEALTH/ALCHEMY_performance.py'
+
 
 
 

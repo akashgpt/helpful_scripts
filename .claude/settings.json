@@ -40,7 +40,12 @@
       "Bash(sacct -j 2680217 --format=JobName%12,State%12 -n)",
       "Read(//projects/BURROWS/akashgpt/run_scripts/helpful_scripts/**)",
       "Read(//scratch/gpfs/BURROWS/akashgpt/qmd_data/MgSiOH__R2SCAN/deepmd_collection_TEST_OG_pt2/**)",
-      "Read(//scratch/gpfs/BURROWS/akashgpt/qmd_data/MgSiOH__R2SCAN/**)"
+      "Read(//scratch/gpfs/BURROWS/akashgpt/qmd_data/MgSiOH__R2SCAN/**)",
+      "Bash(sinfo -p gpu-test)",
+      "Bash(sinfo -p gpu_test)",
+      "Bash(sinfo -p test)",
+      "Bash(sinfo --all)",
+      "Bash(sinfo --all --format=\"%P %l %c %G %a\")"
     ],
     "additionalDirectories": [
       "/scratch/gpfs/BURROWS/akashgpt/qmd_data/test/TEST__u.pro.E.l.j.pv_hf_copy.8k.r3-3100.recal/1_GPU",
