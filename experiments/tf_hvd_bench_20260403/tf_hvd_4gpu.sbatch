@@ -24,14 +24,13 @@ export NCCL_DEBUG=WARN
 module purge
 module load gcc/11
 module load openmpi/gcc/4.1.6
-module load cudatoolkit/12.8
 module load fftw/gcc/openmpi-4.1.6/3.3.10
 module load anaconda3/2025.12
-conda activate /scratch/gpfs/BURROWS/akashgpt/softwares/conda_envs_dir_secondary/envs/dp_tf15_src_hvd_20260403
-NVIDIA_LIB_PATHS="$(python -c "import pathlib, site; print(':'.join(str(path) for site_dir in site.getsitepackages() for path in sorted(pathlib.Path(site_dir, 'nvidia').glob('*/lib')) if path.is_dir()))")"
-export LD_LIBRARY_PATH="${NVIDIA_LIB_PATHS}:$CONDA_PREFIX/lib:${LD_LIBRARY_PATH-}"
+conda activate "${ENV_PATH_OVERRIDE:-/scratch/gpfs/BURROWS/akashgpt/softwares/conda_envs_dir_secondary/envs/dp_tf15_src_hvd_fixed3_20260405}"
+export LD_LIBRARY_PATH="${CONDA_PREFIX}/lib:${LD_LIBRARY_PATH-}"
 
-python -c "import os, deepmd, tensorflow as tf; print('deepmd', deepmd.__version__); print('tensorflow', tf.__version__); print('cuda_visible_devices', os.environ.get('CUDA_VISIBLE_DEVICES'))"
+nvidia-smi -L || true
+python -c "import os, deepmd, tensorflow as tf; print('deepmd', deepmd.__version__); print('tensorflow', tf.__version__); print('cuda_visible_devices', os.environ.get('CUDA_VISIBLE_DEVICES')); print('tf_gpus', tf.config.list_physical_devices('GPU'))"
 
 mpirun -np 4 -H localhost:4 --oversubscribe --bind-to none --map-by slot --tag-output \
 	-x PATH \
@@ -44,7 +43,7 @@ mpirun -np 4 -H localhost:4 --oversubscribe --bind-to none --map-by slot --tag-o
 	-x DP_INTER_OP_PARALLELISM_THREADS \
 	-x NCCL_DEBUG \
 	-x CUDA_VISIBLE_DEVICES \
-	python -c "import os, horovod.tensorflow as hvd; hvd.init(); print('hvd_rank', hvd.rank(), 'hvd_size', hvd.size(), 'cuda_visible_devices', os.environ.get('CUDA_VISIBLE_DEVICES'))"
+	python -c "import os, horovod.tensorflow as hvd, tensorflow as tf; hvd.init(); print('hvd_rank', hvd.rank(), 'hvd_size', hvd.size(), 'cuda_visible_devices', os.environ.get('CUDA_VISIBLE_DEVICES'), 'tf_gpus', tf.config.list_physical_devices('GPU'))"
 
 mpirun -np 4 -H localhost:4 --oversubscribe --bind-to none --map-by slot --tag-output \
 	-x PATH \

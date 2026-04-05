@@ -2,40 +2,81 @@
 
 ###############################
 # Summary:
-# This script installs DeePMD-kit, PLUMED, and LAMMPS together with required PLUMED patches.
-# It also creates a conda environment with the necessary packages.
-# The script is intended to be run on a cluster with GPU support (used for DeePMD calculations)
-# but can also run a purely CPU system.
+# This script installs DeePMD-kit, PLUMED, and LAMMPS together with required
+# PLUMED patches into a single conda environment (ALCHEMY_env).
+# The script is intended to be run on a cluster with GPU support (used for
+# DeePMD calculations) but can also run on a purely CPU system.
 #
-# NOTE: 
-# If no need of PLUMED patches, go for the "easy install" option on deepmodelling website.
-# If no need of PLUMED, then best to go for the APPTAINER/DOCKER version!
-# 
+# Installation order:
+#   1. Create conda env with Python 3.11 + conda packages (cudnn, gsl, fftw,
+#      dpdata, ase, etc.)
+#   2. Install TensorFlow via pip (needed for DeePMD build)
+#   3. Build DeePMD-kit from source (pip install . + cmake/make)
+#   4. Additional conda installs (dscribe, scipy, scikit-learn, etc.)
+#      -- these may clobber TF pip dependencies
+#   5. Build PLUMED from source (with custom CV patches)
+#   6. Build LAMMPS from source (with DEEPMD + PLUMED packages)
+#   7. Reinstall TensorFlow via pip (--force-reinstall) to repair any
+#      dependencies (wrapt, absl-py, etc.) clobbered by step 4
+#
+# NOTE:
+# - If no need of PLUMED patches, go for the "easy install" option on the
+#   deepmodelling website.
+# - If no need of PLUMED, then best to go for the APPTAINER/DOCKER version!
+# - Horovod (multi-GPU via TF backend) is NOT installed because horovod 0.28.1
+#   is incompatible with TF 2.21 (as of 2026-04). Single-GPU dp train works
+#   fine without it. For multi-GPU, use the PyTorch backend with native DDP:
+#     dp train input.json --backend pt
+#
 # Usage: source <name of this script>
-# log file will be created in the same directory as log.deepmd-kit${ALCHEMY_env_suffix}.sh
+# Log file will be created in the same directory as log.deepmd-kit${ALCHEMY_env_suffix}.sh
 #
-# To run lammps or deepmd simulations on Delta RH9 add the following to the submit script:
-# module reset
-# module load PrgEnv-gnu
-# module load gcc-native/13.2
-# module load cray-mpich
-# module load cudatoolkit/25.3_12.8
-# module load fftw/3.3.10-gcc13.3.1
-# module load miniforge3-python
-# eval "$(conda shell.bash hook)"
-# conda activate dp_plmd${ALCHEMY_env_suffix}
-# export MPICH_GPU_SUPPORT_ENABLED=1  # helpful for multi-rank GPU runs
+# IMPORTANT: The conda activation script (env_vars.sh) automatically sets
+# PYTHONNOUSERSITE=1 to prevent ~/.local/lib/pythonX.Y/site-packages from
+# leaking stale packages into the conda environment (common source of
+# NumPy/pyarrow/wrapt/absl-py errors). If you bypass the activation script,
+# set this variable manually in your submit scripts.
+#
+# Example submit script for Della:
+#   module purge
+#   module load gcc-toolset/14
+#   module load openmpi/gcc/4.1.6
+#   module load cudatoolkit/12.8
+#   module load fftw/gcc/openmpi-4.1.6/3.3.10
+#   module load anaconda3/2025.12
+#   conda activate ALCHEMY_env
+#   export PYTHONNOUSERSITE=1
+#
+# Example submit script for Stellar:
+#   module purge
+#   module load gcc-toolset/10
+#   module load openmpi/gcc/4.1.6
+#   module load cudatoolkit/12.4
+#   module load fftw/gcc/openmpi-4.1.6/3.3.10
+#   module load anaconda3/2025.12
+#   conda activate ALCHEMY_env
+#   export PYTHONNOUSERSITE=1
+#
+# Example submit script for Delta RH9:
+#   module reset
+#   module load PrgEnv-gnu
+#   module load gcc-native/13.2
+#   module load cray-mpich
+#   module load cudatoolkit/25.3_12.8
+#   module load fftw/3.3.10-gcc13.3.1
+#   module load miniforge3-python
+#   eval "$(conda shell.bash hook)"
+#   conda activate ALCHEMY_env
+#   export MPICH_GPU_SUPPORT_ENABLED=1  # helpful for multi-rank GPU runs
 #
 # LAMMPS e.g.:
-# lmp${ALCHEMY_env_suffix} -in <name of lammps input file> # for lammps 
-# where you will have to manually specify ${ALCHEMY_env_suffix}, e.g. lmp_plmd_09
+#   lmp -in <name of lammps input file>
 #
 # author: akashgpt and jinalee
 ###############################
 
 # =============================
-# ALCHEMY_env_suffix="" # can simply be "" or "_09" or "_della", ...
-conda_env_name="ALCHEMY_env" # the prefix for the conda env name; the full env name will be ${ALCHEMY_env_prefix}${ALCHEMY_env_suffix}
+conda_env_name="ALCHEMY_env" # name of the conda environment to create and install everything in
 dir_w_plumed_patches="/projects/BURROWS/akashgpt/lammp*"
 # dir_w_plumed_patches="/projects/bguf/akashgpt/lammp*"
 # =============================
@@ -52,6 +93,8 @@ exec > >(tee -i log.${deepmd_plmd_lmp_misc__folder_name})
 exec 2>&1
 
 echo "====================="
+echo "Date|Time: $(date)"
+echo "Hostname: $(hostname)"
 echo "conda_env_name: ${conda_env_name}"
 echo "deepmd_plmd_lmp_misc__folder_name: ${deepmd_plmd_lmp_misc__folder_name}"
 echo "conda_env: ${conda_env}"
@@ -113,12 +156,11 @@ else
 fi
 
 
-if [[ $(hostname) == *"delta"* ]]; then
-    # Delta's miniforge module places conda on PATH but does not initialize shell
-    # activation, so make the conda shell function available before using it.
-    if command -v conda >/dev/null 2>&1; then
-        eval "$(conda shell.bash hook)"
-    fi
+# Ensure the conda shell function is available for 'conda activate'.
+# Some module systems (e.g., anaconda3 on Della, miniforge on Delta) put conda
+# on PATH but do not initialize shell activation. This makes it work everywhere.
+if command -v conda >/dev/null 2>&1; then
+    eval "$(conda shell.bash hook)"
 fi
 
 
@@ -165,11 +207,6 @@ export LD_LIBRARY_PATH=$CONDA_PREFIX/lib:$LD_LIBRARY_PATH
 # export CUDA_HOME=$CONDA_PREFIX
 
 
-
-
-pip install --upgrade tensorflow --no-cache-dir
-
-
 # for dpdata
 echo "======================="
 echo "Installing dpdata, ase, parallel, and other python packages"
@@ -179,6 +216,17 @@ conda install -y conda-forge::dpdata
 # Install ase and parallel for post-processing and running multiple simulations in parallel
 conda install -y -c conda-forge ase parallel
 #################
+
+
+
+# TensorFlow — installed here because DeePMD's build (pip install . and cmake)
+# requires TF headers and libraries. It will be reinstalled at the END of the
+# script to repair dependencies clobbered by subsequent conda installs.
+echo "====================="
+echo "Installing TensorFlow"
+echo "====================="
+pip install --upgrade tensorflow --no-cache-dir
+
 
 
 
@@ -272,7 +320,10 @@ make -j16 install
 # ==============================
 cat << 'EOF' > "${CONDA_PREFIX}/etc/conda/activate.d/env_vars.sh"
 #!/bin/bash
-# Activate PLUMED environment variables
+# Activate PLUMED environment variables and isolate from user site-packages
+
+# Prevent ~/.local/lib/pythonX.Y/site-packages from shadowing conda packages
+export PYTHONNOUSERSITE=1
 
 # Set paths for PLUMED
 export libdir="$CONDA_PREFIX/lib"
@@ -420,3 +471,36 @@ make -j16 install
 # ln -s $PWD/<name of the executable> ~/.local/bin/lmp_plmd # likely "lmp"
 rm -f ~/.local/bin/${lmp_exec_name}
 ln -s $PWD/lmp ~/.local/bin/${lmp_exec_name}
+
+
+## Reinstall TensorFlow to fix clobbered dependencies
+# The conda installs above (dpdata, ase, scipy, scikit-learn, etc.) clobber
+# pip-managed TF dependencies (wrapt, absl-py, etc.). Reinstalling TF at the
+# end restores all its dependencies to a consistent state.
+echo "====================="
+echo "Reinstalling TensorFlow and fixing Python dependencies"
+echo "====================="
+# mxnet requires numpy<2 but TF 2.21+ requires numpy>=2. mxnet is an unused
+# horovod backend (we use the TensorFlow backend). Removing it before the TF
+# install prevents pip from printing a spurious dependency conflict warning.
+pip uninstall -y mxnet 2>/dev/null
+echo "INFO: Uninstalled mxnet (unused horovod backend, incompatible with numpy>=2)."
+pip install --upgrade --force-reinstall tensorflow --no-cache-dir
+
+## Horovod note
+# As of 2026-04, horovod 0.28.1 (latest release) cannot compile against TF 2.21
+# due to missing highwayhash headers and C++ incompatibilities with GCC>=14.
+# Multi-GPU DeePMD training options:
+#   - Use the PyTorch backend with native DDP: dp train input.json --backend pt
+#   - Wait for a horovod release compatible with TF 2.21
+# Single-GPU training with the TF backend works fine without horovod.
+echo "WARNING: Horovod is NOT installed — incompatible with TF 2.21 (as of 2026-04)."
+echo "         Single-GPU dp train works. For multi-GPU, use --backend pt (PyTorch+DDP)."
+
+echo ""
+echo "====================="
+echo "Installation complete!"
+echo "Date|Time: $(date)"
+echo "====================="
+echo "REMINDER: Always add 'export PYTHONNOUSERSITE=1' to your sbatch scripts"
+echo "          before running dp or lmp commands."

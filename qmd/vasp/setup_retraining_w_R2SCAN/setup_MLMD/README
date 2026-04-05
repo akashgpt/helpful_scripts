@@ -1,0 +1,10 @@
+1. Use extract_deepmd_to_poscars.py to create POSCAR/POTCAR, etc. files -- basically all frames from deepmd npy files and ready for VASP calculations. Update the INCAR and POTCARs as needed for the VASP runs.
+
+2. Then copy auto_resubmit__RUN_VASP.sh and MULTI_RUN_VASP*.sh in the folder with all folders that contain within them the old deepmd folders and all numbered folders with the POSCAR/POTCAR/INCAR files. Update the submission script as needed for the VASP runs (e.g., number of nodes, walltime, etc.). Run auto_resubmit__RUN_VASP.sh to submit the VASP jobs in batches of 1000 jobs.
+
+3. Once all recalculated with R2SCAN, use post_recal_rerun.py script to check the OUTCAR files after the VASP runs and identify which ones need to be rerun due to various failure modes (e.g., OUTCAR missing, simulation not finished, nbands not enough, iterations not enough for convergence). The script will print out the paths and corresponding flags for each failure mode, and also generate a 'rerun' file with the necessary commands to resubmit the failed jobs.
+python $ALCHEMY__main__MLDP/post_recal_rerun.py -ip all_num -v > log.recal_test 2>&1
+
+4. Delete the old deepmd npy files in the numbered folders.
+
+5. Finally, use create_deepmd_from_OUTCARs.sh to create new deepmd npy files from the recalculated VASP OUTCARs, which can then be used for further training or analysis.

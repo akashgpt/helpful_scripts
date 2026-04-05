@@ -45,11 +45,17 @@
       "Bash(sinfo -p gpu_test)",
       "Bash(sinfo -p test)",
       "Bash(sinfo --all)",
-      "Bash(sinfo --all --format=\"%P %l %c %G %a\")"
+      "Bash(sinfo --all --format=\"%P %l %c %G %a\")",
+      "Bash(xargs -I{} basename {})",
+      "Bash(ls /scratch/gpfs/BURROWS/akashgpt/qmd_data/NH3_H2/sim_data_ML_v3__plumed_test__v2/v7_i34/train__test/tf_hvd_bench_20260403/1gpu_disp10_skipns__baseline__ALCHEMY_env/slurm-*.out)",
+      "Bash(ls /scratch/gpfs/BURROWS/akashgpt/qmd_data/NH3_H2/sim_data_ML_v3__plumed_test__v2/v7_i34/train__test/tf_hvd_bench_20260403/1gpu_disp10_skipns__baseline__ALCHEMY_env/*.out)",
+      "Bash(gcc --version)"
     ],
     "additionalDirectories": [
       "/scratch/gpfs/BURROWS/akashgpt/qmd_data/test/TEST__u.pro.E.l.j.pv_hf_copy.8k.r3-3100.recal/1_GPU",
-      "/scratch/gpfs/BURROWS/akashgpt/qmd_data/MgSiOH__R2SCAN/deepmd_collection_TRAIN_OG"
+      "/scratch/gpfs/BURROWS/akashgpt/qmd_data/MgSiOH__R2SCAN/deepmd_collection_TRAIN_OG",
+      "/scratch/gpfs/BURROWS/akashgpt/qmd_data/MgSiOFe__R2SCAN/setup_MLMD",
+      "/scratch/gpfs/BURROWS/akashgpt/softwares/installing_MLMD_related_stuff"
     ]
   }
 }
