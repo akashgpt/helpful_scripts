@@ -481,12 +481,19 @@ myscripts() {
     | sort | uniq -c | sort -rn \
     | awk '{printf "  %-37s %s\n", $2, $1}'
 
-  # Verbose: full process list
+  # Verbose: full process list with parent directory (cwd)
   if [ $verbose_flag -eq 1 ]; then
     echo ""
-    echo "  PID      PPID     ELAPSED   CMD"
-    echo "  ------   ------   --------  ---"
-    echo "$proc_list" | awk '{printf "  %-8s %-8s %-9s %s\n", $1, $2, $3, substr($0, index($0,$4))}'
+    echo "  PID      PPID     ELAPSED   PARENT_DIR                                                CMD"
+    echo "  ------   ------   --------  --------------------------------------------------------  ---"
+    echo "$proc_list" | while read -r line; do
+      local pid=$(echo "$line" | awk '{print $1}')
+      local ppid=$(echo "$line" | awk '{print $2}')
+      local etime=$(echo "$line" | awk '{print $3}')
+      local cmd=$(echo "$line" | awk '{print substr($0, index($0,$4))}')
+      local cwd=$(readlink -f /proc/"$pid"/cwd 2>/dev/null || echo "N/A")
+      printf "  %-8s %-8s %-9s %-56s  %s\n" "$pid" "$ppid" "$etime" "$cwd" "$cmd"
+    done
   fi
 
   echo ""
@@ -580,10 +587,41 @@ elif [ "$CLUSTER" == "NCSA_DELTA" ]; then
 fi
 alias jspending='scontrol show job'
 
+# Clear any stale conda aliases from an older sourced version of this file
+# before defining the conda helpers below. This avoids interactive alias
+# expansion breaking function definitions when .bashrc is sourced again.
+unalias conda_a 2>/dev/null || true
+unalias conda_d 2>/dev/null || true
+
 # conda related alias
 if [ "$CLUSTER" == "DELLA" ] || [ "$CLUSTER" == "TIGER" ] || [ "$CLUSTER" == "STELLAR" ]; then
-  alias conda_a='conda activate'
-  alias conda_d='conda deactivate'
+  # conda_a
+  #
+  # Activates a conda environment on Princeton clusters.
+  #
+  # Args:
+  #   env_name: Optional conda environment name. Defaults to conda's default activation.
+  # Returns:
+  #   Exit status from conda activate.
+  conda_a() {
+    if [ $# -eq 0 ]; then
+      conda activate
+    else
+      conda activate "$@"
+    fi
+  }
+
+  # conda_d
+  #
+  # Deactivates the current conda environment on Princeton clusters.
+  #
+  # Args:
+  #   None.
+  # Returns:
+  #   Exit status from conda deactivate.
+  conda_d() {
+    conda deactivate
+  }
   alias l_base='module load anaconda3/2025.12; conda activate base'
   alias l_hpc='module load anaconda3/2025.12; conda activate hpc-tools'
   # alias l_dpdev='module load anaconda3/2021.5; conda activate dpdev'
@@ -769,7 +807,6 @@ elif [ "$CLUSTER" == "NCSA_DELTA" ]; then
   export LOCAL_PRIMARY_PROJECTS_FOLDER=$LOCAL_AG_bguf
 fi
 
-
 export BACKUP_DIR="$SCRATCH/akashgpt_ucla_desktop_backup_20231231"
 export VASP_ANALYSIS="$AG_BACKUP/Academics/Research/VASP/analysis_codes"
 export VASP_DATA="$SCRATCH/qmd_data"
@@ -807,7 +844,7 @@ export HELP_SCRIPTS_ALCHEMY="$PRIMARY_PROJECTS_FOLDER/run_scripts/helpful_script
 export LOCAL_HELP_SCRIPTS_ALCHEMY="$LOCAL_PRIMARY_PROJECTS_FOLDER/run_scripts/helpful_scripts/qmd/ALCHEMY"
 export HELP_SCRIPTS_general="$PRIMARY_PROJECTS_FOLDER/run_scripts/helpful_scripts/general"
 export LOCAL_HELP_SCRIPTS_general="$LOCAL_PRIMARY_PROJECTS_FOLDER/run_scripts/helpful_scripts/general"
-
+export HELP_SCRIPTS_BENCHMARKS="$HELP_SCRIPTS/benchmarks"
 
 
 

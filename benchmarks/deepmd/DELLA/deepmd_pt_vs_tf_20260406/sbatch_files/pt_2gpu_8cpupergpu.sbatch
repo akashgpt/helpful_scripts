@@ -1,0 +1,25 @@
+#!/bin/bash
+#SBATCH --account=jiedeng
+#SBATCH --job-name=pt_2g8c
+#SBATCH --nodes=1
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=16
+#SBATCH --gres=gpu:a100:2
+#SBATCH --mem=80G
+#SBATCH --time=0:10:00
+
+export DP_INFER_BATCH_SIZE=32768
+module purge
+module load gcc-toolset/14
+module load openmpi/gcc/4.1.6
+module load cudatoolkit/12.8
+module load fftw/gcc/openmpi-4.1.6/3.3.10
+module load anaconda3/2025.12
+conda activate ALCHEMY_env__PT
+export PYTHONNOUSERSITE=1
+export OMP_NUM_THREADS=8
+
+python -m torch.distributed.run \
+    --nproc_per_node=2 \
+    --no-python \
+    dp --pt train myinput.json

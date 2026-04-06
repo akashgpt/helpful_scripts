@@ -1,0 +1,149 @@
+UNITS LENGTH=A
+
+
+####################################################################################
+####################################################################################
+# PART OF ALCHEMY (formerly, DPAL) PROJECT
+####################################################################################
+# This is a PLUMED input file for the VES method
+# Required in the respective ZONE_X directories in setup_MLMD
+####################################################################################
+# This file is used to optimize the bias potential for a VES simulation
+# with a multithermal-multibaric target distribution
+# The parameters are set to match the model and simulation conditions
+# The basis functions are defined with specific minimum and maximum values
+# The target distribution is defined with specific temperature and pressure ranges
+# The optimization algorithm is set to use averaged stochastic gradient descent
+# The bias potential is optimized using the VES_LINEAR_EXPANSION method
+####################################################################################
+####################################################################################
+
+
+# --------------------------------------------------
+# Collective Variables (CV) 1 and 2
+# Basic thermodynamic observables
+# --------------------------------------------------
+energy: ENERGY
+volume: VOLUME
+
+# --------------------------------------------------
+# Atom groups
+# --------------------------------------------------
+gN: GROUP ATOMS=201-240     # Nitrogen atoms
+gH: GROUP ATOMS=1-200     # Hydrogen atoms
+
+# --------------------------------------------------
+# Number of atoms in each group
+# --------------------------------------------------
+nN: CONSTANT VALUE=40
+nH: CONSTANT VALUE=200
+
+
+# --------------------------------------------------
+# Small constant to avoid division by zero
+# --------------------------------------------------
+eps: CONSTANT VALUE=1.0e-8
+
+# --------------------------------------------------
+# Raw coordination numbers
+# --------------------------------------------------
+# N–N clustering
+cn_NN: COORDINATION GROUPA=gN GROUPB=gN SWITCH={RATIONAL R_0=3.0 D_0=0.0}
+
+# N-H "bond-like" neighbors
+cn_NH_bond: COORDINATION GROUPA=gN GROUPB=gH SWITCH={RATIONAL R_0=1.25 D_0=0.0}
+
+# N-H within a "clustering/solvation" radius (captures nearby H2 too)
+# Keep R_0 same as that for cNN -- since the idea is same 
+cn_NH_all:  COORDINATION GROUPA=gN GROUPB=gH SWITCH={RATIONAL R_0=3.0  D_0=0.0}
+
+# Extra H around N not in the first (bonded) shell
+cn_NH_shell: MATHEVAL ARG=cn_NH_all,cn_NH_bond FUNC=(x-y) PERIODIC=NO
+
+# --------------------------------------------------
+# Stoichiometric scaling factor beta
+# beta ≈ nN / nH
+# a higher value will make cNH more important whereas a lower one will make cNN more important
+# --------------------------------------------------
+beta: MATHEVAL ARG=nN,nH FUNC=sqrt(x/y) PERIODIC=NO
+
+# --------------------------------------------------
+# Collective Variable (CV) 3
+# Single scalar “mixed↔demixed” order parameter
+#
+# cn_ratio -> 1 : N clustered with N, little “extra H” -> demixed / N-rich domain
+#	cn_ratio -> 0 : N not clustered, lots of extra H around N -> mixed in H2
+#
+# s: logit transform(cn_ratio) > to expand resolution near 0 and 1
+# --------------------------------------------------
+cn_ratio: MATHEVAL ARG=cn_NN,cn_NH_shell,beta,eps VAR=x,y,z,w FUNC=(x/(x+(z*y)+w)) PERIODIC=NO
+
+
+
+
+
+
+# --------------------------------------------------
+# VES basis functions (min-max of CVs)
+# --------------------------------------------------
+bf1: BF_LEGENDRE ORDER=8 MINIMUM=-162124 MAXIMUM=-56727
+bf2: BF_LEGENDRE ORDER=8 MINIMUM=572 MAXIMUM=3650
+bf3: BF_LEGENDRE ORDER=8 MINIMUM=0 MAXIMUM=1
+
+# --------------------------------------------------
+# Target distribution
+# --------------------------------------------------
+TD_MULTITHERMAL_MULTIBARIC ...
+ LABEL=td_multitp
+ MIN_TEMP=5500
+ MAX_TEMP=6500
+ MIN_PRESSURE=700000.0
+ MAX_PRESSURE=6000000.0
+ PRESSURE=3.35e+06
+ SIGMA=6587.31,192.375,0.0625
+ THRESHOLD=5000
+ STEPS_TEMP=100
+ STEPS_PRESSURE=100
+... TD_MULTITHERMAL_MULTIBARIC
+
+# --------------------------------------------------
+# VES expansion 
+#
+# *** ~~ MAKE SURE TO UPDATE CV LABELS HERE! ~~ ***
+#
+# --------------------------------------------------
+VES_LINEAR_EXPANSION ...
+ ARG=energy,volume,cn_ratio
+ BASIS_FUNCTIONS=bf1,bf2,bf3
+ TEMP=6000
+ GRID_BINS=40,40,40
+ TARGET_DISTRIBUTION=td_multitp
+ LABEL=b1
+... VES_LINEAR_EXPANSION
+
+# --------------------------------------------------
+# Optimizer
+# --------------------------------------------------
+OPT_AVERAGED_SGD ...
+  BIAS=b1
+  STRIDE=500
+  LABEL=o1
+  STEPSIZE=10
+  FES_OUTPUT=500
+  BIAS_OUTPUT=500
+  TARGETDIST_OUTPUT=500
+  COEFFS_OUTPUT=100
+  TARGETDIST_STRIDE=500
+... OPT_AVERAGED_SGD
+
+
+
+
+
+
+# --------------------------------------------------
+# Output
+# --------------------------------------------------
+PRINT ARG=energy,volume,cn_ratio,cn_NN,cn_NH_all,cn_NH_bond,cn_NH_shell,b1.bias,b1.force2 FILE=COLVAR STRIDE=100
+
+ENDPLUMED

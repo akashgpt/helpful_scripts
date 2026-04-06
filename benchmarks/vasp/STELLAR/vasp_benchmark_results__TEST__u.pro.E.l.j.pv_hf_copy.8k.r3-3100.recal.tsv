@@ -1,0 +1,11 @@
+case	elapsed_s	speedup_vs_cpu_base	system	version	resource_layout	kpoints	nkpts	nbands	nions	kpar	npar	nsim	final_energy_eV	status	note
+1	2130.112	1.00	Mg32Si32O96	6.4.3	12 MPI x 8 threads on 1 node	2x2x2	4	768	160	NA	12	NA	-1089.85247589	completed	CPU baseline
+cpu_6.6.0_96cores	2182.418	0.98	Mg32Si32O96	6.6.0	12 MPI x 8 threads on 1 node	2x2x2	4	768	160	NA	12	NA	-1089.85247500	completed	CPU version comparison
+1_KPAR	1991.448	1.07	Mg32Si32O96	6.4.3	12 MPI x 8 threads on 1 node	2x2x2	4	768	160	4	12	NA	-1089.85247589	completed	CPU KPAR sweep
+1_GPU	1633.995	1.30	Mg32Si32O96	6.6.0	1 MPI x 16 threads on 1 GPU node	2x2x2	4	768	160	NA	1	NA	-1089.85247502	completed	GPU default
+1gpu_nsim16	1551.378	1.37	Mg32Si32O96	6.6.0	1 MPI x 16 threads on 1 GPU node	2x2x2	4	768	160	NA	1	16	-1089.85247501	completed	GPU NSIM sweep
+1gpu_nsim32	1515.956	1.41	Mg32Si32O96	6.6.0	1 MPI x 16 threads on 1 GPU node	2x2x2	4	768	160	NA	1	32	-1089.85247484	completed	GPU NSIM sweep; best 1 GPU case
+1gpu_nsim64	1558.601	1.37	Mg32Si32O96	6.6.0	1 MPI x 16 threads on 1 GPU node	2x2x2	4	768	160	NA	1	64	-1089.85247484	completed	GPU NSIM sweep
+2gpu_kpar2_nsim32	797.933	2.67	Mg32Si32O96	6.6.0	2 MPI x 16 threads on 2 GPUs, 1 node	2x2x2	4	768	160	2	1	32	-1089.85247484	completed	GPU scaling
+4gpu_kpar4_nsim32	435.392	4.89	Mg32Si32O96	6.6.0	4 MPI x 16 threads on 4 GPUs, 2 nodes	2x2x2	4	768	160	4	1	32	-1089.85247484	completed	GPU scaling; best completed case
+1__KPOINTS_111	543.216	3.92	Mg32Si32O96	6.4.3	12 MPI x 8 threads on 1 node	1x1x1	1	768	160	NA	12	NA	-1089.85671189	completed	K-point comparison

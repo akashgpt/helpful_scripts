@@ -23,10 +23,11 @@ Usage examples:
 
 import argparse
 import math
+import os
 import re
 import statistics
 import sys
-from collections import deque
+from concurrent.futures import ProcessPoolExecutor
 from pathlib import Path
 from typing import Dict, Iterator, List, NamedTuple, Optional, Sequence, Tuple, Union
 
@@ -169,8 +170,25 @@ def read_tail_lines(path: Path, tail_lines: int) -> List[str]:
         The trailing lines with newlines stripped.
     """
 
-    with path.open("r", errors="ignore") as handle:
-        return [line.rstrip("\n") for line in deque(handle, maxlen=tail_lines)]
+    # Seek from the end instead of reading the entire file through a deque.
+    # Start with an 8 KiB chunk; double if not enough lines.
+    file_size = os.path.getsize(path)
+    chunk_size = 8192
+
+    with open(path, "rb") as handle:
+        if file_size <= chunk_size:
+            data = handle.read().decode("utf-8", errors="ignore")
+        else:
+            while True:
+                seek_pos = max(file_size - chunk_size, 0)
+                handle.seek(seek_pos)
+                data = handle.read().decode("utf-8", errors="ignore")
+                # +1 because the first "line" may be partial
+                if data.count("\n") >= tail_lines + 1 or seek_pos == 0:
+                    break
+                chunk_size *= 2
+
+    return data.splitlines()[-tail_lines:]
 
 
 def collect_records_from_file(
@@ -222,9 +240,19 @@ def collect_records(
         Parsed elapsed-time records.
     """
 
+    # Use a process pool to read files in parallel (I/O-bound workload).
+    # Cap workers so we don't overwhelm the filesystem on large runs.
+    num_workers = min(8, len(outcar_paths)) if outcar_paths else 1
     records = []  # type: List[ElapsedRecord]
-    for path in outcar_paths:
-        records.extend(collect_records_from_file(path, tail_lines, last_per_file))
+
+    with ProcessPoolExecutor(max_workers=num_workers) as executor:
+        futures = [
+            executor.submit(collect_records_from_file, path, tail_lines, last_per_file)
+            for path in outcar_paths
+        ]
+        for future in futures:
+            records.extend(future.result())
+
     return records
 
 

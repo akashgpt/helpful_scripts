@@ -1,0 +1,90 @@
+#package         gpu 1
+
+
+############################################################
+# BENCHMARK: same as in.lammps but with 5000 MTMB steps
+# for timing comparison (1-GPU vs 2-GPU)
+############################################################
+
+
+echo both
+
+variable        T1                  equal 5500      # temperature in K
+variable        T2                  equal 6500      # temperature in K
+
+variable        P1                  equal 600E4      # bar (1e4 bars = 1GPa)
+variable        P2                  equal 70E4      # bar
+
+variable        TEMP                equal ((${T1}+${T2})/2)
+variable        PRES                equal ((${P1}+${P2})/2)
+
+variable        SEED_1               equal 88256    # random seed for velocity initialization
+variable        SEED_2               equal (${SEED_1}+1)  # random seed for thermostat
+
+variable        TIMESTEP            equal 0.001             # in ps ~ 1 fs
+variable        THERMO_FREQ         equal 100
+variable        DUMP_FREQ           equal 100
+variable        NSTEPS_relax        equal 100
+variable        NSTEPS_MTMB         equal 50000             # 5 ps benchmark
+
+variable        TAU_T               equal 0.0100000         # 0.01 ps standard value
+variable        TAU_P               equal 0.100000          # 0.1 ps
+
+
+# calculate fparam for deepmd potential
+variable        kBeV                equal 8.617333262e-5    # eV/K, Boltzmann
+variable        TeV                 equal ${TEMP}*${kBeV}
+
+
+# convert from LAMMPS metal units to SI
+variable        kB                  equal 1.3806504e-23     # [J/K] Boltzmann
+variable        ev2j                equal 1.60218e-19
+variable        A2m                 equal 1.0e-10
+variable        ps2s                equal 1.0e-12
+
+
+units           metal
+boundary        p p p
+atom_style      atomic
+neighbor        1.0 bin
+neigh_modify    every 1 delay 0 check no
+
+
+read_data       conf.lmp
+
+
+# MLP setup
+pair_style      deepmd /scratch/gpfs/BURROWS/akashgpt/qmd_data/NH3_H2/sim_data_ML_v3__plumed_test__v2/v7_i34/train/model-compression/pv_comp.pb fparam ${TeV}
+pair_coeff      * *
+
+
+# Time step and output setup
+timestep        ${TIMESTEP}
+thermo          ${THERMO_FREQ}
+thermo_style    custom step temp press vol etotal ke pe enthalpy pxx pyy pzz pxy pxz pyz
+
+# NPT, equil the system at the center PRES and TEMP
+reset_timestep  0
+velocity        all create ${TEMP} ${SEED_1}       ## 491001 mom yes rot yes dist gaussian
+fix             NPTSTATE all npt temp ${TEMP} ${TEMP} ${TAU_T} iso ${PRES} ${PRES} ${TAU_P}
+run             ${NSTEPS_relax}
+unfix           NPTSTATE
+
+# MTMB, only dump the MTMB trajectory
+dump            myDUMP all custom ${DUMP_FREQ} npt.dump.bench id type element x y z
+dump_modify     myDUMP sort id
+dump_modify     myDUMP element H N
+
+fix             PLUMED all plumed plumedfile plumed.dat outfile plumed.out.bench
+fix             NPHSTATE all nph iso ${PRES} ${PRES} ${TAU_P}
+fix             TEMP all temp/csvr ${TEMP} ${TEMP} ${TAU_T} ${SEED_2}
+fix             VELOCITY all momentum 10000 linear 1 1 1 angular
+
+run             ${NSTEPS_MTMB}
+
+unfix           PLUMED
+unfix           NPHSTATE
+unfix           TEMP
+unfix           VELOCITY
+
+write_data      conf.lmp.bench.end
