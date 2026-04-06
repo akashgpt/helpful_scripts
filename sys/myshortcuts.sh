@@ -289,10 +289,10 @@ function sqpmy {
     "JOBID" "PRIORITY" "QOS" "NAME" "USER" "ACCOUNT" "ST" "TIME" "TIME_LIMIT" "NODES" "CPUS" "GRES/GPUS" "REASON"
   # Running/suspended jobs: %S is the actual job start time
   # squeue -u "$USER" -h -t R,S -o "%.12i %.8Q %.9q %.20j %.8u %.8a %.2t %.10M %.10L %.6D %.6C %.25S %R" 2>/dev/null
-  squeue -u "$USER" -h -t R,S -o "%.12i %.9Q %.9q %.20j %.8u %.8a %.2t %.10M %.10L %.6D %.6C %.12b %.R" 2>/dev/null
+  squeue -u "$USER" -h -t R,S -o "%.12i %.9Q %.9q %.20j %.8u %.8a %.2t %.10M %.10L %.6D %.6C %.12b %R" 2>/dev/null
   # Pending jobs: --start asks the scheduler for a backfill estimate of START_TIME
   # squeue --start -u "$USER" -h -o "%.12i %.8Q %.9q %.20j %.8u %.8a %.2t %.10M %.10L %.6D %.6C %.25S %R" 2>/dev/null
-  squeue -u "$USER" -h -t PD   -o "%.12i %.9Q %.9q %.20j %.8u %.8a %.2t %.10M %.10L %.6D %.6C %.12b %.R" 2>/dev/null
+  squeue -u "$USER" -h -t PD   -o "%.12i %.9Q %.9q %.20j %.8u %.8a %.2t %.10M %.10L %.6D %.6C %.12b %R" 2>/dev/null
 }
 
 # Show the current user's jobs with expected start time and pending reason.
