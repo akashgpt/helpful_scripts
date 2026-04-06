@@ -273,7 +273,7 @@ NCSA_DELTA_conda_init() {
 ##########################################
 # BLOCK 2: squeue aliases
 #
-# List: sqp, sqpmy, sq
+# List: sqp, sqpmy, sqpmy_eta, sq
 #     jobpath (jobpath <jobid1> [jobid2 ...])
 ##########################################
 start_block2=$(date +%s)
@@ -283,7 +283,29 @@ if [ $verbose -eq 1 ]; then
 fi
 # squeue
 alias sqp='squeue -o "%.18i %Q %.9q %.8j %.8u %.10a %.2t %.10M %.10L %.6C %R"' #priority rating
-alias sqpmy='squeue -o "%.18i %Q %.9q %.8j %.8u %.10a %.2t %.10M %.10L %.6C %R" | grep $USER' #priority rating
+# alias sqpmy='squeue -o "%.18i %Q %.9q %.8j %.8u %.10a %.2t %.10M %.10L %.6C %R" | grep $USER' #priority rating
+function sqpmy {
+  printf "%12s %9s %9s %20s %8s %8s %2s %10s %10s %6s %6s %12s %s\n" \
+    "JOBID" "PRIORITY" "QOS" "NAME" "USER" "ACCOUNT" "ST" "TIME" "TIME_LIMIT" "NODES" "CPUS" "GPUS" "REASON"
+  # Running/suspended jobs: %S is the actual job start time
+  # squeue -u "$USER" -h -t R,S -o "%.12i %.8Q %.9q %.20j %.8u %.8a %.2t %.10M %.10L %.6D %.6C %.25S %R" 2>/dev/null
+  squeue -u "$USER" -h -t R,S -o "%.12i %.9Q %.9q %.20j %.8u %.8a %.2t %.10M %.10L %.6D %.6C %.12b %.R" 2>/dev/null
+  # Pending jobs: --start asks the scheduler for a backfill estimate of START_TIME
+  # squeue --start -u "$USER" -h -o "%.12i %.8Q %.9q %.20j %.8u %.8a %.2t %.10M %.10L %.6D %.6C %.25S %R" 2>/dev/null
+  squeue -u "$USER" -h -t PD   -o "%.12i %.9Q %.9q %.20j %.8u %.8a %.2t %.10M %.10L %.6D %.6C %.12b %.R" 2>/dev/null
+}
+
+# Show the current user's jobs with expected start time and pending reason.
+# Includes all sqpmy columns (PRIORITY, QOS, ACCOUNT) plus NODES, START_TIME.
+function sqpmy_eta {
+  printf "%12s %9s %9s %20s %8s %8s %2s %10s %10s %6s %6s %12s %20s %s\n" \
+    "JOBID" "PRIORITY" "QOS" "NAME" "USER" "ACCOUNT" "ST" "TIME" "TIME_LIMIT" "NODES" "CPUS" "GPUS" "START_TIME" "REASON"
+  # Running/suspended jobs: %S is the actual job start time
+  squeue -u "$USER" -h -t R,S -o "%.12i %.9Q %.9q %.20j %.8u %.8a %.2t %.10M %.10L %.6D %.6C %.12b %.20S %R" 2>/dev/null
+  # Pending jobs: %S shows backfill-estimated start time (N/A if not yet computed by scheduler)
+  squeue -u "$USER" -h -t PD   -o "%.12i %.9Q %.9q %.20j %.8u %.8a %.2t %.10M %.10L %.6D %.6C %.12b %.20S %R" 2>/dev/null
+}
+
 alias sq='squeue -u $USER -o "%.18i %.9P %.12j %.8u %.2t %.10M %.6D %.8C %.10l"'
 
 # Show parent directories of given Slurm job IDs
