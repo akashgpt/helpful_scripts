@@ -286,7 +286,7 @@ alias sqp='squeue -o "%.18i %Q %.9P %.9q %.8j %.8u %.10a %.2t %.10M %.10L %.6C %
 # alias sqpmy='squeue -o "%.18i %Q %.9q %.8j %.8u %.10a %.2t %.10M %.10L %.6C %R" | grep $USER' #priority rating
 function sqpmy {
   printf "%12s %9s %9s %20s %8s %8s %2s %10s %10s %6s %6s %12s %s\n" \
-    "JOBID" "PRIORITY" "QOS" "NAME" "USER" "ACCOUNT" "ST" "TIME" "TIME_LIMIT" "NODES" "CPUS" "GRES/GPUS" "REASON"
+    "JOBID" "PRIORITY" "QOS" "NAME" "USER" "ACCOUNT" "ST" "TIME" "TIME_LIMIT" "NODES" "CPUS" "GRES/GPUS" "NODES|REASON"
   # Running/suspended jobs: %S is the actual job start time
   # squeue -u "$USER" -h -t R,S -o "%.12i %.8Q %.9q %.20j %.8u %.8a %.2t %.10M %.10L %.6D %.6C %.25S %R" 2>/dev/null
   squeue -u "$USER" -h -t R,S -o "%.12i %.9Q %.9q %.20j %.8u %.8a %.2t %.10M %.10L %.6D %.6C %.12b %R" 2>/dev/null
@@ -299,7 +299,7 @@ function sqpmy {
 # Includes all sqpmy columns (PRIORITY, QOS, ACCOUNT) plus NODES, START_TIME.
 function sqpmy_eta {
   printf "%12s %9s %9s %20s %8s %8s %2s %10s %10s %6s %6s %12s %20s %s\n" \
-    "JOBID" "PRIORITY" "QOS" "NAME" "USER" "ACCOUNT" "ST" "TIME" "TIME_LIMIT" "NODES" "CPUS" "GRES/GPUS" "START_TIME" "REASON"
+    "JOBID" "PRIORITY" "QOS" "NAME" "USER" "ACCOUNT" "ST" "TIME" "TIME_LIMIT" "NODES" "CPUS" "GRES/GPUS" "START_TIME" "NODES|REASON"
   # Running/suspended jobs: %S is the actual job start time
   squeue -u "$USER" -h -t R,S -o "%.12i %.9Q %.9q %.20j %.8u %.8a %.2t %.10M %.10L %.6D %.6C %.12b %.20S %R" 2>/dev/null
   # Pending jobs: %S shows backfill-estimated start time (N/A if not yet computed by scheduler)
