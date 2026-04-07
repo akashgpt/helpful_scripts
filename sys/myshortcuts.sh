@@ -314,8 +314,8 @@ function busyness() {
   cpu_jobs_pending=$(sqp | grep cpu | grep " PD " | wc -l)
   gpu_jobs_pending=$(sqp | grep gpu | grep " PD " | wc -l)
 
-  cpu_busyness_ratio=$(echo "scale=2; $cpu_jobs_running / ($cpu_jobs_running + $cpu_jobs_pending)" | bc)
-  gpu_busyness_ratio=$(echo "scale=2; $gpu_jobs_running / ($gpu_jobs_running + $gpu_jobs_pending)" | bc)
+  cpu_busyness_ratio=$(echo "scale=2; $cpu_jobs_running / ($cpu_jobs_pending)" | bc)
+  gpu_busyness_ratio=$(echo "scale=2; $gpu_jobs_running / ($gpu_jobs_pending)" | bc)
   echo "CPU busyness: $cpu_busyness_ratio ($cpu_jobs_running running, $cpu_jobs_pending pending)"
   echo "GPU busyness: $gpu_busyness_ratio ($gpu_jobs_running running, $gpu_jobs_pending pending)"
 }
