@@ -308,20 +308,39 @@ function sqpmy_eta {
 
 alias sq='squeue -u $USER -o "%.18i %.9P %.12j %.8u %.2t %.10M %.6D %.8C %.10l"'
 
+# assesses cluster "busyness" by comparing running vs pending jobs for CPU and GPU partitions
+# Uses partition column to identify GPU jobs (partition name contains "gpu" on both DELTA and Stellar).
+# Computes CPU jobs as total minus GPU jobs, so no cluster-specific special cases needed.
 function busyness() {
-  cpu_jobs_running=$(sqp | grep cpu | grep " R " | wc -l)
-  gpu_jobs_running=$(sqp | grep gpu | grep " R " | wc -l)
-  cpu_jobs_pending=$(sqp | grep cpu | grep " PD " | wc -l)
-  gpu_jobs_pending=$(sqp | grep gpu | grep " PD " | wc -l)
+  local sqp_output
+  sqp_output=$(sqp 2>/dev/null)
 
-  cpu_busyness_ratio=$(echo "scale=2; $cpu_jobs_running / ($cpu_jobs_pending)" | bc)
-  gpu_busyness_ratio=$(echo "scale=2; $gpu_jobs_running / ($gpu_jobs_pending)" | bc)
-  
+  local total_running total_pending gpu_running gpu_pending
+  total_running=$(echo "$sqp_output" | grep " R " | wc -l)
+  total_pending=$(echo "$sqp_output" | grep " PD " | wc -l)
+  gpu_running=$(echo "$sqp_output" | grep " R " | grep "gpu" | wc -l)
+  gpu_pending=$(echo "$sqp_output" | grep " PD " | grep "gpu" | wc -l)
+
+  local cpu_running=$((total_running - gpu_running))
+  local cpu_pending=$((total_pending - gpu_pending))
+
+  local cpu_ratio gpu_ratio
+  if [ "$cpu_pending" -gt 0 ]; then
+    cpu_ratio=$(echo "scale=2; $cpu_running / $cpu_pending" | bc)
+  else
+    cpu_ratio="inf"
+  fi
+  if [ "$gpu_pending" -gt 0 ]; then
+    gpu_ratio=$(echo "scale=2; $gpu_running / $gpu_pending" | bc)
+  else
+    gpu_ratio="inf"
+  fi
+
   echo ""
   echo "busy-ness ratio (running/pending) | higher means potentially less busy"
   echo ""
-  echo "CPU busyness: $cpu_busyness_ratio ($cpu_jobs_running running, $cpu_jobs_pending pending)"
-  echo "GPU busyness: $gpu_busyness_ratio ($gpu_jobs_running running, $gpu_jobs_pending pending)"
+  echo "CPU busyness: $cpu_ratio ($cpu_running running, $cpu_pending pending)"
+  echo "GPU busyness: $gpu_ratio ($gpu_running running, $gpu_pending pending)"
   echo ""
 }
 
