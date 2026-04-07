@@ -318,7 +318,8 @@ function busyness() {
   gpu_busyness_ratio=$(echo "scale=2; $gpu_jobs_running / ($gpu_jobs_pending)" | bc)
   
   echo ""
-  echo "<busy-ness> ratio (running/pending) | higher means potentially less busy"
+  echo "busy-ness ratio (running/pending) | higher means potentially less busy"
+  echo ""
   echo "CPU busyness: $cpu_busyness_ratio ($cpu_jobs_running running, $cpu_jobs_pending pending)"
   echo "GPU busyness: $gpu_busyness_ratio ($gpu_jobs_running running, $gpu_jobs_pending pending)"
   echo ""
