@@ -282,7 +282,7 @@ if [ $verbose -eq 1 ]; then
   echo "Setting up aliases at $(date) ..."
 fi
 # squeue
-alias sqp='squeue -o "%.18i %Q %.9q %.8j %.8u %.10a %.2t %.10M %.10L %.6C %R"' #priority rating
+alias sqp='squeue -o "%.18i %Q %.9q %.8j %.8u %.10a %.2t %.10M %.10L %.6C %.12b %R"' #priority rating
 # alias sqpmy='squeue -o "%.18i %Q %.9q %.8j %.8u %.10a %.2t %.10M %.10L %.6C %R" | grep $USER' #priority rating
 function sqpmy {
   printf "%12s %9s %9s %20s %8s %8s %2s %10s %10s %6s %6s %12s %s\n" \
