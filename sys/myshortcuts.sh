@@ -316,8 +316,9 @@ function busyness() {
 
   cpu_busyness_ratio=$(echo "scale=2; $cpu_jobs_running / ($cpu_jobs_pending)" | bc)
   gpu_busyness_ratio=$(echo "scale=2; $gpu_jobs_running / ($gpu_jobs_pending)" | bc)
-  echo "CPU busyness: $cpu_busyness_ratio ($cpu_jobs_running running, $cpu_jobs_pending pending)"
-  echo "GPU busyness: $gpu_busyness_ratio ($gpu_jobs_running running, $gpu_jobs_pending pending)"
+  echo "BUSYNESS RATIO (running/pending) | Higher means less busy"
+  echo "CPU BUSYNESS: $cpu_busyness_ratio ($cpu_jobs_running running, $cpu_jobs_pending pending)"
+  echo "GPU BUSYNESS: $gpu_busyness_ratio ($gpu_jobs_running running, $gpu_jobs_pending pending)"
 }
 
 # Show parent directories of given Slurm job IDs
