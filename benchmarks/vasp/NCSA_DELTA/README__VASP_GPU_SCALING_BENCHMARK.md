@@ -74,7 +74,82 @@ Key observations:
 - The 64-core run was killed at the 1-hour time limit before completing.
 - A single GPU delivers 1.6x speedup over a full 128-core DELTA node.
 
-### 3.4 CPU Baselines by Cluster (for Reference)
+### 3.4 CPU Count per GPU -- Does It Matter? (NCSA DELTA)
+
+Tested 1, 2, 4, and 16 CPUs per GPU to determine optimal allocation.
+System: 160 atoms, 768 bands, 4 k-points, 1 GPU.
+
+| CPUs per GPU | OMP Threads | Elapsed (s) |
+| ------------ | ----------- | ----------- |
+| 1            | 1           | 1409        |
+| 2            | 2           | 1400        |
+| 4            | 4           | 1530        |
+| 16           | 16          | 1405        |
+
+**CPU count has negligible impact on single-GPU performance.** 1 CPU performs
+identically to 16 CPUs. This means multi-GPU packing (MULTI_sub_vasp_GPU.sh)
+can use `--cpus-per-task=1`, minimizing resource requests and improving
+scheduling priority.
+
+### 3.5 Multi-GPU Packing (Independent VASP Runs, 1 GPU Each)
+
+Tested packing multiple independent VASP calculations onto GPUs using
+`MULTI_sub_vasp_GPU.sh` with GNU parallel + per-GPU CUDA_VISIBLE_DEVICES binding.
+Each run: 1 MPI rank, 1 OMP thread, 1 GPU, KPAR=1.
+
+**Test 1: 1 node x 4 GPUs, 8 runs (4 concurrent + 4 queued)**
+
+| Run    | Node     | GPU | Elapsed (s) |
+| ------ | -------- | --- | ----------- |
+| run_01 | gpua097  | 0   | 1418        |
+| run_02 | gpua097  | 1   | 1409        |
+| run_03 | gpua097  | 2   | 1412        |
+| run_04 | gpua097  | 3   | 1416        |
+| run_05 | gpua097  | 0   | 1407        |
+| run_06 | gpua097  | 1   | 1460        |
+| run_07 | gpua097  | 2   | 1411        |
+| run_08 | gpua097  | 3   | 1447        |
+
+**Test 2: 2 nodes x 4 GPUs, 8 runs (all concurrent)**
+
+| Run    | Node     | GPU | Elapsed (s) |
+| ------ | -------- | --- | ----------- |
+| run_01 | gpua053  | 0   | 1412        |
+| run_02 | gpua053  | 1   | 1415        |
+| run_03 | gpua053  | 2   | 1427        |
+| run_04 | gpua053  | 3   | 1409        |
+| run_05 | gpua084  | 0   | 1409        |
+| run_06 | gpua084  | 1   | 1408        |
+| run_07 | gpua084  | 2   | 1408        |
+| run_08 | gpua084  | 3   | 1408        |
+
+Key observations:
+- **No contention** between concurrent GPU runs on the same node (~1410 s each,
+  matching the single-GPU baseline of ~1405 s).
+- **Multi-node distribution works correctly** via `mpirun --host $target_node`.
+- **1 CPU per GPU is sufficient** -- total node usage is just 4 CPUs + 4 GPUs.
+- Memory usage: ~13 GB per run (~52 GB total for 4 concurrent runs on 1 node).
+- GNU parallel correctly queues overflow runs (test 1: runs 5-8 waited for GPUs 0-3
+  to free up, then ran on the same GPUs).
+
+### 3.6 When GPU Is Slower Than CPU
+
+Tested on NH3/H2 system: 220 atoms, 560 bands, **1 k-point (gamma only)**.
+
+| Config                           | Elapsed (s) |
+| -------------------------------- | ----------- |
+| CPU 128 cores (16 MPI x 8 OMP)  | ~300        |
+| **1 GPU** (A100-SXM4 80 GB)     | **~650**    |
+
+GPU is **2x slower** for this system because:
+- Only 1 k-point → no KPAR parallelism across GPUs.
+- 560 bands → matrices too small to saturate the A100.
+- CPU-GPU data transfer overhead dominates the compute savings.
+
+**Rule of thumb:** GPU VASP benefits from larger systems (more bands) and/or
+multiple k-points. For small gamma-point calculations, CPU is faster.
+
+### 3.7 CPU Baselines by Cluster (for Reference)
 
 | Config                          | Elapsed (s) | Cluster |
 | ------------------------------- | ----------- | ------- |
