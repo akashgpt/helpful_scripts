@@ -119,7 +119,7 @@ run_one_vasp_gpu() {
 
 		export CUDA_VISIBLE_DEVICES="$gpu_id"
 
-		if [[ $(hostname) == *"della"* ]] || [[ $(hostname) == *"stellar"* ]] || [[ $(hostname) == *"tiger"* ]]; then
+		if [[ $(hostname) == *"della"* ]] || [[ $(hostname) == *"stellar"* ]]; then
 			srun --exact --nodes=1 --ntasks=1 \
 				--gpus=1 \
 				--cpus-per-task="$SLURM_CPUS_PER_TASK" \
