@@ -1,0 +1,19 @@
+Temperature =  K
+Computed temperature =  +- K
+Number = 
+Number density =  atom/A^3
+Mass density =  g/cm^3
+Volume =  cm^3/mol-atom
+Conserved Quantity =  eV, drift meV/atom/ps
+Internal Energy =  +- eV
+Internal Energy+kinetic =  +- eV
+Enthalpy+kinetic =  +- eV
+E-TS_el =  +- eV
+Electronic entropy =  +- Nk_B
+Energy+kinetic = +- kJ/mol-atom
+Enthalpy+kinetic = +- kJ/mol-atom
+Pressure =  +- GPa
+CV/Nk = +-
+alpha*K_T = +- MPa/K
+Gruneisen parameter = +-
+Time Steps = 0 Ratio = 5  E Correlation Length =  P Correlation Length =

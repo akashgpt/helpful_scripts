@@ -49,12 +49,19 @@ start_block1=$(date +%s)
 # check name of current cluster
 if [[ $(hostname) == *"della"* ]]; then
   export CLUSTER="DELLA"
+  echo "CLUSTER set to DELLA based on hostname $(hostname)"
 elif [[ $(hostname) == *"tiger"* ]]; then
   export CLUSTER="TIGER"
+  echo "CLUSTER set to TIGER based on hostname $(hostname)"
 elif [[ $(hostname) == *"stellar"* ]]; then
   export CLUSTER="STELLAR"
+  echo "CLUSTER set to STELLAR based on hostname $(hostname)"
 elif [[ $(hostname) == *"delta"* ]]; then
   export CLUSTER="NCSA_DELTA" # NCSA (via ACCESS)
+  echo "CLUSTER set to NCSA_DELTA based on hostname $(hostname)"
+else
+  export CLUSTER="UNKNOWN"
+  echo "WARNING: Cluster name detection failed for hostname $(hostname). CLUSTER set to UNKNOWN."
 fi
 
 if [ "$CLUSTER" == "DELLA" ] || [ "$CLUSTER" == "TIGER" ] || [ "$CLUSTER" == "STELLAR" ]; then
@@ -281,6 +288,24 @@ start_block2=$(date +%s)
 if [ $verbose -eq 1 ]; then
   echo "Setting up aliases at $(date) ..."
 fi
+
+# From Princeton Computing
+#################
+# shell options #
+#################
+shopt -s histappend  # all shells write to same history
+shopt -s checkjobs   # check if background jobs are running on exit
+shopt -s cdspell     # guess misspelled cd commands
+shopt -s autocd      # change directory w/o cd if entry is invalid
+shopt -s extglob     # enable extended glob patterns
+shopt -s checkwinsize # check window size after each command 
+
+alias cpu10='salloc --nodes=1 --ntasks=1 --mem=4G --time=00:10:00'
+alias gpu10='salloc --nodes=1 --ntasks=1 --mem=4G --time=00:10:00 --gres=gpu:1'
+alias fair='echo "Fairshare: " && sshare | cut -c 84- | sort -g | uniq | tail -1'
+alias node_health='sinfo --long --Node'
+
+
 # squeue
 alias sqp='squeue -o "%.18i %Q %.9P %.9q %.8j %.8u %.10a %.2t %.10M %.10L %.6C %.12b %R"' #priority rating
 # alias sqpmy='squeue -o "%.18i %Q %.9q %.8j %.8u %.10a %.2t %.10M %.10L %.6C %R" | grep $USER' #priority rating
@@ -588,13 +613,9 @@ if [ "$CLUSTER" == "DELLA" ] || [ "$CLUSTER" == "TIGER" ] || [ "$CLUSTER" == "ST
     echo "####################"
     echo "Total jobs: $total_jobs"
 
-    cores_list=$(sqp | grep ag5805 | grep " R " | awk '{print $10}')
-
-    # Sum all instances of total_cores
-    total_cores_sum=0
-    for core in $cores_list; do
-        total_cores_sum=$((total_cores_sum + core))
-    done
+    # Sum CPU counts across all running jobs using squeue directly
+    # (avoids fragile column-index parsing of sqp output)
+    total_cores_sum=$(squeue -u "$USER" -h -t R -o "%C" | awk '{sum += $1} END {print sum+0}')
 
     echo "Running jobs: $jobs_running, procs $total_cores_sum";
     echo "Pending jobs: $jobs_pending"

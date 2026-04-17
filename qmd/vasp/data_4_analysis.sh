@@ -88,7 +88,7 @@ fi
 cp analysis/evo_TOTEN.dat analysis/evo_free_energy.dat # for backward compatibility
 
 echo "Sourcing peavg.sh | Make sure to have peavg.sh on your PATH."
-source peavg.sh OUTCAR
+source peavg.sh OUTCAR # peavg* stored in $HELP_SCRIPTS_vasp
 
 
 

@@ -507,7 +507,7 @@ find . -type f -name 'INCAR*' -exec sed -i 's/LCHARG = .TRUE./LCHARG = .FALSE./g
 find . -type f -name 'INCAR*' -exec sed -i 's/LWAVE = .TRUE./LWAVE = .FALSE./g' {} +
 find . -type f -name 'INCAR*' -exec sed -i 's/POTIM  =   0.5/POTIM  =   0.25/g' {} +
 find . -type f -name 'INCAR*' -exec sed -i 's/ALGO   = F/ALGO   = All/g' {} +
-find . -type f -name 'INCAR*' -exec sed -i 's/NBANDS = 784/NBANDS = 768/g' {} +
+find . -type f -name 'INCAR*' -exec sed -i 's/NBANDS =  3840/NBANDS =  2880/g' {} +
 find . -type f -name 'INCAR' -exec sed -i 's/LANGEVIN_GAMMA = 1.0 1.0 5.0 10.0/LANGEVIN_GAMMA = 1.0 1.0 2.0 10.0/g' {} +
 find . -type f -name 'INCAR_relax' -exec sed -i 's/ALGO   = F/ALGO   = N/g' {} +
 find . -type f -name 'RUN_VASP*' -exec sed -i 's/#SBATCH --time=24:05:00/#SBATCH --time=24:00:00/g' {} +
@@ -604,3 +604,13 @@ find . -regextype posix-extended \
 
 # for Claude/Codex
 Look at the precise last run of the TRAIN_MLMD_LEVEL* scripts and all the corresponding ones in /scratch/gpfs/BURROWS/akashgpt/qmd_data/NH3_H2/sim_data_ML_v3__plumed_test -- these can be tracked beginning log.TRAIN_MLMD_LEVEL_1. And show that the last run of these simulations started with v7_i27 and ended with v7_i29. So just have a look at how well did they finish. Primarily to figure out if the code repo ALCHEMY is working well or not -- this is not a production run (@ /projects/BURROWS/akashgpt/run_scripts/ALCHEMY__dev/TRAIN_MLMD_scripts)
+
+
+###########################
+#  To check CPU group and individual limits for a cluster
+# # All QOSes you can use:
+sacctmgr show qos format=Name,GrpTRES%40,MaxTRES%40,MaxTRESPU%40
+
+# Just one QOS (replace <qos_name>):
+sacctmgr show qos <qos_name> format=Name,GrpTRES%50
+###########################

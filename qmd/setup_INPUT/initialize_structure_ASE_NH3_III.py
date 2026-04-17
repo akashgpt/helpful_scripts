@@ -7,7 +7,6 @@ from ase import Atoms
 from ase.data import atomic_masses, atomic_numbers
 from ase.io import write
 
-
 REFERENCE_LAMMPS_MASSES: dict[str, float] = {
     "H": 1.00794,
     "N": 14.0067,
@@ -353,7 +352,8 @@ if __name__ == "__main__":
     # Generate the configured NH3-III supercell and write grouped species outputs.
     atoms = build_nh3_phase_iii_supercell(
         a=4.244,
-        reps=(8, 8, 8),
+        reps=(4, 4, 4),
+        # reps=(4, 4, 4),
         bond_length=1.02,
         angle_deg=106.7,
         seed=7,

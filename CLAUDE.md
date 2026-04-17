@@ -27,6 +27,20 @@
 - If project-local code conflicts with external repos, prioritize this project's local code/config.
 - If a referenced repo/path is unavailable in the current session, state that explicitly and continue with best available sources.
 
+## Local Skill Routing
+
+- Treat the repo-local `SKILL.md` files under `HELPFUL_SCRIPTS/qmd` as local onboarding guides that should be loaded into context for `qmd` work.
+- For any task inside `HELPFUL_SCRIPTS/qmd`, first read `qmd/SKILL.md`.
+- Then read the most relevant folder-specific skill file before doing substantive work:
+  - `qmd/vasp/SKILL.md`
+  - `qmd/TI/SKILL.md`
+  - `qmd/ALCHEMY/SKILL.md`
+  - `qmd/plmd/SKILL.md`
+  - `qmd/setup_INPUT/SKILL.md`
+- If the task spans more than one `qmd` subfolder, read all relevant skill files and keep their workflow guidance in mind during the task.
+- When a folder skill points to a `references/` file, read that only when the task depends on external software behavior, file-format semantics, or official syntax.
+- For ALCHEMY or DPAL tasks, still follow the repository lookup policy above and check `ALCHEMY__dev` first; the `qmd/ALCHEMY` skill is a helper-layer guide, not the canonical pipeline definition.
+
 ## Local Priority Repositories
 
 | Env var            | Local path                                                | Remote                                            | Notes                                 |
