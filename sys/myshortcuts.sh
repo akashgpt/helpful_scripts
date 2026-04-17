@@ -737,6 +737,8 @@ if [ "$CLUSTER" == "DELLA" ] || [ "$CLUSTER" == "TIGER" ] || [ "$CLUSTER" == "ST
 
   alias l_ase='module load anaconda3/2025.12; conda activate ase_env'
 
+  alias l_ALCHEMY='module load anaconda3/2025.12; conda activate ALCHEMY_env'
+
 elif [ "$CLUSTER" == "NCSA_DELTA" ]; then
   # conda_a
   #
@@ -758,6 +760,7 @@ elif [ "$CLUSTER" == "NCSA_DELTA" ]; then
   alias l_base='conda_a base'
   alias l_dp_plmd='conda_a dp_plmd_ncsa_delta'
   alias l_hpc='conda_a hpc-tools'
+  alias l_ALCHEMY='conda_a ALCHEMY_env'
 
   # conda_d
   #
