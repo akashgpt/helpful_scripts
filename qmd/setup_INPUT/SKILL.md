@@ -55,6 +55,7 @@ Then inspect any chemistry-specific initializer that matches the user request, s
 
 - `join_conf_lmps.py` stitches two `conf.lmp` files along the z axis with an optional gap and explicit output species order.
 - `join_POSCARS.py` provides the same logic for VASP POSCAR-like files.
+- `stitch_two_phase_vasp.py` is the more flexible VASP helper when live `CONTCAR` files include MD restart trailers or when the two source cells need a deliberate in-plane reconciliation policy such as `average` or `max`.
 - Prefer these over ad hoc manual editing when building two-phase or slab-style starting structures.
 
 ### Build composition series
@@ -69,4 +70,3 @@ Then inspect any chemistry-specific initializer that matches the user request, s
 - Preserve species-order handling carefully when editing conversion or joining scripts.
 - Use the ASE-based joiners and converters instead of hand-editing coordinates when reproducibility matters.
 - If the task depends on ASE or file-format semantics, read `references/external_docs.md`.
-

@@ -943,10 +943,12 @@ alias ALCHEMY_performance='python $ALCHEMY__main__HEALTH/ALCHEMY_performance.py'
 ##########
 # Adding to different default paths
 ##########
-append_to_env_var_if_dir "PATH" "$LOCAL_PRIMARY_PROJECTS_FOLDER/misc_libraries"
-append_to_env_var_if_dir "PATH" "$LOCAL_LARS_SCRIPTS_DIR"
-append_to_env_var_if_dir "PATH" "$LOCAL_JIE_SCRIPTS_DIR"
-append_to_env_var_if_dir "PATH" "$LOCAL_mldp"
+# append_to_env_var_if_dir "PATH" "$LOCAL_PRIMARY_PROJECTS_FOLDER/misc_libraries"
+# append_to_env_var_if_dir "PATH" "$LOCAL_LARS_SCRIPTS_DIR"
+# append_to_env_var_if_dir "PATH" "$LOCAL_JIE_SCRIPTS_DIR"
+# append_to_env_var_if_dir "PATH" "$LOCAL_mldp"
+append_to_env_var_if_dir "PATH" "$HELP_SCRIPTS"
+append_to_env_var_if_dir "PATH" "$LOCAL_HELP_SCRIPTS"
 append_to_env_var_if_dir "PATH" "$HOME/local/bin" # for patchelf
 
 

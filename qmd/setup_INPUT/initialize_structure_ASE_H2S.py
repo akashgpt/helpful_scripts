@@ -775,8 +775,10 @@ def main() -> None:
 			bond_length=float(args.bond_length),
 			angle_deg=float(args.angle_deg),
 			seed=int(args.seed),
+			min_interatomic_distance=float(args.min_interatomic_distance),
+			max_rotation_retries=int(args.max_rotation_retries),
 		)
-	except ValueError as error:
+	except (ValueError, RuntimeError) as error:
 		raise SystemExit(f"Error: {error}") from error
 
 	atoms = reorder_atoms_by_species(atoms=atoms, species_order=species_order)

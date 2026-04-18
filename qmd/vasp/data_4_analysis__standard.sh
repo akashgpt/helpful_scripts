@@ -13,41 +13,9 @@
 parent_dir=$(pwd)
 parent_dir_name=$(basename "$parent_dir")
 script_dir=$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)
-outcar_path="${1:-OUTCAR}"
 band_summary_script="${script_dir}/extract_band_occupations.py"
-
-resolve_helper_script() {
-    local script_name="$1"
-    local candidate_path resolved_path
-
-    candidate_path="${script_dir}/${script_name}"
-    if [[ -f "$candidate_path" ]]; then
-        printf '%s\n' "$candidate_path"
-        return 0
-    fi
-
-    resolved_path=$(command -v "$script_name" 2>/dev/null || true)
-    if [[ -n "$resolved_path" && -f "$resolved_path" ]]; then
-        printf '%s\n' "$resolved_path"
-        return 0
-    fi
-
-    return 1
-}
-
-resolved_band_summary_script=$(command -v extract_band_occupations.py 2>/dev/null || true)
-if [[ -n "$resolved_band_summary_script" && -f "$resolved_band_summary_script" ]]; then
-    band_summary_script="$resolved_band_summary_script"
-fi
-
-if [[ ! -f "$outcar_path" ]]; then
-    echo "Error: OUTCAR not found: $outcar_path"
-    return 1 2>/dev/null || exit 1
-fi
-
-if ! peavg_script=$(resolve_helper_script "peavg.sh"); then
-    echo "Error: peavg.sh not found beside this script or on PATH."
-    return 1 2>/dev/null || exit 1
+if [[ ! -f "$band_summary_script" ]]; then
+	band_summary_script="/projects/BURROWS/akashgpt/run_scripts/helpful_scripts/qmd/vasp/extract_band_occupations.py"
 fi
 
 
@@ -77,8 +45,8 @@ mkdir -p analysis
 
 
 # Count the number of lines matching the two patterns
-scaled_count=$(grep "SCALED FREE ENERGIE" "$outcar_path" | wc -l)
-free_count=$(grep "free  energy" "$outcar_path" | wc -l)
+scaled_count=$(grep "SCALED FREE ENERGIE" OUTCAR | wc -l)
+free_count=$(grep "free  energy" OUTCAR | wc -l)
 half_free=$(echo "0.5 * $free_count" | bc)
 # make half_free an integer
 half_free=${half_free%.*}
@@ -96,20 +64,20 @@ echo "TI_mode is: $TI_mode" #; scaled_count is: $scaled_count, free_count is: $f
 
 
 
-grep "total pressure" "$outcar_path" | awk '{print $4}' > analysis/evo_total_pressure.dat
-grep external "$outcar_path" | awk '{print $4}' > analysis/evo_external_pressure.dat
-grep "kinetic pressure" "$outcar_path" | awk '{print $7}' > analysis/evo_kinetic_pressure.dat
-grep "Pullay stress" "$outcar_path" | awk '{print $9}' > analysis/evo_pullay_stress.dat
-grep -a "volume of cell :" "$outcar_path" | awk '{print $5}' > analysis/evo_cell_volume.dat
+grep "total pressure" OUTCAR | awk '{print $4}' > analysis/evo_total_pressure.dat
+grep external OUTCAR | awk '{print $4}' > analysis/evo_external_pressure.dat
+grep "kinetic pressure" OUTCAR | awk '{print $7}' > analysis/evo_kinetic_pressure.dat
+grep "Pullay stress" OUTCAR | awk '{print $9}' > analysis/evo_pullay_stress.dat
+grep -a "volume of cell :" OUTCAR | awk '{print $5}' > analysis/evo_cell_volume.dat
 sed -i '1,2d' analysis/evo_cell_volume.dat
 
 # grep "free  energy" OUTCAR | awk '{print $5}' > analysis/evo_free_energy.dat
-grep ETOTAL "$outcar_path" | awk '{print $5}' > analysis/evo_total_energy.dat
-grep "free  energy   TOTEN" "$outcar_path" | awk '{print $5}' > analysis/evo_TOTEN.dat
-grep "energy  without entropy" "$outcar_path" | awk '{print $4}' > analysis/evo_internal_energy.dat
+grep ETOTAL OUTCAR | awk '{print $5}' > analysis/evo_total_energy.dat
+grep "free  energy   TOTEN" OUTCAR | awk '{print $5}' > analysis/evo_TOTEN.dat
+grep "energy  without entropy" OUTCAR | awk '{print $4}' > analysis/evo_internal_energy.dat
 
 # grep "mean temperature" OUTCAR | awk '{print $5}' > analysis/evo_mean_temp.dat
-grep "(temperature" "$outcar_path" | sed -E 's/.*temperature[[:space:]]*([0-9]+\.[0-9]+).*/\1/' > analysis/evo_mean_temp.dat
+grep "(temperature" OUTCAR | sed -E 's/.*temperature[[:space:]]*([0-9]+\.[0-9]+).*/\1/' > analysis/evo_mean_temp.dat
 
 # if TI_mode is 1, then
 if [ "$TI_mode" -eq 1 ]; then
@@ -124,13 +92,13 @@ fi
 
 cp analysis/evo_TOTEN.dat analysis/evo_free_energy.dat # for backward compatibility
 
-echo "Running peavg.sh using: $peavg_script"
-bash "$peavg_script" "$outcar_path"
+echo "Sourcing peavg.sh | Make sure to have peavg.sh on your PATH."
+source peavg.sh OUTCAR # peavg* stored in $HELP_SCRIPTS_vasp
 
 if [[ -f "$band_summary_script" ]]; then
 	echo "Extracting occupied-band summary from OUTCAR."
 	python "$band_summary_script" \
-        --outcar "$outcar_path" \
+		--outcar OUTCAR \
 		--output analysis/band_occupations_summary.out \
 		--selection second_last
 	if grep -q '^flag_no_nonzero_occupied_bands=yes$' analysis/band_occupations_summary.out; then
@@ -155,7 +123,7 @@ sed -n '11p' $parent_dir/analysis/peavg_numbers.out >> analysis/peavg_summary.ou
 grep ENCUT $parent_dir/INCAR | awk '{print $3}' >> analysis/peavg_summary.out #ENCUT
 grep GGA $parent_dir/INCAR | awk '{print $3}' >> analysis/peavg_summary.out #XC
 grep "TITEL" $parent_dir/POTCAR | awk '{print $4}' >> analysis/peavg_summary.out #POTCAR 
-grep "free  energy   TOTEN" "$outcar_path" | tail -n 1 | awk '{print $5}' >> analysis/peavg_summary.out #last free energy TOTEN value -- the only value for single point calculations
+grep "free  energy   TOTEN" $parent_dir/OUTCAR | tail -n 1 | awk '{print $5}' >> analysis/peavg_summary.out #last free energy TOTEN value -- the only value for single point calculations
 sed -n '16p' $parent_dir/analysis/peavg_numbers.out >> analysis/peavg_summary.out #E-TS_el
 sed -n '17p' $parent_dir/analysis/peavg_numbers.out >> analysis/peavg_summary.out #E-TS_el error
 sed -n '18p' $parent_dir/analysis/peavg_numbers.out >> analysis/peavg_summary.out #S_el
