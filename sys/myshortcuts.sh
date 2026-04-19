@@ -951,6 +951,12 @@ append_to_env_var_if_dir "PATH" "$HELP_SCRIPTS"
 append_to_env_var_if_dir "PATH" "$LOCAL_HELP_SCRIPTS"
 append_to_env_var_if_dir "PATH" "$HOME/local/bin" # for patchelf
 
+# Add only the VASP analysis helper directories needed for peavg/data scripts.
+append_to_env_var_if_dir "PATH" "$HELP_SCRIPTS_vasp"
+append_to_env_var_if_dir "PATH" "$HELP_SCRIPTS_vasp/Box_Lars"
+append_to_env_var_if_dir "PATH" "$LOCAL_HELP_SCRIPTS_vasp"
+append_to_env_var_if_dir "PATH" "$LOCAL_HELP_SCRIPTS_vasp/Box_Lars"
+
 
 append_to_env_var_if_dir "PYTHONPATH" "$LOCAL_PRIMARY_PROJECTS_FOLDER/misc_libraries"
 append_to_env_var_if_dir "PYTHONPATH" "$HELP_SCRIPTS"

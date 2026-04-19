@@ -1,418 +1,62 @@
 #!/bin/bash
 
 #############################################################
-# Summary: This script is used to analyze the output of VASP simulations.
-# It extracts relevant data from the OUTCAR file, performs calculations, 
-# and generates plots for analysis.
+# Summary:
+#   Wrapper entrypoint for VASP analysis.
+#   Auto-detects standard vs MLFF OUTCAR format and dispatches
+#   to the matching implementation.
 #
-# Usage: source data_4_analysis.sh
-#
-# Author: Akash Gupta
+# Usage: source data_4_analysis.sh [OUTCAR]
 #############################################################
 
-parent_dir=$(pwd)
-parent_dir_name=$(basename "$parent_dir")
 script_dir=$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)
-outcar_path="${1:-OUTCAR}"
-band_summary_script="${script_dir}/extract_band_occupations.py"
 
-resolve_helper_script() {
-    local script_name="$1"
-    local candidate_path resolved_path
+resolve_analysis_script() {
+	local script_name="$1"
+	local candidate_path resolved_path
 
-    candidate_path="${script_dir}/${script_name}"
-    if [[ -f "$candidate_path" ]]; then
-        printf '%s\n' "$candidate_path"
-        return 0
-    fi
+	candidate_path="$script_dir/$script_name"
+	if [[ -f "$candidate_path" ]]; then
+		printf '%s\n' "$candidate_path"
+		return 0
+	fi
 
-    resolved_path=$(command -v "$script_name" 2>/dev/null || true)
-    if [[ -n "$resolved_path" && -f "$resolved_path" ]]; then
-        printf '%s\n' "$resolved_path"
-        return 0
-    fi
+	resolved_path=$(command -v "$script_name" 2>/dev/null || true)
+	if [[ -n "$resolved_path" && -f "$resolved_path" ]]; then
+		printf '%s\n' "$resolved_path"
+		return 0
+	fi
 
-    return 1
+	return 1
 }
 
-resolved_band_summary_script=$(command -v extract_band_occupations.py 2>/dev/null || true)
-if [[ -n "$resolved_band_summary_script" && -f "$resolved_band_summary_script" ]]; then
-    band_summary_script="$resolved_band_summary_script"
-fi
+run_data_4_analysis_autodetect() {
+	local outcar_path="${1:-OUTCAR}"
+	local analysis_mode target_script script_path
 
-if [[ ! -f "$outcar_path" ]]; then
-    echo "Error: OUTCAR not found: $outcar_path"
-    return 1 2>/dev/null || exit 1
-fi
-
-if ! peavg_script=$(resolve_helper_script "peavg.sh"); then
-    echo "Error: peavg.sh not found beside this script or on PATH."
-    return 1 2>/dev/null || exit 1
-fi
-
-
-# module purge
-MSD_python_file="${LOCAL_HELP_SCRIPTS_vasp}/msd_calc_v3.py"
-ENV_for_MSD="module load anaconda3/2024.6; conda activate mda_env"
-echo $ENV_for_MSD > setting_env.sh #for mda analysis and the "bc" command required for peavg.sh
-
-
-
-
-echo "################################"
-echo "Running data_4_analysis.sh for $parent_dir_name"
-# echo "Runtime: $runtime seconds"
-echo "################################"
-
-# figure out how long the scripts takes to run
-# start=$(date +%s)  # Start time in seconds
-
-
-
-
-
-echo "Updating data for 'analysis/' ..."
-
-mkdir -p analysis
-
-
-# Count the number of lines matching the two patterns
-scaled_count=$(grep "SCALED FREE ENERGIE" "$outcar_path" | wc -l)
-free_count=$(grep "free  energy" "$outcar_path" | wc -l)
-half_free=$(echo "0.5 * $free_count" | bc)
-# make half_free an integer
-half_free=${half_free%.*}
-
-# Define TI_mode: 1 if scaled_count equals half_free, 0 otherwise.
-if [ "$scaled_count" -eq "$half_free" ]; then
-    TI_mode=1
-    # echo "TI_mode switched on."
-else
-    TI_mode=0
-fi
-
-echo "TI_mode is: $TI_mode" #; scaled_count is: $scaled_count, free_count is: $free_count, half_free is: $half_free"
-
-
-
-
-grep "total pressure" "$outcar_path" | awk '{print $4}' > analysis/evo_total_pressure.dat
-grep external "$outcar_path" | awk '{print $4}' > analysis/evo_external_pressure.dat
-grep "kinetic pressure" "$outcar_path" | awk '{print $7}' > analysis/evo_kinetic_pressure.dat
-grep "Pullay stress" "$outcar_path" | awk '{print $9}' > analysis/evo_pullay_stress.dat
-grep -a "volume of cell :" "$outcar_path" | awk '{print $5}' > analysis/evo_cell_volume.dat
-sed -i '1,2d' analysis/evo_cell_volume.dat
-
-# grep "free  energy" OUTCAR | awk '{print $5}' > analysis/evo_free_energy.dat
-grep ETOTAL "$outcar_path" | awk '{print $5}' > analysis/evo_total_energy.dat
-grep "free  energy   TOTEN" "$outcar_path" | awk '{print $5}' > analysis/evo_TOTEN.dat
-grep "energy  without entropy" "$outcar_path" | awk '{print $4}' > analysis/evo_internal_energy.dat
-
-# grep "mean temperature" OUTCAR | awk '{print $5}' > analysis/evo_mean_temp.dat
-grep "(temperature" "$outcar_path" | sed -E 's/.*temperature[[:space:]]*([0-9]+\.[0-9]+).*/\1/' > analysis/evo_mean_temp.dat
-
-# if TI_mode is 1, then
-if [ "$TI_mode" -eq 1 ]; then
-    echo "Given the TI_mode, only keeping the non-scaled energy values from OUTCAR (i.e., not the <SCALED FREE ENERGIE ...> values)."
-    awk 'NR%2==1' analysis/evo_internal_energy.dat > analysis/temp
-    mv analysis/temp analysis/evo_internal_energy.dat
-    # awk 'NR%2==0' analysis/evo_free_energy.dat > analysis/temp
-    # mv analysis/temp analysis/evo_free_energy.dat
-    awk 'NR%2==1' analysis/evo_TOTEN.dat > analysis/temp
-    mv analysis/temp analysis/evo_TOTEN.dat
-fi
-
-cp analysis/evo_TOTEN.dat analysis/evo_free_energy.dat # for backward compatibility
-
-echo "Running peavg.sh using: $peavg_script"
-bash "$peavg_script" "$outcar_path"
-
-if [[ -f "$band_summary_script" ]]; then
-	echo "Extracting occupied-band summary from OUTCAR."
-	python "$band_summary_script" \
-        --outcar "$outcar_path" \
-		--output analysis/band_occupations_summary.out \
-		--selection second_last
-	if grep -q '^flag_no_nonzero_occupied_bands=yes$' analysis/band_occupations_summary.out; then
-		echo "Warning: no non-zero occupied bands were found in the selected band table."
+	if [[ ! -f "$outcar_path" ]]; then
+		echo "Error: OUTCAR not found: $outcar_path"
+		return 1
 	fi
-else
-	echo "Warning: band summary helper not found: $band_summary_script"
-fi
 
+	if grep -aq "free  energy ML TOTEN\|MLFF:" "$outcar_path"; then
+		analysis_mode="mlff"
+		target_script="data_4_analysis__MLFF.sh"
+	else
+		analysis_mode="standard"
+		target_script="data_4_analysis__standard.sh"
+	fi
 
+	if ! script_path=$(resolve_analysis_script "$target_script"); then
+		echo "Error: could not locate $target_script beside this wrapper or on PATH"
+		return 1
+	fi
 
+	echo "Auto-detected analysis mode: $analysis_mode"
+	echo "Running $target_script using: $script_path"
+	source "$script_path" "$outcar_path"
+}
 
-# append a line to analysis/peavg_numbers.out with $parent_dir
-echo "$parent_dir" > analysis/peavg_summary.out
-# second and fourth line from peavg_numbers.out to analysis/peavg_summary.out
-sed -n '1p' $parent_dir/analysis/peavg_numbers.out >> analysis/peavg_summary.out #TEMP
-sed -n '4p' $parent_dir/analysis/peavg_numbers.out >> analysis/peavg_summary.out #NIONS
-sed -n '24p' $parent_dir/analysis/peavg_numbers.out >> analysis/peavg_summary.out #Pressure
-sed -n '25p' $parent_dir/analysis/peavg_numbers.out >> analysis/peavg_summary.out #Pressure error
-sed -n '10p' $parent_dir/analysis/peavg_numbers.out >> analysis/peavg_summary.out #Internal energy
-sed -n '11p' $parent_dir/analysis/peavg_numbers.out >> analysis/peavg_summary.out #Internal energy error
-grep ENCUT $parent_dir/INCAR | awk '{print $3}' >> analysis/peavg_summary.out #ENCUT
-grep GGA $parent_dir/INCAR | awk '{print $3}' >> analysis/peavg_summary.out #XC
-grep "TITEL" $parent_dir/POTCAR | awk '{print $4}' >> analysis/peavg_summary.out #POTCAR 
-grep "free  energy   TOTEN" "$outcar_path" | tail -n 1 | awk '{print $5}' >> analysis/peavg_summary.out #last free energy TOTEN value -- the only value for single point calculations
-sed -n '16p' $parent_dir/analysis/peavg_numbers.out >> analysis/peavg_summary.out #E-TS_el
-sed -n '17p' $parent_dir/analysis/peavg_numbers.out >> analysis/peavg_summary.out #E-TS_el error
-sed -n '18p' $parent_dir/analysis/peavg_numbers.out >> analysis/peavg_summary.out #S_el
-sed -n '19p' $parent_dir/analysis/peavg_numbers.out >> analysis/peavg_summary.out #S_el error
-sed -n '7p' $parent_dir/analysis/peavg_numbers.out >> analysis/peavg_summary.out #Volume in cm^3/mol-atom
-if [[ -f analysis/band_occupations_summary.out ]]; then
-	cat analysis/band_occupations_summary.out >> analysis/peavg_summary.out
-fi
-
-
-
-
-
-######################################
-echo "Plotting some relevant data."
-# call python to create a plot of the following in 1 figure, 4 X 1 panels
-# 1. data in evo_total_pressure vs time-step
-# 2. data in evo_total_energy vs time-step
-# 3. data in evo_cell_volume vs time-step
-# 4. data in evo_mean_temp vs time-step
-python << 'EOF'
-import numpy as np
-import matplotlib.pyplot as plt
-import os
-
-
-def load_species_metadata(run_dir: str) -> str:
-    """Build a compact composition summary for the plot title."""
-    for structure_name in ("CONTCAR", "POSCAR"):
-        structure_path = os.path.join(run_dir, structure_name)
-        if not os.path.exists(structure_path):
-            continue
-        with open(structure_path, encoding="utf-8", errors="ignore") as handle:
-            lines = [line.strip() for line in handle.readlines()]
-        if len(lines) < 7:
-            continue
-        candidate_species = lines[5].split()
-        candidate_counts = lines[6].split()
-        if not candidate_species or not candidate_counts:
-            continue
-        try:
-            counts = [int(value) for value in candidate_counts]
-        except ValueError:
-            continue
-        if len(candidate_species) != len(counts):
-            continue
-        total_atoms = sum(counts)
-        species_summary = " ".join(f"{count}{species}" for species, count in zip(candidate_species, counts))
-        return f"{species_summary} ({total_atoms} atoms; ratio: {{ratio:g}})"
-    return "({ratio:g})"
-
-current_dir = os.getcwd()
-analysis_dir = os.path.join(current_dir, "analysis")
-composition_template = load_species_metadata(current_dir)
-
-axis_low_limit = 0.90
-axis_high_limit = 1.10
-
-# Load data from each file.
-total_pressure = np.loadtxt("analysis/evo_total_pressure.dat")
-external_pressure = np.loadtxt("analysis/evo_external_pressure.dat")
-total_energy   = np.loadtxt("analysis/evo_total_energy.dat")
-TOTEN        = np.loadtxt("analysis/evo_TOTEN.dat")
-internal_energy = np.loadtxt("analysis/evo_internal_energy.dat")
-free_energy   = np.loadtxt("analysis/evo_free_energy.dat")
-cell_volume    = np.loadtxt("analysis/evo_cell_volume.dat")
-mean_temp      = np.loadtxt("analysis/evo_mean_temp.dat")
-
-# check if a ratio file exists
-if os.path.exists("ratio"):
-    ratio = np.loadtxt("ratio")
-    print(f"Ratio file found: {ratio}")
-else:
-    print("No ratio file found. Using default value of 4")
-    ratio = 4
-
-# choose the last (1 - (1/ratio)) of the data
-stat_total_pressure = total_pressure[int(len(total_pressure) * (1 - (1 / ratio))):]
-stat_external_pressure = external_pressure[int(len(external_pressure) * (1 - (1 / ratio))):]
-stat_total_energy = total_energy[int(len(total_energy) * (1 - (1 / ratio))):]
-stat_TOTEN = TOTEN[int(len(TOTEN) * (1 - (1 / ratio))):]
-stat_internal_energy = internal_energy[int(len(internal_energy) * (1 - (1 / ratio))):]
-stat_free_energy = free_energy[int(len(free_energy) * (1 - (1 / ratio))):]
-stat_cell_volume = cell_volume[int(len(cell_volume) * (1 - (1 / ratio))):]
-stat_mean_temp = mean_temp[int(len(mean_temp) * (1 - (1 / ratio))):]
-
-
-# make internal_energy and total_energy the same length as each other and get ride of the extra lines whichever has it
-if len(internal_energy) > len(total_energy):
-    internal_energy = internal_energy[:len(total_energy)]
-elif len(total_energy) > len(internal_energy):
-    total_energy = total_energy[:len(internal_energy)]
-
-# same with free_energy and total_energy
-if len(free_energy) > len(total_energy):
-    free_energy = free_energy[:len(total_energy)]
-elif len(total_energy) > len(free_energy):
-    total_energy = total_energy[:len(free_energy)]
-
-# TOTEN and total_energy
-if len(TOTEN) > len(total_energy):
-    TOTEN = TOTEN[:len(total_energy)]
-elif len(total_energy) > len(TOTEN):
-    total_energy = total_energy[:len(TOTEN)]
-
-# pressure kBar to GPa
-total_pressure = total_pressure * 0.1
-external_pressure = external_pressure * 0.1
-stat_total_pressure = stat_total_pressure * 0.1
-stat_external_pressure = stat_external_pressure * 0.1
-
-# Create a time-step array based on the number of data points.
-time_steps_pressure = np.arange(1, len(total_pressure) + 1)
-time_steps_external_pressure = np.arange(1, len(external_pressure) + 1)
-time_steps_energy = np.arange(1, len(total_energy) + 1)
-time_steps_volume = np.arange(1, len(cell_volume) + 1)
-time_steps_temp = np.arange(1, len(mean_temp) + 1)
-
-# Create a figure with 4 vertical subplots.
-fig, axs = plt.subplots(nrows=4, ncols=1, figsize=(8, 12))
-fig.subplots_adjust(hspace=0.5)
-
-# Panel 1: evo_total_pressure vs time-step
-axs[0].plot(time_steps_pressure, total_pressure, 'b-', alpha=0.5)
-axs[0].axhline(np.mean(stat_total_pressure), color='b', linestyle='--', label=f'Mean: {np.mean(stat_total_pressure):.2f} +/- {np.std(stat_total_pressure):.2f} GPa')
-axs[0].set_ylabel('Total Pressure (GPa)')
-leg = axs[0].legend(loc='upper left')
-for text in leg.get_texts():
-    text.set_color('b')
-axs[0].grid()
-axs[0].set_ylim(np.min(total_pressure)*axis_low_limit, np.max(total_pressure)*axis_high_limit)
-# twinx axis for external pressure
-ax1 = axs[0].twinx()
-ax1.plot(time_steps_external_pressure, external_pressure, 'r-', alpha=0.5)
-ax1.axhline(np.mean(stat_external_pressure), color='r', linestyle='--', label=f'Mean: {np.mean(stat_external_pressure):.2f} +/- {np.std(stat_external_pressure):.2f} GPa')
-ax1.set_ylabel('External Pressure (GPa)')
-# color the axis red
-# ax1.tick_params(axis='y', labelcolor='r')
-leg = ax1.legend(loc='upper right')
-for text in leg.get_texts():
-    text.set_color('r')
-ax1.set_ylim(np.min(external_pressure)*axis_low_limit, np.max(external_pressure)*axis_high_limit)
-
-
-# Panel 2: evo_total_energy vs time-step
-axs[1].plot(time_steps_energy, total_energy, 'g-', alpha=0.5)
-axs[1].axhline(np.mean(stat_total_energy), color='g', linestyle='--', label=f'Mean: {np.mean(stat_total_energy):.2f} +/- {np.std(stat_total_energy):.2f} eV')
-# axs[1].plot(time_steps_energy, TOTEN, 'b-', alpha=0.5)
-# axs[1].axhline(np.mean(stat_TOTEN), color='b', linestyle='--', label=f'Mean: {np.mean(stat_TOTEN):.2f} +/- {np.std(stat_TOTEN):.2f} eV')
-# axs[1].plot(time_steps_energy, free_energy, 'm:', label='Free Energy')
-axs[1].set_ylabel('Total Energy (ETOTAL; eV)')
-axs[1].grid();
-leg = axs[1].legend(loc='upper left');
-for text in leg.get_texts():
-    text.set_color('g')
-# axs[1].set_ylim(np.min(total_energy)*axis_low_limit, np.max(total_energy)*axis_high_limit)
-# twinx axis for TOTEN
-ax2 = axs[1].twinx()
-ax2.plot(time_steps_energy, TOTEN, 'r-',alpha=0.5)
-ax2.axhline(np.mean(stat_TOTEN), color='r', linestyle='--', label=f'Mean: {np.mean(stat_TOTEN):.2f} +/- {np.std(stat_TOTEN):.2f} eV')
-ax2.set_ylabel('TOTEN (El. Helmholtz free energy; eV)')
-# color the axis red
-# ax2.tick_params(axis='y', labelcolor='r')
-leg = ax2.legend(loc='upper right')
-for text in leg.get_texts():
-    text.set_color('r')
-# if np.max(TOTEN) > 0 and np.min(TOTEN) < 0:
-#     ax2.set_ylim(np.min(TOTEN)*axis_high_limit, np.max(TOTEN)*axis_high_limit)
-# elif np.max(TOTEN) > 0 and np.min(TOTEN) > 0:
-#     ax2.set_ylim(np.min(TOTEN)*axis_low_limit, np.max(TOTEN)*axis_high_limit)
-# elif np.max(TOTEN) < 0 and np.min(TOTEN) < 0:
-#     ax2.set_ylim(np.min(TOTEN)*axis_high_limit, np.max(TOTEN)*axis_low_limit)
-# else:
-#     ax2.set_ylim(np.min(TOTEN)*axis_low_limit, np.max(TOTEN)*axis_high_limit)
-
-# Panel 3: evo_cell_volume vs time-step
-axs[2].plot(time_steps_volume, cell_volume, 'r-', alpha=0.5)
-axs[2].axhline(np.mean(stat_cell_volume), color='r', linestyle='--', label=f'Mean: {np.mean(stat_cell_volume):.2f} +/- {np.std(stat_cell_volume):.2f} Å³')
-axs[2].set_ylabel('Cell Volume (Å³)')
-axs[2].grid()
-axs[2].legend()
-# axs[2].set_ylim(np.min(cell_volume)*axis_low_limit, np.max(cell_volume)*axis_high_limit)
-
-# Panel 4: evo_mean_temp vs time-step
-axs[3].plot(time_steps_temp, mean_temp, 'm-', alpha=0.5)
-axs[3].axhline(np.mean(stat_mean_temp), color='m', linestyle='--', label=f'Mean: {np.mean(stat_mean_temp):.2f} +/- {np.std(stat_mean_temp):.2f} K')
-axs[3].set_xlabel('Time-step')
-axs[3].set_ylabel('Temperature (K)')
-axs[3].legend()
-axs[3].grid()
-# axs[3].set_ylim(np.min(mean_temp)*axis_low_limit, np.max(mean_temp)*axis_high_limit)
-
-# plot title
-plt.suptitle(composition_template.format(ratio=ratio), fontsize=12)
-
-# Improve layout to prevent overlapping labels
-plt.tight_layout()
-# plt.show()
-# Save the figure to a file
-plt.savefig("analysis/plot_evo_data.png", dpi=300)
-
-
-# create a log file with all means
-with open("analysis/log.plot_evo_data", "w") as log_file:
-    log_file.write(f"Mean Total Pressure: {np.mean(stat_total_pressure):.2f} +/- {np.std(stat_total_pressure):.2f} GPa\n")
-    log_file.write(f"Mean External Pressure: {np.mean(stat_external_pressure):.2f} +/- {np.std(stat_external_pressure):.2f} GPa\n")
-    log_file.write(f"Mean Total Energy: {np.mean(stat_total_energy):.2f} +/- {np.std(stat_total_energy):.2f} eV\n")
-    log_file.write(f"Mean Internal Energy: {np.mean(stat_internal_energy):.2f} +/- {np.std(stat_internal_energy):.2f} eV\n")
-    log_file.write(f"Mean Free Energy: {np.mean(stat_free_energy):.2f} +/- {np.std(stat_free_energy):.2f} eV\n")
-    log_file.write(f"Mean Cell Volume: {np.mean(stat_cell_volume):.2f} +/- {np.std(stat_cell_volume):.2f} Å³\n")
-    log_file.write(f"Mean Temperature: {np.mean(stat_mean_temp):.2f} +/- {np.std(stat_mean_temp):.2f} K\n")
-
-EOF
-
-
-
-
-
-
-
-
-
-echo ""
-######################################
-# # if TI_mode=0
-# if [ "$TI_mode" -eq 0 ]; then
-#     echo "Running MSD calculation ..."
-#     # echo "Diffusion calculation deactivated."
-#     # Diffusion calculcation
-#     module purge
-#     source setting_env.sh
-#     cp $MSD_python_file .
-#     python msd_calc_v3.py
-#     module purge
-# else
-#     echo "Diffusion calculation deactivated."
-# fi
-######################################
-echo ""
-rm -f msd_calc_v3.py setting_env.sh
-echo "Diffusion calculation deactivated."
-echo ""
-
-
-
-
-# end=$(date +%s)  # End time in seconds
-# runtime=$((end - start))
-# runtime in proper format
-# run_mins=$((runtime / 60))
-
-echo "################################"
-echo "Done with data_4_analysis.sh for $parent_dir_name"
-# echo "Runtime: $runtime seconds"
-echo "################################"
-echo
-
-module purge
-
-#exit
+run_data_4_analysis_autodetect "$@"
+return_code=$?
+return "$return_code" 2>/dev/null || exit "$return_code"

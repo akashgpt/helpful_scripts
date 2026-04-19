@@ -36,16 +36,7 @@ resolve_helper_script() {
 }
 
 validate_standard_md_outcar() {
-    local pressure_count toten_count internal_energy_count temperature_count mlff_count
-
-    mlff_count=$(grep -c "free  energy ML TOTEN\|MLFF:" "$outcar_path" || true)
-
-    if [[ "$mlff_count" -gt 0 ]]; then
-        echo "Error: $outcar_path looks like an MLFF OUTCAR, not a standard MD OUTCAR."
-        echo "Use the wrapper data_4_analysis.sh or the MLFF-specific analysis script instead of the standard script."
-        echo "Found MLFF markers: mlff_count=$mlff_count"
-        return 1
-    fi
+    local pressure_count toten_count internal_energy_count temperature_count
 
     pressure_count=$(grep -c "total pressure" "$outcar_path" || true)
     toten_count=$(grep -c "free  energy   TOTEN" "$outcar_path" || true)
@@ -64,9 +55,6 @@ validate_standard_md_outcar() {
 resolved_band_summary_script=$(command -v extract_band_occupations.py 2>/dev/null || true)
 if [[ -n "$resolved_band_summary_script" && -f "$resolved_band_summary_script" ]]; then
     band_summary_script="$resolved_band_summary_script"
-fi
-if [[ ! -f "$band_summary_script" ]]; then
-	band_summary_script="/projects/BURROWS/akashgpt/run_scripts/helpful_scripts/qmd/vasp/extract_band_occupations.py"
 fi
 
 if [[ ! -f "$outcar_path" ]]; then
