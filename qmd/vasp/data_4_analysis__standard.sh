@@ -15,6 +15,7 @@ parent_dir_name=$(basename "$parent_dir")
 script_dir=$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)
 outcar_path="${1:-OUTCAR}"
 band_summary_script="${script_dir}/extract_band_occupations.py"
+snapshot_plot_script="${script_dir}/plot_vasp_current_snapshot.py"
 
 resolve_helper_script() {
     local script_name="$1"
@@ -69,6 +70,14 @@ if [[ ! -f "$band_summary_script" ]]; then
 	band_summary_script="/projects/BURROWS/akashgpt/run_scripts/helpful_scripts/qmd/vasp/extract_band_occupations.py"
 fi
 
+resolved_snapshot_plot_script=$(command -v plot_vasp_current_snapshot.py 2>/dev/null || true)
+if [[ -n "$resolved_snapshot_plot_script" && -f "$resolved_snapshot_plot_script" ]]; then
+    snapshot_plot_script="$resolved_snapshot_plot_script"
+fi
+if [[ ! -f "$snapshot_plot_script" ]]; then
+	snapshot_plot_script="/projects/BURROWS/akashgpt/run_scripts/helpful_scripts/qmd/vasp/plot_vasp_current_snapshot.py"
+fi
+
 if [[ ! -f "$outcar_path" ]]; then
     echo "Error: OUTCAR not found: $outcar_path"
     return 1 2>/dev/null || exit 1
@@ -107,6 +116,18 @@ echo "################################"
 echo "Updating data for 'analysis/' ..."
 
 mkdir -p analysis
+
+if [[ -f CONTCAR && -s CONTCAR && -f "$snapshot_plot_script" ]]; then
+    echo "Plotting current CONTCAR snapshot to analysis/current_snapshot.png."
+    python "$snapshot_plot_script" \
+        --structure CONTCAR \
+        --outcar "$outcar_path" \
+        --output analysis/current_snapshot.png \
+        --title "Current CONTCAR snapshot: $parent_dir_name" || \
+        echo "Warning: failed to create analysis/current_snapshot.png"
+else
+    echo "Warning: CONTCAR or snapshot helper missing; skipping current_snapshot.png"
+fi
 
 
 # Count the number of lines matching the two patterns

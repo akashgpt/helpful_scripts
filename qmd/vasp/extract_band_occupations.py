@@ -53,8 +53,7 @@ class BandSummary:
 		zero_occupation_bands: Bands with effectively zero occupation.
 		nonzero_occupation_bands: All bands with occupation greater than zero.
 		negative_energy_occupied_bands: Occupied bands with negative energy.
-		positive_energy_occupied_bands: Occupied bands with positive energy.
-		zero_energy_occupied_bands: Occupied bands with zero energy.
+		non_negative_energy_occupied_bands: Occupied bands with non-negative energy.
 		min_occupied_energy: Minimum energy among occupied bands.
 		max_occupied_energy: Maximum energy among occupied bands.
 		flag_no_nonzero_occupied_bands: Whether no occupied bands were found.
@@ -69,8 +68,7 @@ class BandSummary:
 	zero_occupation_bands: int
 	nonzero_occupation_bands: int
 	negative_energy_occupied_bands: int
-	positive_energy_occupied_bands: int
-	zero_energy_occupied_bands: int
+	non_negative_energy_occupied_bands: int
 	min_occupied_energy: float | None
 	max_occupied_energy: float | None
 	flag_no_nonzero_occupied_bands: bool
@@ -244,8 +242,7 @@ def summarize_records(
 	partial_occupation_bands: int = 0
 	zero_occupation_bands: int = 0
 	negative_energy_occupied_bands: int = 0
-	positive_energy_occupied_bands: int = 0
-	zero_energy_occupied_bands: int = 0
+	non_negative_energy_occupied_bands: int = 0
 	occupied_energies: list[float] = []
 
 	for record in records:
@@ -261,10 +258,8 @@ def summarize_records(
 
 		if record.energy < -ZERO_TOLERANCE:
 			negative_energy_occupied_bands += 1
-		elif record.energy > ZERO_TOLERANCE:
-			positive_energy_occupied_bands += 1
 		else:
-			zero_energy_occupied_bands += 1
+			non_negative_energy_occupied_bands += 1
 
 	nonzero_occupation_bands: int = full_occupation_bands + partial_occupation_bands
 	min_occupied_energy: float | None = None
@@ -283,8 +278,7 @@ def summarize_records(
 		zero_occupation_bands=zero_occupation_bands,
 		nonzero_occupation_bands=nonzero_occupation_bands,
 		negative_energy_occupied_bands=negative_energy_occupied_bands,
-		positive_energy_occupied_bands=positive_energy_occupied_bands,
-		zero_energy_occupied_bands=zero_energy_occupied_bands,
+		non_negative_energy_occupied_bands=non_negative_energy_occupied_bands,
 		min_occupied_energy=min_occupied_energy,
 		max_occupied_energy=max_occupied_energy,
 		flag_no_nonzero_occupied_bands=(nonzero_occupation_bands == 0),
@@ -308,8 +302,7 @@ def write_summary(summary: BandSummary, output_path: Path) -> None:
 		f"zero_occupation_bands={summary.zero_occupation_bands}",
 		f"nonzero_occupation_bands={summary.nonzero_occupation_bands}",
 		f"negative_energy_occupied_bands={summary.negative_energy_occupied_bands}",
-		f"positive_energy_occupied_bands={summary.positive_energy_occupied_bands}",
-		f"zero_energy_occupied_bands={summary.zero_energy_occupied_bands}",
+		f"non_negative_energy_occupied_bands={summary.non_negative_energy_occupied_bands}",
 		(
 			"min_occupied_energy="
 			f"{'nan' if summary.min_occupied_energy is None else f'{summary.min_occupied_energy:.10f}'}"

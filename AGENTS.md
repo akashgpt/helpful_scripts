@@ -50,6 +50,54 @@
 | `PLANET_EVO__main` | `/projects/BURROWS/akashgpt/run_scripts/planet_evo_x_qmd` | `git@github.com:akashgpt/planet_evo_x_qmd.git`    | planet_evo private repo (local clone) |
 | `HELPFUL_SCRIPTS`  | `/projects/BURROWS/akashgpt/run_scripts/helpful_scripts`  | `https://github.com/akashgpt/helpful_scripts.git` | Utility scripts repo                  |
 
+## Cross-cluster SSH Access (Princeton: stellar / tiger / della)
+
+**Hosts & aliases.** `tiger` and `della` are defined as SSH aliases in `~/.ssh/config`. From stellar, commands on the other two clusters run as `ssh tiger '<cmd>'` / `ssh della '<cmd>'`.
+
+**Path invariant (relied on across clusters).**
+- User scratch root: `/scratch/gpfs/BURROWS/akashgpt/` — same absolute path on stellar, tiger, and della.
+- User home: `/home/ag5805/` — same on all three.
+- Paths under scratch/home can therefore be constructed identically regardless of which cluster is the target.
+
+**Data is NOT mirrored.** Identical top-level folder names across clusters do NOT imply identical contents or layout. Always diff before assuming overlap.
+
+**Auth model & the main failure mode.**
+- Princeton enforces DUO 2FA on first connect. A fresh `ssh <host> '<cmd>'` from a script/agent will fail with `Permission denied (keyboard-interactive)` unless a prior interactive session has been authenticated (another terminal) or a ControlMaster socket is active.
+- Recovery: ask the user to run `ssh tiger` / `ssh della` once in another terminal; subsequent non-interactive `ssh <host> '<cmd>'` calls then succeed.
+- If a tiger (or della) hostname changes (e.g. after a cluster rebuild), expect a `REMOTE HOST IDENTIFICATION HAS CHANGED` warning. Do NOT edit `~/.ssh/known_hosts` silently — surface it and let the user decide.
+
+**Recommended `~/.ssh/config` stanza for reusable non-interactive access:**
+```
+Host <alias>
+    User ag5805
+    HostName <fqdn>
+    ControlMaster auto
+    ControlPath ~/.ssh/cm-%r@%h:%p
+    ControlPersist 8h
+```
+After one manual `ssh <alias>` to authenticate, subsequent commands reuse the socket for 8h without re-prompting.
+
+**Inventory / overlap-diff pattern.**
+```bash
+# Dump a listing from each cluster, including remote ones via ssh.
+# %y = file type (d/f/l), %p = path. Use -maxdepth N to control depth.
+DUMP="find <path> -maxdepth 2 -printf '%y %p\n' | LC_ALL=C sort"
+eval "$DUMP"                    > /tmp/inv_stellar.txt
+ssh tiger "$DUMP"               > /tmp/inv_tiger.txt
+ssh della "$DUMP"               > /tmp/inv_della.txt
+
+# Compare (inputs must be LC_ALL=C-sorted).
+comm -12 /tmp/inv_stellar.txt /tmp/inv_tiger.txt   # shared entries
+comm -23 /tmp/inv_stellar.txt /tmp/inv_tiger.txt   # only on stellar
+comm -13 /tmp/inv_stellar.txt /tmp/inv_tiger.txt   # only on tiger
+```
+
+**Quick reachability check (use before driving remote work):**
+```bash
+ssh -o ConnectTimeout=10 <host> 'hostname; id -un' 2>&1 | head -5
+```
+If this hangs or returns the permission-denied message, the session isn't warm — stop and ask the user to authenticate.
+
 ## GitHub Repository Index (`akashgpt`)
 
 Public repositories for `https://github.com/akashgpt` (snapshot generated on `2026-02-22T00:48:31Z` via GitHub API).
