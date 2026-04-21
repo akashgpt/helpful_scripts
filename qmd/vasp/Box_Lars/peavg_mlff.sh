@@ -238,6 +238,11 @@ for index, start in enumerate(step_indices):
 		}
 	)
 
+# The final MLFF block can be partially written or otherwise inconsistent while
+# a run is active, so all downstream MLFF analysis intentionally ignores it.
+if len(rows) > 1:
+	rows = rows[:-1]
+
 data_path = analysis_dir / "mlff_step_data.tsv"
 with data_path.open("w", encoding="utf-8") as handle:
 	handle.write(

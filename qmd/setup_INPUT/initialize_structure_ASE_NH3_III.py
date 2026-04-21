@@ -352,7 +352,7 @@ if __name__ == "__main__":
     # Generate the configured NH3-III supercell and write grouped species outputs.
     atoms = build_nh3_phase_iii_supercell(
         a=4.244,
-        reps=(4, 4, 4),
+        reps=(3, 3, 2),
         # reps=(4, 4, 4),
         bond_length=1.02,
         angle_deg=106.7,

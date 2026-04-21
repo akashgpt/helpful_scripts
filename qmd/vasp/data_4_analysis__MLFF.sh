@@ -43,6 +43,96 @@ resolve_helper_script() {
 	return 1
 }
 
+get_incar_tag_value() {
+	local key="$1"
+
+	if [[ ! -f INCAR ]]; then
+		return 0
+	fi
+
+	awk -v key="$key" '
+		BEGIN {
+			key = toupper(key)
+		}
+		{
+			line = $0
+			sub(/[!#].*$/, "", line)
+			gsub(/^[[:space:]]+|[[:space:]]+$/, "", line)
+			if (line == "") {
+				next
+			}
+
+			if (index(line, "=") > 0) {
+				tag = substr(line, 1, index(line, "=") - 1)
+				value = substr(line, index(line, "=") + 1)
+			} else {
+				tag = $1
+				value = line
+				sub(/^[^[:space:]]+[[:space:]]*/, "", value)
+			}
+
+			gsub(/[[:space:]]+/, "", tag)
+			tag = toupper(tag)
+			if (tag != key) {
+				next
+			}
+
+			gsub(/^[[:space:]]+|[[:space:]]+$/, "", value)
+			print value
+			exit
+		}
+	' INCAR
+}
+
+get_potcar_lexch_value() {
+	if [[ ! -f POTCAR ]]; then
+		return 0
+	fi
+
+	awk -F '=' '
+		/LEXCH/ {
+			value = $2
+			gsub(/^[[:space:]]+|[[:space:]]+$/, "", value)
+			print value
+			exit
+		}
+	' POTCAR
+}
+
+get_exchange_correlation_label() {
+	local gga metagga potcar_lexch
+
+	metagga=$(get_incar_tag_value "METAGGA")
+	if [[ -n "$metagga" ]]; then
+		printf 'METAGGA=%s\n' "$metagga"
+		return 0
+	fi
+
+	gga=$(get_incar_tag_value "GGA")
+	if [[ -n "$gga" ]]; then
+		printf 'GGA=%s\n' "$gga"
+		return 0
+	fi
+
+	potcar_lexch=$(get_potcar_lexch_value)
+	if [[ -n "$potcar_lexch" ]]; then
+		printf 'POTCAR_LEXCH=%s\n' "$potcar_lexch"
+		return 0
+	fi
+
+	printf 'default_from_VASP_or_POTCAR\n'
+}
+
+print_value_or_na() {
+	local value="${1:-}"
+
+	if [[ -n "$value" ]]; then
+		printf '%s\n' "$value"
+	else
+		printf 'NA\n'
+	fi
+}
+
 validate_mlff_outcar() {
 	local ionic_step_count ml_toten_count temperature_count total_pressure_count external_pressure_count kinetic_pressure_count volume_count
 
@@ -185,7 +275,7 @@ def finite_tail(values: np.ndarray, ratio_value: float) -> np.ndarray:
 
 
 def finite_bounds(values: np.ndarray, low_scale: float, high_scale: float):
-	"""Return plot limits for a finite series."""
+	"""Return sign-agnostic plot limits for a finite series."""
 	finite_values = values[np.isfinite(values)]
 	if finite_values.size == 0:
 		return None
@@ -194,7 +284,9 @@ def finite_bounds(values: np.ndarray, low_scale: float, high_scale: float):
 	if math.isclose(minimum, maximum, rel_tol=0.0, abs_tol=1e-12):
 		padding = max(abs(minimum) * 0.05, 1e-6)
 		return minimum - padding, maximum + padding
-	return minimum * low_scale, maximum * high_scale
+	lower_padding = max((1.0 - low_scale) * (maximum - minimum), 1e-12)
+	upper_padding = max((high_scale - 1.0) * (maximum - minimum), 1e-12)
+	return minimum - lower_padding, maximum + upper_padding
 
 
 def plot_series_with_mean(
@@ -398,17 +490,8 @@ sed -n '25p' analysis/peavg_numbers.out >> analysis/peavg_summary.out
 sed -n '10p' analysis/peavg_numbers.out >> analysis/peavg_summary.out
 sed -n '11p' analysis/peavg_numbers.out >> analysis/peavg_summary.out
 
-if [[ -f INCAR ]]; then
-	grep -m 1 ENCUT INCAR | awk '{print $3}' >> analysis/peavg_summary.out
-else
-	echo "NA" >> analysis/peavg_summary.out
-fi
-
-if [[ -f INCAR ]]; then
-	grep -m 1 GGA INCAR | awk '{print $3}' >> analysis/peavg_summary.out
-else
-	echo "NA" >> analysis/peavg_summary.out
-fi
+print_value_or_na "$(get_incar_tag_value "ENCUT")" >> analysis/peavg_summary.out
+get_exchange_correlation_label >> analysis/peavg_summary.out
 
 if [[ -f POTCAR ]]; then
 	grep -m 1 "TITEL" POTCAR | awk '{print $4}' >> analysis/peavg_summary.out

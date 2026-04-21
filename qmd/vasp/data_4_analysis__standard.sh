@@ -16,6 +16,8 @@ script_dir=$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)
 outcar_path="${1:-OUTCAR}"
 band_summary_script="${script_dir}/extract_band_occupations.py"
 snapshot_plot_script="${script_dir}/plot_vasp_current_snapshot.py"
+standard_outcar_is_non_md=0
+last_snapshot_path=""
 
 resolve_helper_script() {
     local script_name="$1"
@@ -37,29 +39,324 @@ resolve_helper_script() {
 }
 
 validate_standard_md_outcar() {
-    local pressure_count toten_count internal_energy_count temperature_count mlff_count
+	local pressure_count toten_count internal_energy_count temperature_count mlff_count
 
-    mlff_count=$(grep -c "free  energy ML TOTEN\|MLFF:" "$outcar_path" || true)
+	standard_outcar_is_non_md=0
 
-    if [[ "$mlff_count" -gt 0 ]]; then
-        echo "Error: $outcar_path looks like an MLFF OUTCAR, not a standard MD OUTCAR."
-        echo "Use the wrapper data_4_analysis.sh or the MLFF-specific analysis script instead of the standard script."
-        echo "Found MLFF markers: mlff_count=$mlff_count"
-        return 1
-    fi
+	mlff_count=$(grep -c "free  energy ML TOTEN\|MLFF:" "$outcar_path" || true)
 
-    pressure_count=$(grep -c "total pressure" "$outcar_path" || true)
-    toten_count=$(grep -c "free  energy   TOTEN" "$outcar_path" || true)
-    internal_energy_count=$(grep -c "energy  without entropy" "$outcar_path" || true)
-    temperature_count=$(grep -c "(temperature" "$outcar_path" || true)
+	if [[ "$mlff_count" -gt 0 ]]; then
+		echo "Error: $outcar_path looks like an MLFF OUTCAR, not a standard MD OUTCAR."
+		echo "Use the wrapper data_4_analysis.sh or the MLFF-specific analysis script instead of the standard script."
+		echo "Found MLFF markers: mlff_count=$mlff_count"
+		return 1
+	fi
 
-    if [[ "$pressure_count" -eq 0 || "$toten_count" -eq 0 || "$internal_energy_count" -eq 0 || "$temperature_count" -eq 0 ]]; then
-        echo "Error: $outcar_path does not look like a standard MD OUTCAR."
-        echo "Expected non-zero counts for 'total pressure', 'free  energy   TOTEN', 'energy  without entropy', and '(temperature)'."
-        echo "Found: total_pressure=$pressure_count, TOTEN=$toten_count, internal_energy=$internal_energy_count, temperature=$temperature_count"
-        echo "If this is a single-point or non-MD OUTCAR, do not run the standard data_4_analysis workflow on it."
-        return 1
-    fi
+	pressure_count=$(grep -c "total pressure" "$outcar_path" || true)
+	toten_count=$(grep -c "free  energy   TOTEN" "$outcar_path" || true)
+	internal_energy_count=$(grep -c "energy  without entropy" "$outcar_path" || true)
+	temperature_count=$(grep -c "(temperature" "$outcar_path" || true)
+
+	if [[ "$pressure_count" -eq 0 || "$toten_count" -eq 0 || "$internal_energy_count" -eq 0 || "$temperature_count" -eq 0 ]]; then
+		standard_outcar_is_non_md=1
+		echo "Notice: $outcar_path does not look like a standard MD OUTCAR."
+		echo "The MD workflow expects non-zero counts for 'total pressure', 'free  energy   TOTEN', 'energy  without entropy', and '(temperature)'."
+		echo "Found: total_pressure=$pressure_count, TOTEN=$toten_count, internal_energy=$internal_energy_count, temperature=$temperature_count"
+		return 1
+	fi
+
+	return 0
+}
+
+select_snapshot_structure() {
+	local structure_path
+
+	for structure_path in CONTCAR POSCAR; do
+		if [[ -f "$structure_path" && -s "$structure_path" ]]; then
+			printf '%s\n' "$structure_path"
+			return 0
+		fi
+	done
+
+	return 1
+}
+
+plot_current_snapshot() {
+	local structure_path
+
+	last_snapshot_path=""
+	if [[ ! -f "$snapshot_plot_script" ]]; then
+		echo "Warning: snapshot helper missing; skipping analysis/current_snapshot.png"
+		return 1
+	fi
+
+	if ! structure_path=$(select_snapshot_structure); then
+		echo "Warning: neither CONTCAR nor POSCAR is available; skipping analysis/current_snapshot.png"
+		return 1
+	fi
+
+	echo "Plotting current $structure_path snapshot to analysis/current_snapshot.png."
+	if python "$snapshot_plot_script" \
+		--structure "$structure_path" \
+		--outcar "$outcar_path" \
+		--output analysis/current_snapshot.png \
+		--title "Current $structure_path snapshot: $parent_dir_name"; then
+		last_snapshot_path="analysis/current_snapshot.png"
+		return 0
+	fi
+
+	echo "Warning: failed to create analysis/current_snapshot.png"
+	return 1
+}
+
+extract_band_summary() {
+	if [[ -f "$band_summary_script" ]]; then
+		if ! grep -aq "band No.  band energies     occupation" "$outcar_path"; then
+			echo "Warning: no band occupation table found in OUTCAR; skipping analysis/band_occupations_summary.out"
+			return 1
+		fi
+
+		echo "Extracting occupied-band summary from OUTCAR."
+		if python "$band_summary_script" \
+			--outcar "$outcar_path" \
+			--output analysis/band_occupations_summary.out \
+			--selection second_last; then
+			if grep -q '^flag_no_nonzero_occupied_bands=yes$' analysis/band_occupations_summary.out; then
+				echo "Warning: no non-zero occupied bands were found in the selected band table."
+			fi
+			return 0
+		fi
+		echo "Warning: failed to create analysis/band_occupations_summary.out"
+		return 1
+	fi
+
+	echo "Warning: band summary helper not found: $band_summary_script"
+	return 1
+}
+
+get_last_outcar_field() {
+	local pattern="$1"
+	local field_number="$2"
+
+	grep -a "$pattern" "$outcar_path" | tail -n 1 | awk -v field_number="$field_number" '{print $field_number}'
+}
+
+get_incar_tag_value() {
+	local key="$1"
+
+	if [[ ! -f INCAR ]]; then
+		return 0
+	fi
+
+	awk -v key="$key" '
+		BEGIN {
+			key = toupper(key)
+		}
+		{
+			line = $0
+			sub(/[!#].*$/, "", line)
+			gsub(/^[[:space:]]+|[[:space:]]+$/, "", line)
+			if (line == "") {
+				next
+			}
+
+			if (index(line, "=") > 0) {
+				tag = substr(line, 1, index(line, "=") - 1)
+				value = substr(line, index(line, "=") + 1)
+			} else {
+				tag = $1
+				value = line
+				sub(/^[^[:space:]]+[[:space:]]*/, "", value)
+			}
+
+			gsub(/[[:space:]]+/, "", tag)
+			tag = toupper(tag)
+			if (tag != key) {
+				next
+			}
+
+			gsub(/^[[:space:]]+|[[:space:]]+$/, "", value)
+			print value
+			exit
+		}
+	' INCAR
+}
+
+get_potcar_lexch_value() {
+	if [[ ! -f POTCAR ]]; then
+		return 0
+	fi
+
+	awk -F '=' '
+		/LEXCH/ {
+			value = $2
+			gsub(/^[[:space:]]+|[[:space:]]+$/, "", value)
+			print value
+			exit
+		}
+	' POTCAR
+}
+
+get_exchange_correlation_label() {
+	local gga metagga potcar_lexch
+
+	metagga=$(get_incar_tag_value "METAGGA")
+	if [[ -n "$metagga" ]]; then
+		printf 'METAGGA=%s\n' "$metagga"
+		return 0
+	fi
+
+	gga=$(get_incar_tag_value "GGA")
+	if [[ -n "$gga" ]]; then
+		printf 'GGA=%s\n' "$gga"
+		return 0
+	fi
+
+	potcar_lexch=$(get_potcar_lexch_value)
+	if [[ -n "$potcar_lexch" ]]; then
+		printf 'POTCAR_LEXCH=%s\n' "$potcar_lexch"
+		return 0
+	fi
+
+	printf 'default_from_VASP_or_POTCAR\n'
+}
+
+get_potcar_species_summary() {
+	if [[ ! -f POTCAR ]]; then
+		return 0
+	fi
+
+	grep -a "TITEL" POTCAR | awk '{print $4}' | paste -sd "," -
+}
+
+get_nions_from_outcar() {
+	grep -a -m 1 "NIONS" "$outcar_path" | awk '
+		{
+			for (i = 1; i <= NF; i++) {
+				if ($i == "NIONS") {
+					for (j = i + 1; j <= NF; j++) {
+						if ($j ~ /^[0-9]+$/) {
+							print $j
+							exit
+						}
+					}
+				}
+			}
+		}
+	'
+}
+
+write_summary_key_value() {
+	local key="$1"
+	local value="${2:-}"
+
+	if [[ -z "$value" ]]; then
+		value="NA"
+	fi
+	printf '%s=%s\n' "$key" "$value" >> analysis/single_point_summary.out
+}
+
+print_value_or_na() {
+	local value="${1:-}"
+
+	if [[ -n "$value" ]]; then
+		printf '%s\n' "$value"
+	else
+		printf 'NA\n'
+	fi
+}
+
+write_single_point_evo_files() {
+	local value
+
+	value=$(get_last_outcar_field "free  energy   TOTEN" 5)
+	if [[ -n "$value" ]]; then
+		printf '%s\n' "$value" > analysis/evo_TOTEN.dat
+		cp analysis/evo_TOTEN.dat analysis/evo_free_energy.dat
+	fi
+
+	value=$(get_last_outcar_field "energy  without entropy" 4)
+	if [[ -n "$value" ]]; then
+		printf '%s\n' "$value" > analysis/evo_internal_energy.dat
+	fi
+
+	value=$(get_last_outcar_field "ETOTAL" 5)
+	if [[ -n "$value" ]]; then
+		printf '%s\n' "$value" > analysis/evo_total_energy.dat
+	fi
+
+	value=$(get_last_outcar_field "volume of cell :" 5)
+	if [[ -n "$value" ]]; then
+		printf '%s\n' "$value" > analysis/evo_cell_volume.dat
+	fi
+
+	value=$(get_last_outcar_field "total pressure" 4)
+	if [[ -n "$value" ]]; then
+		printf '%s\n' "$value" > analysis/evo_total_pressure.dat
+	fi
+
+	value=$(get_last_outcar_field "external" 4)
+	if [[ -n "$value" ]]; then
+		printf '%s\n' "$value" > analysis/evo_external_pressure.dat
+	fi
+}
+
+write_single_point_summary() {
+	local electronic_converged elapsed_time_seconds potcar_species vasp_completed
+
+	if grep -aq "aborting loop because EDIFF is reached\|reached required accuracy" "$outcar_path"; then
+		electronic_converged="yes"
+	else
+		electronic_converged="unknown"
+	fi
+
+	if grep -aq "General timing and accounting" "$outcar_path"; then
+		vasp_completed="yes"
+	else
+		vasp_completed="no"
+	fi
+
+	elapsed_time_seconds=$(grep -a "Elapsed time" "$outcar_path" | tail -n 1 | awk '{print $NF}')
+	potcar_species=$(get_potcar_species_summary)
+
+	: > analysis/single_point_summary.out
+	write_summary_key_value "run_directory" "$parent_dir"
+	write_summary_key_value "outcar_path" "$outcar_path"
+	write_summary_key_value "analysis_mode" "single_point_or_non_md"
+	write_summary_key_value "snapshot_png" "$last_snapshot_path"
+	write_summary_key_value "TOTEN_eV" "$(get_last_outcar_field "free  energy   TOTEN" 5)"
+	write_summary_key_value "energy_without_entropy_eV" "$(get_last_outcar_field "energy  without entropy" 4)"
+	write_summary_key_value "ETOTAL_eV" "$(get_last_outcar_field "ETOTAL" 5)"
+	write_summary_key_value "cell_volume_A3" "$(get_last_outcar_field "volume of cell :" 5)"
+	write_summary_key_value "total_pressure_kB" "$(get_last_outcar_field "total pressure" 4)"
+	write_summary_key_value "external_pressure_kB" "$(get_last_outcar_field "external" 4)"
+	write_summary_key_value "NIONS" "$(get_nions_from_outcar)"
+	write_summary_key_value "ENCUT_eV" "$(get_incar_tag_value "ENCUT")"
+	write_summary_key_value "exchange_correlation" "$(get_exchange_correlation_label)"
+	write_summary_key_value "POTCAR_species" "$potcar_species"
+	write_summary_key_value "electronic_converged" "$electronic_converged"
+	write_summary_key_value "vasp_completed" "$vasp_completed"
+	write_summary_key_value "elapsed_time_seconds" "$elapsed_time_seconds"
+}
+
+run_non_md_analysis_fallback() {
+	echo "Running lightweight single-point/non-MD analysis for $parent_dir_name."
+	echo "Skipping MD-only averaging and evolution plotting."
+	mkdir -p analysis
+
+	plot_current_snapshot || true
+	write_single_point_evo_files
+	write_single_point_summary
+	extract_band_summary || true
+
+	if [[ -f analysis/band_occupations_summary.out ]]; then
+		printf '\n# band_occupations_summary.out\n' >> analysis/single_point_summary.out
+		cat analysis/band_occupations_summary.out >> analysis/single_point_summary.out
+	fi
+
+	echo "Wrote analysis/single_point_summary.out"
+	echo "Done with lightweight single-point/non-MD analysis for $parent_dir_name."
+	return 0
 }
 
 resolved_band_summary_script=$(command -v extract_band_occupations.py 2>/dev/null || true)
@@ -83,13 +380,18 @@ if [[ ! -f "$outcar_path" ]]; then
     return 1 2>/dev/null || exit 1
 fi
 
-if ! peavg_script=$(resolve_helper_script "peavg.sh"); then
-    echo "Error: peavg.sh not found beside this script or on PATH."
-    return 1 2>/dev/null || exit 1
+if ! validate_standard_md_outcar; then
+	if [[ "$standard_outcar_is_non_md" -eq 1 ]]; then
+		run_non_md_analysis_fallback
+		return_code=$?
+		return "$return_code" 2>/dev/null || exit "$return_code"
+	fi
+	return 1 2>/dev/null || exit 1
 fi
 
-if ! validate_standard_md_outcar; then
-    return 1 2>/dev/null || exit 1
+if ! peavg_script=$(resolve_helper_script "peavg.sh"); then
+	echo "Error: peavg.sh not found beside this script or on PATH."
+	return 1 2>/dev/null || exit 1
 fi
 
 
@@ -117,17 +419,7 @@ echo "Updating data for 'analysis/' ..."
 
 mkdir -p analysis
 
-if [[ -f CONTCAR && -s CONTCAR && -f "$snapshot_plot_script" ]]; then
-    echo "Plotting current CONTCAR snapshot to analysis/current_snapshot.png."
-    python "$snapshot_plot_script" \
-        --structure CONTCAR \
-        --outcar "$outcar_path" \
-        --output analysis/current_snapshot.png \
-        --title "Current CONTCAR snapshot: $parent_dir_name" || \
-        echo "Warning: failed to create analysis/current_snapshot.png"
-else
-    echo "Warning: CONTCAR or snapshot helper missing; skipping current_snapshot.png"
-fi
+plot_current_snapshot || true
 
 
 # Count the number of lines matching the two patterns
@@ -181,18 +473,7 @@ cp analysis/evo_TOTEN.dat analysis/evo_free_energy.dat # for backward compatibil
 echo "Running peavg.sh using: $peavg_script"
 bash "$peavg_script" "$outcar_path"
 
-if [[ -f "$band_summary_script" ]]; then
-	echo "Extracting occupied-band summary from OUTCAR."
-	python "$band_summary_script" \
-        --outcar "$outcar_path" \
-		--output analysis/band_occupations_summary.out \
-		--selection second_last
-	if grep -q '^flag_no_nonzero_occupied_bands=yes$' analysis/band_occupations_summary.out; then
-		echo "Warning: no non-zero occupied bands were found in the selected band table."
-	fi
-else
-	echo "Warning: band summary helper not found: $band_summary_script"
-fi
+extract_band_summary || true
 
 
 
@@ -206,8 +487,8 @@ sed -n '24p' $parent_dir/analysis/peavg_numbers.out >> analysis/peavg_summary.ou
 sed -n '25p' $parent_dir/analysis/peavg_numbers.out >> analysis/peavg_summary.out #Pressure error
 sed -n '10p' $parent_dir/analysis/peavg_numbers.out >> analysis/peavg_summary.out #Internal energy
 sed -n '11p' $parent_dir/analysis/peavg_numbers.out >> analysis/peavg_summary.out #Internal energy error
-grep ENCUT $parent_dir/INCAR | awk '{print $3}' >> analysis/peavg_summary.out #ENCUT
-grep GGA $parent_dir/INCAR | awk '{print $3}' >> analysis/peavg_summary.out #XC
+print_value_or_na "$(get_incar_tag_value "ENCUT")" >> analysis/peavg_summary.out #ENCUT
+get_exchange_correlation_label >> analysis/peavg_summary.out #XC
 grep "TITEL" $parent_dir/POTCAR | awk '{print $4}' >> analysis/peavg_summary.out #POTCAR 
 grep "free  energy   TOTEN" "$outcar_path" | tail -n 1 | awk '{print $5}' >> analysis/peavg_summary.out #last free energy TOTEN value -- the only value for single point calculations
 sed -n '16p' $parent_dir/analysis/peavg_numbers.out >> analysis/peavg_summary.out #E-TS_el

@@ -13,6 +13,7 @@ statistics.
 Usage examples:
     Basic summary for a DIR_X directory:
         python3 $HELP_SCRIPTS_vasp/outcar_elapsed_stats.py DIR_X --last-per-file
+        python3 $HELP_SCRIPTS_vasp/outcar_elapsed_stats.py .
 
     Use a wider tail window and print the slowest runs:
         python3 $HELP_SCRIPTS_vasp/outcar_elapsed_stats.py DIR_X --tail-lines 30 --last-per-file --show-slowest 10
@@ -29,8 +30,8 @@ import statistics
 import sys
 from concurrent.futures import ProcessPoolExecutor
 from pathlib import Path
-from typing import Dict, Iterator, List, NamedTuple, Optional, Sequence, Tuple, Union
-
+from typing import (Dict, Iterator, List, NamedTuple, Optional, Sequence,
+                    Tuple, Union)
 
 ELAPSED_PATTERN = re.compile(r"Elapsed time \(sec\):\s*([0-9]+(?:\.[0-9]+)?)")
 USAGE_EXAMPLES = """Examples:
