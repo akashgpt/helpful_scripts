@@ -1,0 +1,108 @@
+# =============================================================================
+# VASP 6.6.0 GPU makefile.include — NCSA Delta RH9
+# =============================================================================
+# Target hardware : NVIDIA A100 on Delta GPU nodes (cc80)
+# Compiler stack  : NVHPC 25.3 + HPC-X OpenMPI (CUDA-aware, CUDA 12.8)
+# Math libs       : Intel oneAPI MKL 2024.2.2
+# HDF5            : disabled
+#
+# This file follows the working Princeton GPU configuration style, but swaps in
+# the module stack that is actually available on Delta RH9.
+#
+# Recommended module baseline before building AND running:
+#	module reset
+#	module load nvhpc-hpcx-cuda12/25.3 intel-oneapi-mkl/2024.2.2
+#
+# Runtime note:
+#	ulimit -s unlimited
+# =============================================================================
+
+CPP_OPTIONS = -DHOST=\"LinuxNV\" \
+	-DMPI -DMPI_INPLACE -DMPI_BLOCK=8000 -Duse_collective \
+	-DscaLAPACK \
+	-DCACHE_SIZE=4000 \
+	-Davoidalloc \
+	-Dvasp6 \
+	-Dtbdyn \
+	-Dqd_emulate \
+	-Dfock_dblbuf \
+	-D_OPENMP \
+	-DACC_OFFLOAD \
+	-DNVCUDA \
+	-DUSENCCL
+
+CPP         = nvfortran -Mpreprocess -Mfree -Mextend -E $(CPP_OPTIONS) $*$(FUFFIX) > $*$(SUFFIX)
+
+# Delta A100 nodes use compute capability 8.0 and CUDA 12.8 in the local
+# NVHPC 25.3 installation.
+GPU        ?= -gpu=cc80,cuda12.8
+
+# Delta GPU nodes are AMD Milan (Zen 3). Keep the target explicit so the build
+# stays aligned with the node architecture instead of the login-node default.
+VASP_TARGET_CPU ?= -tp zen3
+
+CC          = mpicc  -mp -acc $(GPU) $(VASP_TARGET_CPU)
+FC          = mpif90 -mp -acc $(GPU) $(VASP_TARGET_CPU)
+FCL         = mpif90 -mp -acc $(GPU) $(VASP_TARGET_CPU) -c++libs
+
+FREE        = -Mfree
+FFLAGS      = -Mbackslash -Mlarge_arrays
+
+# Avoid -fast because it may silently change the target CPU.
+OFLAG       = -O2 -Munroll -Mlre -Mvect=simd $(VASP_TARGET_CPU)
+OFLAG_IN    = -O2 -Munroll -Mlre -Mvect=simd -Mwarperf $(VASP_TARGET_CPU)
+SOURCE_IN  := nonlr.o
+
+DEBUG       = -Mfree -O0 -traceback
+
+LLIBS       = -cudalib=cublas,cusolver,cufft,nccl -cuda
+
+SOURCE_O1  := pade_fit.o minimax_dependence.o wave_window.o
+SOURCE_O2  := pead.o
+
+CPP_LIB     = $(CPP)
+FC_LIB      = $(FC)
+CC_LIB      = $(CC)
+CFLAGS_LIB  = -O -w $(VASP_TARGET_CPU)
+FFLAGS_LIB  = -O1 -Mfixed $(VASP_TARGET_CPU)
+FREE_LIB    = $(FREE)
+
+OBJECTS_LIB = linpack_double.o
+
+CXX_PARS    = nvc++ --no_warnings $(VASP_TARGET_CPU)
+
+NVROOT      = $(shell which nvfortran | awk -F /compilers/bin/nvfortran '{ print $$1 }')
+
+QD         ?= $(NVROOT)/compilers/extras/qd
+LLIBS      += -L$(QD)/lib -lqdmod -lqd
+INCS       += -I$(QD)/include/qd
+
+# The Delta MKL module exports MKLROOT. Keep the module path as a fallback so
+# the build stays reproducible if MKLROOT is unset in a batch environment.
+MKLROOT    ?= /sw/rh9.4/spack/v1.0.0/sw/linux-x86_64_v2/intel-oneapi-mkl-2024.2.2-gkokslc/mkl/2024.2
+LLIBS_MKL   = -L$(MKLROOT)/lib/intel64 -lmkl_scalapack_lp64 -lmkl_blacs_openmpi_lp64 -Mmkl
+
+LLIBS      += $(LLIBS_MKL)
+INCS       += -I$(MKLROOT)/include/fftw
+
+# Optional interfaces
+#CPP_OPTIONS+= -DVASP_HDF5
+#HDF5_ROOT  ?= /path/to/your/hdf5/installation
+#LLIBS      += -L$(HDF5_ROOT)/lib -lhdf5_fortran
+#INCS       += -I$(HDF5_ROOT)/include
+
+#CPP_OPTIONS+= -DCUSOLVERMP -DCUBLASMP
+#LLIBS      += -cudalib=cusolvermp,cublasmp -lnvhpcwrapcal
+
+#CPP_OPTIONS    += -DVASP2WANNIER90
+#WANNIER90_ROOT ?= /path/to/your/wannier90/installation
+#LLIBS          += -L$(WANNIER90_ROOT)/lib -lwannier
+
+NVFORTRAN_VERSION := $(shell nvfortran --version | sed -n '2s/^nvfortran \([0-9.]*\).*/\1/p')
+define greater_or_equal
+$(shell printf '%s\n%s\n' '$(1)' '$(2)' | sort -V | head -n1 | grep -q '$(2)' && echo true || echo false)
+endef
+ifeq ($(call greater_or_equal,$(NVFORTRAN_VERSION),25.1),true)
+	CC += -gpu=tripcount:host
+	FC += -gpu=tripcount:host
+endif

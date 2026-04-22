@@ -1,0 +1,772 @@
+WARNING: All log messages before absl::InitializeLog() is called are written to STDERR
+I0000 00:00:1775343188.357330 3598798 cpu_feature_guard.cc:227] This TensorFlow binary is optimized to use available CPU instructions in performance-critical operations.
+To enable the following instructions: AVX2 FMA, in other operations, rebuild TensorFlow with the appropriate compiler flags.
+To get the best performance, it is recommended to adjust the number of threads by setting the environment variables OMP_NUM_THREADS, DP_INTRA_OP_PARALLELISM_THREADS, and DP_INTER_OP_PARALLELISM_THREADS. See https://deepmd.rtfd.io/parallelism/ for more information.
+Switch to serial execution due to lack of horovod module.
+/opt/deepmd-kit/lib/python3.11/site-packages/deepmd/utils/argcheck.py:95: FutureWarning: set_prefix has been removed and takes no effect.
+  warnings.warn(f"{key} has been removed and takes no effect.", FutureWarning)
+[2026-04-04 17:53:16,237] DEEPMD INFO     _____               _____   __  __  _____           _     _  _   
+[2026-04-04 17:53:16,237] DEEPMD INFO    |  __ \             |  __ \ |  \/  ||  __ \         | |   (_)| |  
+[2026-04-04 17:53:16,237] DEEPMD INFO    | |  | |  ___   ___ | |__) || \  / || |  | | ______ | | __ _ | |_ 
+[2026-04-04 17:53:16,237] DEEPMD INFO    | |  | | / _ \ / _ \|  ___/ | |\/| || |  | ||______|| |/ /| || __|
+[2026-04-04 17:53:16,237] DEEPMD INFO    | |__| ||  __/|  __/| |     | |  | || |__| |        |   < | || |_ 
+[2026-04-04 17:53:16,237] DEEPMD INFO    |_____/  \___| \___||_|     |_|  |_||_____/         |_|\_\|_| \__|
+[2026-04-04 17:53:16,238] DEEPMD INFO    Please read and cite:
+[2026-04-04 17:53:16,238] DEEPMD INFO    Wang, Zhang, Han and E, Comput.Phys.Comm. 228, 178-184 (2018)
+[2026-04-04 17:53:16,238] DEEPMD INFO    Zeng et al, J. Chem. Phys., 159, 054801 (2023)
+[2026-04-04 17:53:16,238] DEEPMD INFO    Zeng et al, J. Chem. Theory Comput., 21, 4375-4385 (2025)
+[2026-04-04 17:53:16,238] DEEPMD INFO    See https://deepmd.rtfd.io/credits/ for details.
+[2026-04-04 17:53:16,238] DEEPMD INFO    ----------------------------------------------------------------------------------------------
+[2026-04-04 17:53:16,238] DEEPMD INFO    Installed to:         /opt/deepmd-kit/lib/python3.11/site-packages/deepmd
+[2026-04-04 17:53:16,238] DEEPMD INFO    Source:               v3.1.3
+[2026-04-04 17:53:16,238] DEEPMD INFO    Source Branch:        HEAD
+[2026-04-04 17:53:16,238] DEEPMD INFO    Source Commit:        b2c8511e
+[2026-04-04 17:53:16,239] DEEPMD INFO    Source Commit at:     2026-03-18 14:20:41 +0000
+[2026-04-04 17:53:16,239] DEEPMD INFO    Float Precision:      Double
+[2026-04-04 17:53:16,239] DEEPMD INFO    Build Variant:        CUDA
+[2026-04-04 17:53:16,239] DEEPMD INFO    Backend:              TensorFlow
+[2026-04-04 17:53:16,239] DEEPMD INFO    TF Ver:               v2.21.0-rc1-5-ga481b10260d
+[2026-04-04 17:53:16,239] DEEPMD INFO    Built with TF Ver:    2.21.0
+[2026-04-04 17:53:16,239] DEEPMD INFO    Built with TF Inc:    /tmp/build-env-wnfrgr6r/lib/python3.11/site-packages/tensorflow/include/
+[2026-04-04 17:53:16,239] DEEPMD INFO                          /tmp/build-env-wnfrgr6r/lib/python3.11/site-packages/tensorflow/include/
+[2026-04-04 17:53:16,239] DEEPMD INFO    Built with TF Lib:    /tmp/build-env-wnfrgr6r/lib/python3.11/site-packages/tensorflow
+[2026-04-04 17:53:16,240] DEEPMD INFO    Running on:           gpub053.delta.ncsa.illinois.edu
+[2026-04-04 17:53:16,240] DEEPMD INFO    Computing Device:     CPU:0
+[2026-04-04 17:53:16,240] DEEPMD INFO    Device Name:          NVIDIA A40
+[2026-04-04 17:53:16,240] DEEPMD INFO    CUDA_VISIBLE_DEVICES: 0
+[2026-04-04 17:53:16,240] DEEPMD INFO    Visible GPU Count:    0
+[2026-04-04 17:53:16,240] DEEPMD INFO    Num Intra Threads:    0
+[2026-04-04 17:53:16,240] DEEPMD INFO    Num Inter Threads:    0
+[2026-04-04 17:53:16,240] DEEPMD INFO    ----------------------------------------------------------------------------------------------
+I0000 00:00:1775343196.354299 3598798 gpu_device.cc:2043] Created device /job:localhost/replica:0/task:0/device:GPU:0 with 43694 MB memory:  -> device: 0, name: NVIDIA A40, pci bus id: 0000:85:00.0, compute capability: 8.6
+[2026-04-04 17:53:23,924] DEEPMD INFO    ---Summary of DataSystem: Training     -----------------------------------------------
+[2026-04-04 17:53:23,924] DEEPMD INFO    Found 627 System(s):
+[2026-04-04 17:53:23,924] DEEPMD INFO                                        system  natoms  bch_sz   n_bch       prob  pbc
+[2026-04-04 17:53:23,924] DEEPMD INFO    -- _1/0H2_32NH3/pre/recal/set_train/deepmd     128       1       3  2.207e-04    T
+[2026-04-04 17:53:23,924] DEEPMD INFO    -- 2/40H2_40NH3/pre/recal/set_train/deepmd     240       1       3  2.207e-04    T
+[2026-04-04 17:53:23,925] DEEPMD INFO    -- 1/40H2_40NH3/pre/recal/set_train/deepmd     240       1       3  2.207e-04    T
+[2026-04-04 17:53:23,925] DEEPMD INFO    -- 2/40H2_40NH3/pre/recal/set_train/deepmd     240       1       3  2.207e-04    T
+[2026-04-04 17:53:23,925] DEEPMD INFO    -- 1/40H2_40NH3/pre/recal/set_train/deepmd     240       1       3  2.207e-04    T
+[2026-04-04 17:53:23,925] DEEPMD INFO    -- _1/0H2_32NH3/pre/recal/set_train/deepmd     128       1       3  2.207e-04    T
+[2026-04-04 17:53:23,925] DEEPMD INFO    -- 2/40H2_40NH3/pre/recal/set_train/deepmd     240       1       3  2.207e-04    T
+[2026-04-04 17:53:23,925] DEEPMD INFO    -- 1/40H2_40NH3/pre/recal/set_train/deepmd     240       1       3  2.207e-04    T
+[2026-04-04 17:53:23,925] DEEPMD INFO    -- _1/0H2_32NH3/pre/recal/set_train/deepmd     128       1       3  2.207e-04    T
+[2026-04-04 17:53:23,925] DEEPMD INFO    -- 2/40H2_40NH3/pre/recal/set_train/deepmd     240       1       3  2.207e-04    T
+[2026-04-04 17:53:23,925] DEEPMD INFO    -- 1/40H2_40NH3/pre/recal/set_train/deepmd     240       1       3  2.207e-04    T
+[2026-04-04 17:53:23,926] DEEPMD INFO    -- _1/0H2_32NH3/pre/recal/set_train/deepmd     128       1       3  2.207e-04    T
+[2026-04-04 17:53:23,926] DEEPMD INFO    -- 2/40H2_40NH3/pre/recal/set_train/deepmd     240       1       3  2.207e-04    T
+[2026-04-04 17:53:23,926] DEEPMD INFO    -- _1/0H2_32NH3/pre/recal/set_train/deepmd     128       1       2  1.472e-04    T
+[2026-04-04 17:53:23,926] DEEPMD INFO    -- 1/40H2_40NH3/pre/recal/set_train/deepmd     240       1       3  2.207e-04    T
+[2026-04-04 17:53:23,926] DEEPMD INFO    -- _1/0H2_32NH3/pre/recal/set_train/deepmd     128       1       2  1.472e-04    T
+[2026-04-04 17:53:23,926] DEEPMD INFO    -- 1/40H2_40NH3/pre/recal/set_train/deepmd     240       1       3  2.207e-04    T
+[2026-04-04 17:53:23,926] DEEPMD INFO    -- 2/40H2_40NH3/pre/recal/set_train/deepmd     240       1       3  2.207e-04    T
+[2026-04-04 17:53:23,926] DEEPMD INFO    -- _1/0H2_32NH3/pre/recal/set_train/deepmd     128       1       2  1.472e-04    T
+[2026-04-04 17:53:23,926] DEEPMD INFO    -- 1/40H2_40NH3/pre/recal/set_train/deepmd     240       1       3  2.207e-04    T
+[2026-04-04 17:53:23,927] DEEPMD INFO    -- 2/40H2_40NH3/pre/recal/set_train/deepmd     240       1       3  2.207e-04    T
+[2026-04-04 17:53:23,927] DEEPMD INFO    -- _2/0H2_32NH3/pre/recal/set_train/deepmd     128       1       3  2.207e-04    T
+[2026-04-04 17:53:23,927] DEEPMD INFO    -- 2/40H2_40NH3/pre/recal/set_train/deepmd     240       1       3  2.207e-04    T
+[2026-04-04 17:53:23,927] DEEPMD INFO    -- _1/0H2_32NH3/pre/recal/set_train/deepmd     128       1       2  1.472e-04    T
+[2026-04-04 17:53:23,927] DEEPMD INFO    -- 1/40H2_40NH3/pre/recal/set_train/deepmd     240       1       3  2.207e-04    T
+[2026-04-04 17:53:23,927] DEEPMD INFO    -- _1/0H2_32NH3/pre/recal/set_train/deepmd     128       1       2  1.472e-04    T
+[2026-04-04 17:53:23,927] DEEPMD INFO    -- _2/0H2_32NH3/pre/recal/set_train/deepmd     128       1       3  2.207e-04    T
+[2026-04-04 17:53:23,927] DEEPMD INFO    -- 1/40H2_40NH3/pre/recal/set_train/deepmd     240       1       3  2.207e-04    T
+[2026-04-04 17:53:23,927] DEEPMD INFO    -- 2/40H2_40NH3/pre/recal/set_train/deepmd     240       1       3  2.207e-04    T
+[2026-04-04 17:53:23,928] DEEPMD INFO    -- 1/40H2_40NH3/pre/recal/set_train/deepmd     240       1      20  1.472e-03    T
+[2026-04-04 17:53:23,928] DEEPMD INFO    -- 1/72H2_24NH3/pre/recal/set_train/deepmd     240       1      16  1.177e-03    T
+[2026-04-04 17:53:23,928] DEEPMD INFO    -- _1/6H2_54NH3/pre/recal/set_train/deepmd     228       1      29  2.134e-03    T
+[2026-04-04 17:53:23,928] DEEPMD INFO    -- 1/17H2_51NH3/pre/recal/set_train/deepmd     238       1      30  2.207e-03    T
+[2026-04-04 17:53:23,928] DEEPMD INFO    -- 1/90H2_10NH3/pre/recal/set_train/deepmd     220       1      17  1.251e-03    T
+[2026-04-04 17:53:23,928] DEEPMD INFO    -- 2/17H2_51NH3/pre/recal/set_train/deepmd     238       1      29  2.134e-03    T
+[2026-04-04 17:53:23,928] DEEPMD INFO    -- 2/40H2_40NH3/pre/recal/set_train/deepmd     240       1      27  1.987e-03    T
+[2026-04-04 17:53:23,928] DEEPMD INFO    -- 2/72H2_24NH3/pre/recal/set_train/deepmd     240       1      21  1.545e-03    T
+[2026-04-04 17:53:23,928] DEEPMD INFO    -- 2/90H2_10NH3/pre/recal/set_train/deepmd     220       1      20  1.472e-03    T
+[2026-04-04 17:53:23,928] DEEPMD INFO    -- 3/40H2_40NH3/pre/recal/set_train/deepmd     240       1      28  2.060e-03    T
+[2026-04-04 17:53:23,929] DEEPMD INFO    -- _3/6H2_54NH3/pre/recal/set_train/deepmd     228       1      24  1.766e-03    T
+[2026-04-04 17:53:23,929] DEEPMD INFO    -- 3/72H2_24NH3/pre/recal/set_train/deepmd     240       1      29  2.134e-03    T
+[2026-04-04 17:53:23,929] DEEPMD INFO    -- 3/90H2_10NH3/pre/recal/set_train/deepmd     220       1      23  1.692e-03    T
+[2026-04-04 17:53:23,929] DEEPMD INFO    -- 4/17H2_51NH3/pre/recal/set_train/deepmd     238       1      19  1.398e-03    T
+[2026-04-04 17:53:23,929] DEEPMD INFO    -- 4/40H2_40NH3/pre/recal/set_train/deepmd     240       1      17  1.251e-03    T
+[2026-04-04 17:53:23,929] DEEPMD INFO    -- _4/6H2_54NH3/pre/recal/set_train/deepmd     228       1      16  1.177e-03    T
+[2026-04-04 17:53:23,929] DEEPMD INFO    -- 4/90H2_10NH3/pre/recal/set_train/deepmd     220       1       9  6.622e-04    T
+[2026-04-04 17:53:23,929] DEEPMD INFO    -- 5/17H2_51NH3/pre/recal/set_train/deepmd     238       1       4  2.943e-04    T
+[2026-04-04 17:53:23,929] DEEPMD INFO    -- 5/40H2_40NH3/pre/recal/set_train/deepmd     240       1       4  2.943e-04    T
+[2026-04-04 17:53:23,930] DEEPMD INFO    -- _5/6H2_54NH3/pre/recal/set_train/deepmd     228       1       6  4.415e-04    T
+[2026-04-04 17:53:23,930] DEEPMD INFO    -- 5/72H2_24NH3/pre/recal/set_train/deepmd     240       1       6  4.415e-04    T
+[2026-04-04 17:53:23,930] DEEPMD INFO    -- 1/17H2_51NH3/pre/recal/set_train/deepmd     238       1      22  1.619e-03    T
+[2026-04-04 17:53:23,930] DEEPMD INFO    -- _1/6H2_54NH3/pre/recal/set_train/deepmd     228       1      30  2.207e-03    T
+[2026-04-04 17:53:23,930] DEEPMD INFO    -- 1/40H2_40NH3/pre/recal/set_train/deepmd     240       1      17  1.251e-03    T
+[2026-04-04 17:53:23,930] DEEPMD INFO    -- 1/72H2_24NH3/pre/recal/set_train/deepmd     240       1      12  8.829e-04    T
+[2026-04-04 17:53:23,930] DEEPMD INFO    -- 1/90H2_10NH3/pre/recal/set_train/deepmd     220       1      12  8.829e-04    T
+[2026-04-04 17:53:23,930] DEEPMD INFO    -- 2/17H2_51NH3/pre/recal/set_train/deepmd     238       1      28  2.060e-03    T
+[2026-04-04 17:53:23,930] DEEPMD INFO    -- _2/6H2_54NH3/pre/recal/set_train/deepmd     228       1      30  2.207e-03    T
+[2026-04-04 17:53:23,931] DEEPMD INFO    -- 2/40H2_40NH3/pre/recal/set_train/deepmd     240       1      19  1.398e-03    T
+[2026-04-04 17:53:23,931] DEEPMD INFO    -- 2/72H2_24NH3/pre/recal/set_train/deepmd     240       1      11  8.094e-04    T
+[2026-04-04 17:53:23,931] DEEPMD INFO    -- 3/40H2_40NH3/pre/recal/set_train/deepmd     240       1      28  2.060e-03    T
+[2026-04-04 17:53:23,931] DEEPMD INFO    -- 2/90H2_10NH3/pre/recal/set_train/deepmd     220       1      14  1.030e-03    T
+[2026-04-04 17:53:23,931] DEEPMD INFO    -- _3/6H2_54NH3/pre/recal/set_train/deepmd     228       1      25  1.839e-03    T
+[2026-04-04 17:53:23,931] DEEPMD INFO    -- 3/72H2_24NH3/pre/recal/set_train/deepmd     240       1      29  2.134e-03    T
+[2026-04-04 17:53:23,931] DEEPMD INFO    -- 3/90H2_10NH3/pre/recal/set_train/deepmd     220       1      22  1.619e-03    T
+[2026-04-04 17:53:23,931] DEEPMD INFO    -- _4/6H2_54NH3/pre/recal/set_train/deepmd     228       1      17  1.251e-03    T
+[2026-04-04 17:53:23,931] DEEPMD INFO    -- 4/90H2_10NH3/pre/recal/set_train/deepmd     220       1      12  8.829e-04    T
+[2026-04-04 17:53:23,931] DEEPMD INFO    -- 5/40H2_40NH3/pre/recal/set_train/deepmd     240       1      17  1.251e-03    T
+[2026-04-04 17:53:23,932] DEEPMD INFO    -- _5/6H2_54NH3/pre/recal/set_train/deepmd     228       1      18  1.324e-03    T
+[2026-04-04 17:53:23,932] DEEPMD INFO    -- _1/6H2_54NH3/pre/recal/set_train/deepmd     228       1      29  2.134e-03    T
+[2026-04-04 17:53:23,932] DEEPMD INFO    -- 1/90H2_10NH3/pre/recal/set_train/deepmd     220       1      13  9.565e-04    T
+[2026-04-04 17:53:23,932] DEEPMD INFO    -- 1/17H2_51NH3/pre/recal/set_train/deepmd     238       1      29  2.134e-03    T
+[2026-04-04 17:53:23,932] DEEPMD INFO    -- 1/40H2_40NH3/pre/recal/set_train/deepmd     240       1      26  1.913e-03    T
+[2026-04-04 17:53:23,932] DEEPMD INFO    -- 1/72H2_24NH3/pre/recal/set_train/deepmd     240       1      16  1.177e-03    T
+[2026-04-04 17:53:23,932] DEEPMD INFO    -- 2/17H2_51NH3/pre/recal/set_train/deepmd     238       1      28  2.060e-03    T
+[2026-04-04 17:53:23,932] DEEPMD INFO    -- 2/40H2_40NH3/pre/recal/set_train/deepmd     240       1      27  1.987e-03    T
+[2026-04-04 17:53:23,932] DEEPMD INFO    -- _2/6H2_54NH3/pre/recal/set_train/deepmd     228       1      29  2.134e-03    T
+[2026-04-04 17:53:23,933] DEEPMD INFO    -- 2/72H2_24NH3/pre/recal/set_train/deepmd     240       1      25  1.839e-03    T
+[2026-04-04 17:53:23,933] DEEPMD INFO    -- 2/90H2_10NH3/pre/recal/set_train/deepmd     220       1      14  1.030e-03    T
+[2026-04-04 17:53:23,933] DEEPMD INFO    -- 3/40H2_40NH3/pre/recal/set_train/deepmd     240       1      24  1.766e-03    T
+[2026-04-04 17:53:23,933] DEEPMD INFO    -- _3/6H2_54NH3/pre/recal/set_train/deepmd     228       1      24  1.766e-03    T
+[2026-04-04 17:53:23,933] DEEPMD INFO    -- 3/72H2_24NH3/pre/recal/set_train/deepmd     240       1      27  1.987e-03    T
+[2026-04-04 17:53:23,933] DEEPMD INFO    -- 3/90H2_10NH3/pre/recal/set_train/deepmd     220       1      23  1.692e-03    T
+[2026-04-04 17:53:23,933] DEEPMD INFO    -- 4/17H2_51NH3/pre/recal/set_train/deepmd     238       1      19  1.398e-03    T
+[2026-04-04 17:53:23,933] DEEPMD INFO    -- 4/40H2_40NH3/pre/recal/set_train/deepmd     240       1      14  1.030e-03    T
+[2026-04-04 17:53:23,933] DEEPMD INFO    -- _4/6H2_54NH3/pre/recal/set_train/deepmd     228       1      22  1.619e-03    T
+[2026-04-04 17:53:23,934] DEEPMD INFO    -- 4/90H2_10NH3/pre/recal/set_train/deepmd     220       1      14  1.030e-03    T
+[2026-04-04 17:53:23,934] DEEPMD INFO    -- 5/40H2_40NH3/pre/recal/set_train/deepmd     240       1       4  2.943e-04    T
+[2026-04-04 17:53:23,934] DEEPMD INFO    -- _5/6H2_54NH3/pre/recal/set_train/deepmd     228       1       5  3.679e-04    T
+[2026-04-04 17:53:23,934] DEEPMD INFO    -- _1/6H2_54NH3/pre/recal/set_train/deepmd     228       1      20  1.472e-03    T
+[2026-04-04 17:53:23,934] DEEPMD INFO    -- 2/17H2_51NH3/pre/recal/set_train/deepmd     238       1      26  1.913e-03    T
+[2026-04-04 17:53:23,934] DEEPMD INFO    -- _2/6H2_54NH3/pre/recal/set_train/deepmd     228       1      28  2.060e-03    T
+[2026-04-04 17:53:23,934] DEEPMD INFO    -- 1/40H2_40NH3/pre/recal/set_train/deepmd     240       1      21  1.545e-03    T
+[2026-04-04 17:53:23,934] DEEPMD INFO    -- 2/40H2_40NH3/pre/recal/set_train/deepmd     240       1      19  1.398e-03    T
+[2026-04-04 17:53:23,934] DEEPMD INFO    -- 1/72H2_24NH3/pre/recal/set_train/deepmd     240       1      20  1.472e-03    T
+[2026-04-04 17:53:23,935] DEEPMD INFO    -- 1/90H2_10NH3/pre/recal/set_train/deepmd     220       1      18  1.324e-03    T
+[2026-04-04 17:53:23,935] DEEPMD INFO    -- 1/17H2_51NH3/pre/recal/set_train/deepmd     238       1      29  2.134e-03    T
+[2026-04-04 17:53:23,935] DEEPMD INFO    -- 2/72H2_24NH3/pre/recal/set_train/deepmd     240       1      26  1.913e-03    T
+[2026-04-04 17:53:23,935] DEEPMD INFO    -- 3/40H2_40NH3/pre/recal/set_train/deepmd     240       1      21  1.545e-03    T
+[2026-04-04 17:53:23,935] DEEPMD INFO    -- 2/90H2_10NH3/pre/recal/set_train/deepmd     220       1      18  1.324e-03    T
+[2026-04-04 17:53:23,935] DEEPMD INFO    -- 3/17H2_51NH3/pre/recal/set_train/deepmd     238       1      21  1.545e-03    T
+[2026-04-04 17:53:23,935] DEEPMD INFO    -- _3/6H2_54NH3/pre/recal/set_train/deepmd     228       1      22  1.619e-03    T
+[2026-04-04 17:53:23,935] DEEPMD INFO    -- 3/72H2_24NH3/pre/recal/set_train/deepmd     240       1      26  1.913e-03    T
+[2026-04-04 17:53:23,935] DEEPMD INFO    -- 3/90H2_10NH3/pre/recal/set_train/deepmd     220       1      25  1.839e-03    T
+[2026-04-04 17:53:23,936] DEEPMD INFO    -- 4/17H2_51NH3/pre/recal/set_train/deepmd     238       1      17  1.251e-03    T
+[2026-04-04 17:53:23,936] DEEPMD INFO    -- 4/40H2_40NH3/pre/recal/set_train/deepmd     240       1       8  5.886e-04    T
+[2026-04-04 17:53:23,936] DEEPMD INFO    -- _4/6H2_54NH3/pre/recal/set_train/deepmd     228       1      20  1.472e-03    T
+[2026-04-04 17:53:23,936] DEEPMD INFO    -- 4/90H2_10NH3/pre/recal/set_train/deepmd     220       1       9  6.622e-04    T
+[2026-04-04 17:53:23,936] DEEPMD INFO    -- 5/17H2_51NH3/pre/recal/set_train/deepmd     238       1      13  9.565e-04    T
+[2026-04-04 17:53:23,936] DEEPMD INFO    -- _5/6H2_54NH3/pre/recal/set_train/deepmd     228       1       9  6.622e-04    T
+[2026-04-04 17:53:23,936] DEEPMD INFO    -- 5/72H2_24NH3/pre/recal/set_train/deepmd     240       1       7  5.150e-04    T
+[2026-04-04 17:53:23,936] DEEPMD INFO    -- _1/6H2_54NH3/pre/recal/set_train/deepmd     228       1      26  1.913e-03    T
+[2026-04-04 17:53:23,936] DEEPMD INFO    -- 1/40H2_40NH3/pre/recal/set_train/deepmd     240       1      24  1.766e-03    T
+[2026-04-04 17:53:23,936] DEEPMD INFO    -- 1/17H2_51NH3/pre/recal/set_train/deepmd     238       1      26  1.913e-03    T
+[2026-04-04 17:53:23,937] DEEPMD INFO    -- 1/72H2_24NH3/pre/recal/set_train/deepmd     240       1      20  1.472e-03    T
+[2026-04-04 17:53:23,937] DEEPMD INFO    -- 1/90H2_10NH3/pre/recal/set_train/deepmd     220       1      15  1.104e-03    T
+[2026-04-04 17:53:23,937] DEEPMD INFO    -- 2/17H2_51NH3/pre/recal/set_train/deepmd     238       1      29  2.134e-03    T
+[2026-04-04 17:53:23,937] DEEPMD INFO    -- 2/40H2_40NH3/pre/recal/set_train/deepmd     240       1      28  2.060e-03    T
+[2026-04-04 17:53:23,937] DEEPMD INFO    -- _2/6H2_54NH3/pre/recal/set_train/deepmd     228       1      28  2.060e-03    T
+[2026-04-04 17:53:23,937] DEEPMD INFO    -- 2/72H2_24NH3/pre/recal/set_train/deepmd     240       1      28  2.060e-03    T
+[2026-04-04 17:53:23,937] DEEPMD INFO    -- 2/90H2_10NH3/pre/recal/set_train/deepmd     220       1      15  1.104e-03    T
+[2026-04-04 17:53:23,937] DEEPMD INFO    -- 3/17H2_51NH3/pre/recal/set_train/deepmd     238       1      24  1.766e-03    T
+[2026-04-04 17:53:23,937] DEEPMD INFO    -- 3/40H2_40NH3/pre/recal/set_train/deepmd     240       1      24  1.766e-03    T
+[2026-04-04 17:53:23,938] DEEPMD INFO    -- _3/6H2_54NH3/pre/recal/set_train/deepmd     228       1      27  1.987e-03    T
+[2026-04-04 17:53:23,938] DEEPMD INFO    -- 3/72H2_24NH3/pre/recal/set_train/deepmd     240       1      24  1.766e-03    T
+[2026-04-04 17:53:23,938] DEEPMD INFO    -- 3/90H2_10NH3/pre/recal/set_train/deepmd     220       1      26  1.913e-03    T
+[2026-04-04 17:53:23,938] DEEPMD INFO    -- 4/17H2_51NH3/pre/recal/set_train/deepmd     238       1      10  7.358e-04    T
+[2026-04-04 17:53:23,938] DEEPMD INFO    -- 4/40H2_40NH3/pre/recal/set_train/deepmd     240       1      12  8.829e-04    T
+[2026-04-04 17:53:23,938] DEEPMD INFO    -- _4/6H2_54NH3/pre/recal/set_train/deepmd     228       1      21  1.545e-03    T
+[2026-04-04 17:53:23,938] DEEPMD INFO    -- 4/90H2_10NH3/pre/recal/set_train/deepmd     220       1      16  1.177e-03    T
+[2026-04-04 17:53:23,938] DEEPMD INFO    -- 5/17H2_51NH3/pre/recal/set_train/deepmd     238       1       4  2.943e-04    T
+[2026-04-04 17:53:23,938] DEEPMD INFO    -- _5/6H2_54NH3/pre/recal/set_train/deepmd     228       1       9  6.622e-04    T
+[2026-04-04 17:53:23,939] DEEPMD INFO    -- _1/6H2_54NH3/pre/recal/set_train/deepmd     228       1      24  1.766e-03    T
+[2026-04-04 17:53:23,939] DEEPMD INFO    -- 1/17H2_51NH3/pre/recal/set_train/deepmd     238       1      28  2.060e-03    T
+[2026-04-04 17:53:23,939] DEEPMD INFO    -- 1/40H2_40NH3/pre/recal/set_train/deepmd     240       1      20  1.472e-03    T
+[2026-04-04 17:53:23,939] DEEPMD INFO    -- 1/72H2_24NH3/pre/recal/set_train/deepmd     240       1      19  1.398e-03    T
+[2026-04-04 17:53:23,939] DEEPMD INFO    -- 1/90H2_10NH3/pre/recal/set_train/deepmd     220       1      16  1.177e-03    T
+[2026-04-04 17:53:23,939] DEEPMD INFO    -- 2/17H2_51NH3/pre/recal/set_train/deepmd     238       1      28  2.060e-03    T
+[2026-04-04 17:53:23,939] DEEPMD INFO    -- 2/40H2_40NH3/pre/recal/set_train/deepmd     240       1      28  2.060e-03    T
+[2026-04-04 17:53:23,939] DEEPMD INFO    -- _2/6H2_54NH3/pre/recal/set_train/deepmd     228       1      27  1.987e-03    T
+[2026-04-04 17:53:23,939] DEEPMD INFO    -- 2/72H2_24NH3/pre/recal/set_train/deepmd     240       1      21  1.545e-03    T
+[2026-04-04 17:53:23,939] DEEPMD INFO    -- 2/90H2_10NH3/pre/recal/set_train/deepmd     220       1      25  1.839e-03    T
+[2026-04-04 17:53:23,940] DEEPMD INFO    -- 3/17H2_51NH3/pre/recal/set_train/deepmd     238       1      23  1.692e-03    T
+[2026-04-04 17:53:23,940] DEEPMD INFO    -- 3/40H2_40NH3/pre/recal/set_train/deepmd     240       1      22  1.619e-03    T
+[2026-04-04 17:53:23,940] DEEPMD INFO    -- _3/6H2_54NH3/pre/recal/set_train/deepmd     228       1      25  1.839e-03    T
+[2026-04-04 17:53:23,940] DEEPMD INFO    -- 3/72H2_24NH3/pre/recal/set_train/deepmd     240       1      24  1.766e-03    T
+[2026-04-04 17:53:23,940] DEEPMD INFO    -- 3/90H2_10NH3/pre/recal/set_train/deepmd     220       1      27  1.987e-03    T
+[2026-04-04 17:53:23,940] DEEPMD INFO    -- 4/17H2_51NH3/pre/recal/set_train/deepmd     238       1      25  1.839e-03    T
+[2026-04-04 17:53:23,940] DEEPMD INFO    -- 4/40H2_40NH3/pre/recal/set_train/deepmd     240       1      16  1.177e-03    T
+[2026-04-04 17:53:23,940] DEEPMD INFO    -- _4/6H2_54NH3/pre/recal/set_train/deepmd     228       1      23  1.692e-03    T
+[2026-04-04 17:53:23,940] DEEPMD INFO    -- 4/72H2_24NH3/pre/recal/set_train/deepmd     240       1      12  8.829e-04    T
+[2026-04-04 17:53:23,941] DEEPMD INFO    -- 4/90H2_10NH3/pre/recal/set_train/deepmd     220       1      23  1.692e-03    T
+[2026-04-04 17:53:23,941] DEEPMD INFO    -- _5/6H2_54NH3/pre/recal/set_train/deepmd     228       1      25  1.839e-03    T
+[2026-04-04 17:53:23,941] DEEPMD INFO    -- 5/72H2_24NH3/pre/recal/set_train/deepmd     240       1      24  1.766e-03    T
+[2026-04-04 17:53:23,941] DEEPMD INFO    -- 1/40H2_40NH3/pre/recal/set_train/deepmd     240       1      23  1.692e-03    T
+[2026-04-04 17:53:23,941] DEEPMD INFO    -- _1/6H2_54NH3/pre/recal/set_train/deepmd     228       1      17  1.251e-03    T
+[2026-04-04 17:53:23,941] DEEPMD INFO    -- 1/17H2_51NH3/pre/recal/set_train/deepmd     238       1      23  1.692e-03    T
+[2026-04-04 17:53:23,941] DEEPMD INFO    -- 1/72H2_24NH3/pre/recal/set_train/deepmd     240       1      11  8.094e-04    T
+[2026-04-04 17:53:23,941] DEEPMD INFO    -- 1/90H2_10NH3/pre/recal/set_train/deepmd     220       1      14  1.030e-03    T
+[2026-04-04 17:53:23,941] DEEPMD INFO    -- 2/40H2_40NH3/pre/recal/set_train/deepmd     240       1      20  1.472e-03    T
+[2026-04-04 17:53:23,942] DEEPMD INFO    -- 2/17H2_51NH3/pre/recal/set_train/deepmd     238       1      27  1.987e-03    T
+[2026-04-04 17:53:23,942] DEEPMD INFO    -- _2/6H2_54NH3/pre/recal/set_train/deepmd     228       1      24  1.766e-03    T
+[2026-04-04 17:53:23,942] DEEPMD INFO    -- 2/72H2_24NH3/pre/recal/set_train/deepmd     240       1      27  1.987e-03    T
+[2026-04-04 17:53:23,942] DEEPMD INFO    -- 3/17H2_51NH3/pre/recal/set_train/deepmd     238       1      17  1.251e-03    T
+[2026-04-04 17:53:23,942] DEEPMD INFO    -- 3/40H2_40NH3/pre/recal/set_train/deepmd     240       1      20  1.472e-03    T
+[2026-04-04 17:53:23,942] DEEPMD INFO    -- 2/90H2_10NH3/pre/recal/set_train/deepmd     220       1      21  1.545e-03    T
+[2026-04-04 17:53:23,942] DEEPMD INFO    -- _3/6H2_54NH3/pre/recal/set_train/deepmd     228       1      20  1.472e-03    T
+[2026-04-04 17:53:23,942] DEEPMD INFO    -- 3/90H2_10NH3/pre/recal/set_train/deepmd     220       1      21  1.545e-03    T
+[2026-04-04 17:53:23,942] DEEPMD INFO    -- 3/72H2_24NH3/pre/recal/set_train/deepmd     240       1      20  1.472e-03    T
+[2026-04-04 17:53:23,942] DEEPMD INFO    -- 4/17H2_51NH3/pre/recal/set_train/deepmd     238       1      12  8.829e-04    T
+[2026-04-04 17:53:23,943] DEEPMD INFO    -- 4/40H2_40NH3/pre/recal/set_train/deepmd     240       1      14  1.030e-03    T
+[2026-04-04 17:53:23,943] DEEPMD INFO    -- _4/6H2_54NH3/pre/recal/set_train/deepmd     228       1      17  1.251e-03    T
+[2026-04-04 17:53:23,943] DEEPMD INFO    -- 4/72H2_24NH3/pre/recal/set_train/deepmd     240       1      12  8.829e-04    T
+[2026-04-04 17:53:23,943] DEEPMD INFO    -- 4/90H2_10NH3/pre/recal/set_train/deepmd     220       1      10  7.358e-04    T
+[2026-04-04 17:53:23,943] DEEPMD INFO    -- _1/6H2_54NH3/pre/recal/set_train/deepmd     228       1      28  2.060e-03    T
+[2026-04-04 17:53:23,943] DEEPMD INFO    -- 1/40H2_40NH3/pre/recal/set_train/deepmd     240       1      27  1.987e-03    T
+[2026-04-04 17:53:23,943] DEEPMD INFO    -- 1/17H2_51NH3/pre/recal/set_train/deepmd     238       1      27  1.987e-03    T
+[2026-04-04 17:53:23,943] DEEPMD INFO    -- 1/72H2_24NH3/pre/recal/set_train/deepmd     240       1      20  1.472e-03    T
+[2026-04-04 17:53:23,943] DEEPMD INFO    -- 1/90H2_10NH3/pre/recal/set_train/deepmd     220       1      12  8.829e-04    T
+[2026-04-04 17:53:23,944] DEEPMD INFO    -- 2/17H2_51NH3/pre/recal/set_train/deepmd     238       1      28  2.060e-03    T
+[2026-04-04 17:53:23,944] DEEPMD INFO    -- 2/40H2_40NH3/pre/recal/set_train/deepmd     240       1      21  1.545e-03    T
+[2026-04-04 17:53:23,944] DEEPMD INFO    -- _2/6H2_54NH3/pre/recal/set_train/deepmd     228       1      25  1.839e-03    T
+[2026-04-04 17:53:23,944] DEEPMD INFO    -- 2/72H2_24NH3/pre/recal/set_train/deepmd     240       1      22  1.619e-03    T
+[2026-04-04 17:53:23,944] DEEPMD INFO    -- 2/90H2_10NH3/pre/recal/set_train/deepmd     220       1      15  1.104e-03    T
+[2026-04-04 17:53:23,944] DEEPMD INFO    -- 3/17H2_51NH3/pre/recal/set_train/deepmd     238       1      23  1.692e-03    T
+[2026-04-04 17:53:23,944] DEEPMD INFO    -- 3/40H2_40NH3/pre/recal/set_train/deepmd     240       1      15  1.104e-03    T
+[2026-04-04 17:53:23,944] DEEPMD INFO    -- _3/6H2_54NH3/pre/recal/set_train/deepmd     228       1      21  1.545e-03    T
+[2026-04-04 17:53:23,944] DEEPMD INFO    -- 3/72H2_24NH3/pre/recal/set_train/deepmd     240       1      21  1.545e-03    T
+[2026-04-04 17:53:23,945] DEEPMD INFO    -- 3/90H2_10NH3/pre/recal/set_train/deepmd     220       1      24  1.766e-03    T
+[2026-04-04 17:53:23,945] DEEPMD INFO    -- 4/17H2_51NH3/pre/recal/set_train/deepmd     238       1      14  1.030e-03    T
+[2026-04-04 17:53:23,945] DEEPMD INFO    -- 4/40H2_40NH3/pre/recal/set_train/deepmd     240       1      10  7.358e-04    T
+[2026-04-04 17:53:23,945] DEEPMD INFO    -- _4/6H2_54NH3/pre/recal/set_train/deepmd     228       1      14  1.030e-03    T
+[2026-04-04 17:53:23,945] DEEPMD INFO    -- 4/72H2_24NH3/pre/recal/set_train/deepmd     240       1      10  7.358e-04    T
+[2026-04-04 17:53:23,945] DEEPMD INFO    -- 4/90H2_10NH3/pre/recal/set_train/deepmd     220       1       7  5.150e-04    T
+[2026-04-04 17:53:23,945] DEEPMD INFO    -- _5/6H2_54NH3/pre/recal/set_train/deepmd     228       1       6  4.415e-04    T
+[2026-04-04 17:53:23,945] DEEPMD INFO    -- _1/6H2_54NH3/pre/recal/set_train/deepmd     228       1      28  2.060e-03    T
+[2026-04-04 17:53:23,945] DEEPMD INFO    -- 1/72H2_24NH3/pre/recal/set_train/deepmd     240       1      19  1.398e-03    T
+[2026-04-04 17:53:23,945] DEEPMD INFO    -- 1/40H2_40NH3/pre/recal/set_train/deepmd     240       1      20  1.472e-03    T
+[2026-04-04 17:53:23,946] DEEPMD INFO    -- 1/17H2_51NH3/pre/recal/set_train/deepmd     238       1      22  1.619e-03    T
+[2026-04-04 17:53:23,946] DEEPMD INFO    -- 1/90H2_10NH3/pre/recal/set_train/deepmd     220       1      14  1.030e-03    T
+[2026-04-04 17:53:23,946] DEEPMD INFO    -- 2/17H2_51NH3/pre/recal/set_train/deepmd     238       1      25  1.839e-03    T
+[2026-04-04 17:53:23,946] DEEPMD INFO    -- 2/40H2_40NH3/pre/recal/set_train/deepmd     240       1      27  1.987e-03    T
+[2026-04-04 17:53:23,946] DEEPMD INFO    -- _2/6H2_54NH3/pre/recal/set_train/deepmd     228       1      28  2.060e-03    T
+[2026-04-04 17:53:23,946] DEEPMD INFO    -- 2/72H2_24NH3/pre/recal/set_train/deepmd     240       1      22  1.619e-03    T
+[2026-04-04 17:53:23,946] DEEPMD INFO    -- 2/90H2_10NH3/pre/recal/set_train/deepmd     220       1      12  8.829e-04    T
+[2026-04-04 17:53:23,946] DEEPMD INFO    -- 3/17H2_51NH3/pre/recal/set_train/deepmd     238       1      23  1.692e-03    T
+[2026-04-04 17:53:23,946] DEEPMD INFO    -- 3/40H2_40NH3/pre/recal/set_train/deepmd     240       1      23  1.692e-03    T
+[2026-04-04 17:53:23,947] DEEPMD INFO    -- _3/6H2_54NH3/pre/recal/set_train/deepmd     228       1      18  1.324e-03    T
+[2026-04-04 17:53:23,947] DEEPMD INFO    -- 3/72H2_24NH3/pre/recal/set_train/deepmd     240       1      20  1.472e-03    T
+[2026-04-04 17:53:23,947] DEEPMD INFO    -- 3/90H2_10NH3/pre/recal/set_train/deepmd     220       1      22  1.619e-03    T
+[2026-04-04 17:53:23,947] DEEPMD INFO    -- 4/17H2_51NH3/pre/recal/set_train/deepmd     238       1       8  5.886e-04    T
+[2026-04-04 17:53:23,947] DEEPMD INFO    -- 4/40H2_40NH3/pre/recal/set_train/deepmd     240       1      23  1.692e-03    T
+[2026-04-04 17:53:23,947] DEEPMD INFO    -- _4/6H2_54NH3/pre/recal/set_train/deepmd     228       1      10  7.358e-04    T
+[2026-04-04 17:53:23,947] DEEPMD INFO    -- 4/72H2_24NH3/pre/recal/set_train/deepmd     240       1      16  1.177e-03    T
+[2026-04-04 17:53:23,947] DEEPMD INFO    -- 4/90H2_10NH3/pre/recal/set_train/deepmd     220       1      12  8.829e-04    T
+[2026-04-04 17:53:23,947] DEEPMD INFO    -- 5/17H2_51NH3/pre/recal/set_train/deepmd     238       1       4  2.943e-04    T
+[2026-04-04 17:53:23,948] DEEPMD INFO    -- 5/40H2_40NH3/pre/recal/set_train/deepmd     240       1       4  2.943e-04    T
+[2026-04-04 17:53:23,948] DEEPMD INFO    -- _5/6H2_54NH3/pre/recal/set_train/deepmd     228       1      13  9.565e-04    T
+[2026-04-04 17:53:23,948] DEEPMD INFO    -- 5/72H2_24NH3/pre/recal/set_train/deepmd     240       1       8  5.886e-04    T
+[2026-04-04 17:53:23,948] DEEPMD INFO    -- 1/17H2_51NH3/pre/recal/set_train/deepmd     238       1      26  1.913e-03    T
+[2026-04-04 17:53:23,948] DEEPMD INFO    -- 1/40H2_40NH3/pre/recal/set_train/deepmd     240       1      27  1.987e-03    T
+[2026-04-04 17:53:23,948] DEEPMD INFO    -- _1/6H2_54NH3/pre/recal/set_train/deepmd     228       1      28  2.060e-03    T
+[2026-04-04 17:53:23,948] DEEPMD INFO    -- 1/72H2_24NH3/pre/recal/set_train/deepmd     240       1      18  1.324e-03    T
+[2026-04-04 17:53:23,948] DEEPMD INFO    -- 1/90H2_10NH3/pre/recal/set_train/deepmd     220       1      13  9.565e-04    T
+[2026-04-04 17:53:23,948] DEEPMD INFO    -- 2/17H2_51NH3/pre/recal/set_train/deepmd     238       1      26  1.913e-03    T
+[2026-04-04 17:53:23,948] DEEPMD INFO    -- 2/40H2_40NH3/pre/recal/set_train/deepmd     240       1      27  1.987e-03    T
+[2026-04-04 17:53:23,949] DEEPMD INFO    -- _2/6H2_54NH3/pre/recal/set_train/deepmd     228       1      28  2.060e-03    T
+[2026-04-04 17:53:23,949] DEEPMD INFO    -- 2/72H2_24NH3/pre/recal/set_train/deepmd     240       1      22  1.619e-03    T
+[2026-04-04 17:53:23,949] DEEPMD INFO    -- 2/90H2_10NH3/pre/recal/set_train/deepmd     220       1      18  1.324e-03    T
+[2026-04-04 17:53:23,949] DEEPMD INFO    -- 3/17H2_51NH3/pre/recal/set_train/deepmd     238       1      18  1.324e-03    T
+[2026-04-04 17:53:23,949] DEEPMD INFO    -- 3/40H2_40NH3/pre/recal/set_train/deepmd     240       1      18  1.324e-03    T
+[2026-04-04 17:53:23,949] DEEPMD INFO    -- _3/6H2_54NH3/pre/recal/set_train/deepmd     228       1      22  1.619e-03    T
+[2026-04-04 17:53:23,949] DEEPMD INFO    -- 3/72H2_24NH3/pre/recal/set_train/deepmd     240       1      21  1.545e-03    T
+[2026-04-04 17:53:23,949] DEEPMD INFO    -- 3/90H2_10NH3/pre/recal/set_train/deepmd     220       1      20  1.472e-03    T
+[2026-04-04 17:53:23,949] DEEPMD INFO    -- 4/17H2_51NH3/pre/recal/set_train/deepmd     238       1      16  1.177e-03    T
+[2026-04-04 17:53:23,950] DEEPMD INFO    -- 4/40H2_40NH3/pre/recal/set_train/deepmd     240       1      15  1.104e-03    T
+[2026-04-04 17:53:23,950] DEEPMD INFO    -- _4/6H2_54NH3/pre/recal/set_train/deepmd     228       1      16  1.177e-03    T
+[2026-04-04 17:53:23,950] DEEPMD INFO    -- 4/72H2_24NH3/pre/recal/set_train/deepmd     240       1      14  1.030e-03    T
+[2026-04-04 17:53:23,950] DEEPMD INFO    -- 4/90H2_10NH3/pre/recal/set_train/deepmd     220       1      11  8.094e-04    T
+[2026-04-04 17:53:23,950] DEEPMD INFO    -- _5/6H2_54NH3/pre/recal/set_train/deepmd     228       1      12  8.829e-04    T
+[2026-04-04 17:53:23,950] DEEPMD INFO    -- _1/6H2_54NH3/pre/recal/set_train/deepmd     228       1      28  2.060e-03    T
+[2026-04-04 17:53:23,950] DEEPMD INFO    -- 1/17H2_51NH3/pre/recal/set_train/deepmd     238       1      21  1.545e-03    T
+[2026-04-04 17:53:23,950] DEEPMD INFO    -- 1/40H2_40NH3/pre/recal/set_train/deepmd     240       1      19  1.398e-03    T
+[2026-04-04 17:53:23,950] DEEPMD INFO    -- 2/17H2_51NH3/pre/recal/set_train/deepmd     238       1      28  2.060e-03    T
+[2026-04-04 17:53:23,951] DEEPMD INFO    -- 2/40H2_40NH3/pre/recal/set_train/deepmd     240       1      22  1.619e-03    T
+[2026-04-04 17:53:23,951] DEEPMD INFO    -- 1/90H2_10NH3/pre/recal/set_train/deepmd     220       1       9  6.622e-04    T
+[2026-04-04 17:53:23,951] DEEPMD INFO    -- 1/72H2_24NH3/pre/recal/set_train/deepmd     240       1      16  1.177e-03    T
+[2026-04-04 17:53:23,951] DEEPMD INFO    -- _2/6H2_54NH3/pre/recal/set_train/deepmd     228       1      27  1.987e-03    T
+[2026-04-04 17:53:23,951] DEEPMD INFO    -- 2/72H2_24NH3/pre/recal/set_train/deepmd     240       1      20  1.472e-03    T
+[2026-04-04 17:53:23,951] DEEPMD INFO    -- 2/90H2_10NH3/pre/recal/set_train/deepmd     220       1      15  1.104e-03    T
+[2026-04-04 17:53:23,951] DEEPMD INFO    -- 3/17H2_51NH3/pre/recal/set_train/deepmd     238       1      21  1.545e-03    T
+[2026-04-04 17:53:23,951] DEEPMD INFO    -- 3/40H2_40NH3/pre/recal/set_train/deepmd     240       1      22  1.619e-03    T
+[2026-04-04 17:53:23,951] DEEPMD INFO    -- _3/6H2_54NH3/pre/recal/set_train/deepmd     228       1      24  1.766e-03    T
+[2026-04-04 17:53:23,952] DEEPMD INFO    -- 3/72H2_24NH3/pre/recal/set_train/deepmd     240       1      21  1.545e-03    T
+[2026-04-04 17:53:23,952] DEEPMD INFO    -- 3/90H2_10NH3/pre/recal/set_train/deepmd     220       1      23  1.692e-03    T
+[2026-04-04 17:53:23,952] DEEPMD INFO    -- 4/17H2_51NH3/pre/recal/set_train/deepmd     238       1      11  8.094e-04    T
+[2026-04-04 17:53:23,952] DEEPMD INFO    -- 4/40H2_40NH3/pre/recal/set_train/deepmd     240       1      16  1.177e-03    T
+[2026-04-04 17:53:23,952] DEEPMD INFO    -- _4/6H2_54NH3/pre/recal/set_train/deepmd     228       1      19  1.398e-03    T
+[2026-04-04 17:53:23,952] DEEPMD INFO    -- 4/72H2_24NH3/pre/recal/set_train/deepmd     240       1      16  1.177e-03    T
+[2026-04-04 17:53:23,952] DEEPMD INFO    -- 4/90H2_10NH3/pre/recal/set_train/deepmd     220       1       5  3.679e-04    T
+[2026-04-04 17:53:23,952] DEEPMD INFO    -- 5/40H2_40NH3/pre/recal/set_train/deepmd     240       1       4  2.943e-04    T
+[2026-04-04 17:53:23,952] DEEPMD INFO    -- _5/6H2_54NH3/pre/recal/set_train/deepmd     228       1      10  7.358e-04    T
+[2026-04-04 17:53:23,952] DEEPMD INFO    -- 5/72H2_24NH3/pre/recal/set_train/deepmd     240       1      20  1.472e-03    T
+[2026-04-04 17:53:23,953] DEEPMD INFO    -- 1/17H2_51NH3/pre/recal/set_train/deepmd     238       1      26  1.913e-03    T
+[2026-04-04 17:53:23,953] DEEPMD INFO    -- 1/90H2_10NH3/pre/recal/set_train/deepmd     220       1      13  9.565e-04    T
+[2026-04-04 17:53:23,953] DEEPMD INFO    -- _1/6H2_54NH3/pre/recal/set_train/deepmd     228       1      28  2.060e-03    T
+[2026-04-04 17:53:23,953] DEEPMD INFO    -- 1/40H2_40NH3/pre/recal/set_train/deepmd     240       1      26  1.913e-03    T
+[2026-04-04 17:53:23,953] DEEPMD INFO    -- 1/72H2_24NH3/pre/recal/set_train/deepmd     240       1      13  9.565e-04    T
+[2026-04-04 17:53:23,953] DEEPMD INFO    -- 2/17H2_51NH3/pre/recal/set_train/deepmd     238       1      27  1.987e-03    T
+[2026-04-04 17:53:23,953] DEEPMD INFO    -- 2/40H2_40NH3/pre/recal/set_train/deepmd     240       1      21  1.545e-03    T
+[2026-04-04 17:53:23,953] DEEPMD INFO    -- _2/6H2_54NH3/pre/recal/set_train/deepmd     228       1      25  1.839e-03    T
+[2026-04-04 17:53:23,953] DEEPMD INFO    -- 2/72H2_24NH3/pre/recal/set_train/deepmd     240       1      18  1.324e-03    T
+[2026-04-04 17:53:23,954] DEEPMD INFO    -- 2/90H2_10NH3/pre/recal/set_train/deepmd     220       1      27  1.987e-03    T
+[2026-04-04 17:53:23,954] DEEPMD INFO    -- 3/17H2_51NH3/pre/recal/set_train/deepmd     238       1      20  1.472e-03    T
+[2026-04-04 17:53:23,954] DEEPMD INFO    -- 3/40H2_40NH3/pre/recal/set_train/deepmd     240       1      20  1.472e-03    T
+[2026-04-04 17:53:23,954] DEEPMD INFO    -- _3/6H2_54NH3/pre/recal/set_train/deepmd     228       1      23  1.692e-03    T
+[2026-04-04 17:53:23,954] DEEPMD INFO    -- 3/72H2_24NH3/pre/recal/set_train/deepmd     240       1      23  1.692e-03    T
+[2026-04-04 17:53:23,954] DEEPMD INFO    -- 3/90H2_10NH3/pre/recal/set_train/deepmd     220       1      20  1.472e-03    T
+[2026-04-04 17:53:23,954] DEEPMD INFO    -- 4/17H2_51NH3/pre/recal/set_train/deepmd     238       1      14  1.030e-03    T
+[2026-04-04 17:53:23,954] DEEPMD INFO    -- 4/40H2_40NH3/pre/recal/set_train/deepmd     240       1      13  9.565e-04    T
+[2026-04-04 17:53:23,954] DEEPMD INFO    -- _4/6H2_54NH3/pre/recal/set_train/deepmd     228       1      13  9.565e-04    T
+[2026-04-04 17:53:23,955] DEEPMD INFO    -- 4/72H2_24NH3/pre/recal/set_train/deepmd     240       1      10  7.358e-04    T
+[2026-04-04 17:53:23,955] DEEPMD INFO    -- 4/90H2_10NH3/pre/recal/set_train/deepmd     220       1       7  5.150e-04    T
+[2026-04-04 17:53:23,955] DEEPMD INFO    -- 5/17H2_51NH3/pre/recal/set_train/deepmd     238       1       9  6.622e-04    T
+[2026-04-04 17:53:23,955] DEEPMD INFO    -- 5/40H2_40NH3/pre/recal/set_train/deepmd     240       1       9  6.622e-04    T
+[2026-04-04 17:53:23,955] DEEPMD INFO    -- 5/72H2_24NH3/pre/recal/set_train/deepmd     240       1      17  1.251e-03    T
+[2026-04-04 17:53:23,955] DEEPMD INFO    -- _1/6H2_54NH3/pre/recal/set_train/deepmd     228       1      24  1.766e-03    T
+[2026-04-04 17:53:23,955] DEEPMD INFO    -- 1/40H2_40NH3/pre/recal/set_train/deepmd     240       1      20  1.472e-03    T
+[2026-04-04 17:53:23,955] DEEPMD INFO    -- 1/17H2_51NH3/pre/recal/set_train/deepmd     238       1      24  1.766e-03    T
+[2026-04-04 17:53:23,955] DEEPMD INFO    -- 1/72H2_24NH3/pre/recal/set_train/deepmd     240       1      22  1.619e-03    T
+[2026-04-04 17:53:23,955] DEEPMD INFO    -- 1/90H2_10NH3/pre/recal/set_train/deepmd     220       1      12  8.829e-04    T
+[2026-04-04 17:53:23,956] DEEPMD INFO    -- 2/17H2_51NH3/pre/recal/set_train/deepmd     238       1      25  1.839e-03    T
+[2026-04-04 17:53:23,956] DEEPMD INFO    -- 2/40H2_40NH3/pre/recal/set_train/deepmd     240       1      21  1.545e-03    T
+[2026-04-04 17:53:23,956] DEEPMD INFO    -- _2/6H2_54NH3/pre/recal/set_train/deepmd     228       1      26  1.913e-03    T
+[2026-04-04 17:53:23,956] DEEPMD INFO    -- 2/72H2_24NH3/pre/recal/set_train/deepmd     240       1      20  1.472e-03    T
+[2026-04-04 17:53:23,956] DEEPMD INFO    -- 2/90H2_10NH3/pre/recal/set_train/deepmd     220       1      16  1.177e-03    T
+[2026-04-04 17:53:23,956] DEEPMD INFO    -- 3/17H2_51NH3/pre/recal/set_train/deepmd     238       1      18  1.324e-03    T
+[2026-04-04 17:53:23,956] DEEPMD INFO    -- 3/40H2_40NH3/pre/recal/set_train/deepmd     240       1      23  1.692e-03    T
+[2026-04-04 17:53:23,956] DEEPMD INFO    -- _3/6H2_54NH3/pre/recal/set_train/deepmd     228       1      17  1.251e-03    T
+[2026-04-04 17:53:23,956] DEEPMD INFO    -- 3/72H2_24NH3/pre/recal/set_train/deepmd     240       1      26  1.913e-03    T
+[2026-04-04 17:53:23,957] DEEPMD INFO    -- 3/90H2_10NH3/pre/recal/set_train/deepmd     220       1      16  1.177e-03    T
+[2026-04-04 17:53:23,957] DEEPMD INFO    -- 4/17H2_51NH3/pre/recal/set_train/deepmd     238       1      12  8.829e-04    T
+[2026-04-04 17:53:23,957] DEEPMD INFO    -- 4/40H2_40NH3/pre/recal/set_train/deepmd     240       1      13  9.565e-04    T
+[2026-04-04 17:53:23,957] DEEPMD INFO    -- _4/6H2_54NH3/pre/recal/set_train/deepmd     228       1      16  1.177e-03    T
+[2026-04-04 17:53:23,957] DEEPMD INFO    -- 4/72H2_24NH3/pre/recal/set_train/deepmd     240       1      13  9.565e-04    T
+[2026-04-04 17:53:23,957] DEEPMD INFO    -- 4/90H2_10NH3/pre/recal/set_train/deepmd     220       1      10  7.358e-04    T
+[2026-04-04 17:53:23,957] DEEPMD INFO    -- 5/17H2_51NH3/pre/recal/set_train/deepmd     238       1       7  5.150e-04    T
+[2026-04-04 17:53:23,957] DEEPMD INFO    -- 5/40H2_40NH3/pre/recal/set_train/deepmd     240       1       5  3.679e-04    T
+[2026-04-04 17:53:23,957] DEEPMD INFO    -- 5/72H2_24NH3/pre/recal/set_train/deepmd     240       1      12  8.829e-04    T
+[2026-04-04 17:53:23,958] DEEPMD INFO    -- 1/17H2_51NH3/pre/recal/set_train/deepmd     238       1      26  1.913e-03    T
+[2026-04-04 17:53:23,958] DEEPMD INFO    -- _1/6H2_54NH3/pre/recal/set_train/deepmd     228       1      28  2.060e-03    T
+[2026-04-04 17:53:23,958] DEEPMD INFO    -- 1/40H2_40NH3/pre/recal/set_train/deepmd     240       1      23  1.692e-03    T
+[2026-04-04 17:53:23,958] DEEPMD INFO    -- 1/72H2_24NH3/pre/recal/set_train/deepmd     240       1      20  1.472e-03    T
+[2026-04-04 17:53:23,958] DEEPMD INFO    -- 1/90H2_10NH3/pre/recal/set_train/deepmd     220       1      15  1.104e-03    T
+[2026-04-04 17:53:23,958] DEEPMD INFO    -- 2/17H2_51NH3/pre/recal/set_train/deepmd     238       1      26  1.913e-03    T
+[2026-04-04 17:53:23,958] DEEPMD INFO    -- 2/40H2_40NH3/pre/recal/set_train/deepmd     240       1      28  2.060e-03    T
+[2026-04-04 17:53:23,958] DEEPMD INFO    -- _2/6H2_54NH3/pre/recal/set_train/deepmd     228       1      28  2.060e-03    T
+[2026-04-04 17:53:23,958] DEEPMD INFO    -- 2/72H2_24NH3/pre/recal/set_train/deepmd     240       1      20  1.472e-03    T
+[2026-04-04 17:53:23,958] DEEPMD INFO    -- 2/90H2_10NH3/pre/recal/set_train/deepmd     220       1      15  1.104e-03    T
+[2026-04-04 17:53:23,959] DEEPMD INFO    -- 3/17H2_51NH3/pre/recal/set_train/deepmd     238       1      21  1.545e-03    T
+[2026-04-04 17:53:23,959] DEEPMD INFO    -- 3/40H2_40NH3/pre/recal/set_train/deepmd     240       1      23  1.692e-03    T
+[2026-04-04 17:53:23,959] DEEPMD INFO    -- _3/6H2_54NH3/pre/recal/set_train/deepmd     228       1      19  1.398e-03    T
+[2026-04-04 17:53:23,959] DEEPMD INFO    -- 3/72H2_24NH3/pre/recal/set_train/deepmd     240       1      20  1.472e-03    T
+[2026-04-04 17:53:23,959] DEEPMD INFO    -- 3/90H2_10NH3/pre/recal/set_train/deepmd     220       1      19  1.398e-03    T
+[2026-04-04 17:53:23,959] DEEPMD INFO    -- 4/17H2_51NH3/pre/recal/set_train/deepmd     238       1      12  8.829e-04    T
+[2026-04-04 17:53:23,959] DEEPMD INFO    -- 4/40H2_40NH3/pre/recal/set_train/deepmd     240       1      16  1.177e-03    T
+[2026-04-04 17:53:23,959] DEEPMD INFO    -- _4/6H2_54NH3/pre/recal/set_train/deepmd     228       1       9  6.622e-04    T
+[2026-04-04 17:53:23,959] DEEPMD INFO    -- 4/72H2_24NH3/pre/recal/set_train/deepmd     240       1      11  8.094e-04    T
+[2026-04-04 17:53:23,960] DEEPMD INFO    -- 4/90H2_10NH3/pre/recal/set_train/deepmd     220       1       8  5.886e-04    T
+[2026-04-04 17:53:23,960] DEEPMD INFO    -- 5/17H2_51NH3/pre/recal/set_train/deepmd     238       1       9  6.622e-04    T
+[2026-04-04 17:53:23,960] DEEPMD INFO    -- _5/6H2_54NH3/pre/recal/set_train/deepmd     228       1       4  2.943e-04    T
+[2026-04-04 17:53:23,960] DEEPMD INFO    -- 5/72H2_24NH3/pre/recal/set_train/deepmd     240       1      22  1.619e-03    T
+[2026-04-04 17:53:23,960] DEEPMD INFO    -- _1/6H2_54NH3/pre/recal/set_train/deepmd     228       1      26  1.913e-03    T
+[2026-04-04 17:53:23,960] DEEPMD INFO    -- 1/17H2_51NH3/pre/recal/set_train/deepmd     238       1      28  2.060e-03    T
+[2026-04-04 17:53:23,960] DEEPMD INFO    -- 2/17H2_51NH3/pre/recal/set_train/deepmd     238       1      26  1.913e-03    T
+[2026-04-04 17:53:23,960] DEEPMD INFO    -- 1/72H2_24NH3/pre/recal/set_train/deepmd     240       1      15  1.104e-03    T
+[2026-04-04 17:53:23,960] DEEPMD INFO    -- 1/90H2_10NH3/pre/recal/set_train/deepmd     220       1      19  1.398e-03    T
+[2026-04-04 17:53:23,961] DEEPMD INFO    -- 1/40H2_40NH3/pre/recal/set_train/deepmd     240       1      24  1.766e-03    T
+[2026-04-04 17:53:23,961] DEEPMD INFO    -- 2/40H2_40NH3/pre/recal/set_train/deepmd     240       1      24  1.766e-03    T
+[2026-04-04 17:53:23,961] DEEPMD INFO    -- _2/6H2_54NH3/pre/recal/set_train/deepmd     228       1      27  1.987e-03    T
+[2026-04-04 17:53:23,961] DEEPMD INFO    -- 2/72H2_24NH3/pre/recal/set_train/deepmd     240       1      24  1.766e-03    T
+[2026-04-04 17:53:23,961] DEEPMD INFO    -- 3/17H2_51NH3/pre/recal/set_train/deepmd     238       1      17  1.251e-03    T
+[2026-04-04 17:53:23,961] DEEPMD INFO    -- 2/90H2_10NH3/pre/recal/set_train/deepmd     220       1      16  1.177e-03    T
+[2026-04-04 17:53:23,961] DEEPMD INFO    -- 3/40H2_40NH3/pre/recal/set_train/deepmd     240       1      23  1.692e-03    T
+[2026-04-04 17:53:23,961] DEEPMD INFO    -- _3/6H2_54NH3/pre/recal/set_train/deepmd     228       1      13  9.565e-04    T
+[2026-04-04 17:53:23,961] DEEPMD INFO    -- 3/72H2_24NH3/pre/recal/set_train/deepmd     240       1      22  1.619e-03    T
+[2026-04-04 17:53:23,961] DEEPMD INFO    -- 3/90H2_10NH3/pre/recal/set_train/deepmd     220       1      22  1.619e-03    T
+[2026-04-04 17:53:23,962] DEEPMD INFO    -- 4/17H2_51NH3/pre/recal/set_train/deepmd     238       1      11  8.094e-04    T
+[2026-04-04 17:53:23,962] DEEPMD INFO    -- 4/40H2_40NH3/pre/recal/set_train/deepmd     240       1      18  1.324e-03    T
+[2026-04-04 17:53:23,962] DEEPMD INFO    -- _4/6H2_54NH3/pre/recal/set_train/deepmd     228       1      17  1.251e-03    T
+[2026-04-04 17:53:23,962] DEEPMD INFO    -- 4/72H2_24NH3/pre/recal/set_train/deepmd     240       1      10  7.358e-04    T
+[2026-04-04 17:53:23,962] DEEPMD INFO    -- 4/90H2_10NH3/pre/recal/set_train/deepmd     220       1      11  8.094e-04    T
+[2026-04-04 17:53:23,962] DEEPMD INFO    -- _5/6H2_54NH3/pre/recal/set_train/deepmd     228       1      16  1.177e-03    T
+[2026-04-04 17:53:23,962] DEEPMD INFO    -- 5/72H2_24NH3/pre/recal/set_train/deepmd     240       1      21  1.545e-03    T
+[2026-04-04 17:53:23,962] DEEPMD INFO    -- _1/6H2_54NH3/pre/recal/set_train/deepmd     228       1      27  1.987e-03    T
+[2026-04-04 17:53:23,962] DEEPMD INFO    -- 1/40H2_40NH3/pre/recal/set_train/deepmd     240       1      27  1.987e-03    T
+[2026-04-04 17:53:23,963] DEEPMD INFO    -- 1/17H2_51NH3/pre/recal/set_train/deepmd     238       1      28  2.060e-03    T
+[2026-04-04 17:53:23,963] DEEPMD INFO    -- 1/90H2_10NH3/pre/recal/set_train/deepmd     220       1      28  2.060e-03    T
+[2026-04-04 17:53:23,963] DEEPMD INFO    -- 1/72H2_24NH3/pre/recal/set_train/deepmd     240       1      27  1.987e-03    T
+[2026-04-04 17:53:23,963] DEEPMD INFO    -- 2/17H2_51NH3/pre/recal/set_train/deepmd     238       1      28  2.060e-03    T
+[2026-04-04 17:53:23,963] DEEPMD INFO    -- 2/40H2_40NH3/pre/recal/set_train/deepmd     240       1      27  1.987e-03    T
+[2026-04-04 17:53:23,963] DEEPMD INFO    -- _2/6H2_54NH3/pre/recal/set_train/deepmd     228       1      26  1.913e-03    T
+[2026-04-04 17:53:23,963] DEEPMD INFO    -- 2/72H2_24NH3/pre/recal/set_train/deepmd     240       1      27  1.987e-03    T
+[2026-04-04 17:53:23,963] DEEPMD INFO    -- 2/90H2_10NH3/pre/recal/set_train/deepmd     220       1      28  2.060e-03    T
+[2026-04-04 17:53:23,963] DEEPMD INFO    -- 3/17H2_51NH3/pre/recal/set_train/deepmd     238       1      28  2.060e-03    T
+[2026-04-04 17:53:23,964] DEEPMD INFO    -- 3/40H2_40NH3/pre/recal/set_train/deepmd     240       1      27  1.987e-03    T
+[2026-04-04 17:53:23,964] DEEPMD INFO    -- _3/6H2_54NH3/pre/recal/set_train/deepmd     228       1      28  2.060e-03    T
+[2026-04-04 17:53:23,964] DEEPMD INFO    -- 3/72H2_24NH3/pre/recal/set_train/deepmd     240       1      25  1.839e-03    T
+[2026-04-04 17:53:23,964] DEEPMD INFO    -- 3/90H2_10NH3/pre/recal/set_train/deepmd     220       1      27  1.987e-03    T
+[2026-04-04 17:53:23,964] DEEPMD INFO    -- 4/17H2_51NH3/pre/recal/set_train/deepmd     238       1      26  1.913e-03    T
+[2026-04-04 17:53:23,964] DEEPMD INFO    -- 4/40H2_40NH3/pre/recal/set_train/deepmd     240       1      26  1.913e-03    T
+[2026-04-04 17:53:23,964] DEEPMD INFO    -- _4/6H2_54NH3/pre/recal/set_train/deepmd     228       1      27  1.987e-03    T
+[2026-04-04 17:53:23,964] DEEPMD INFO    -- 4/72H2_24NH3/pre/recal/set_train/deepmd     240       1      27  1.987e-03    T
+[2026-04-04 17:53:23,964] DEEPMD INFO    -- 4/90H2_10NH3/pre/recal/set_train/deepmd     220       1      27  1.987e-03    T
+[2026-04-04 17:53:23,965] DEEPMD INFO    -- 5/17H2_51NH3/pre/recal/set_train/deepmd     238       1      27  1.987e-03    T
+[2026-04-04 17:53:23,965] DEEPMD INFO    -- 5/40H2_40NH3/pre/recal/set_train/deepmd     240       1      27  1.987e-03    T
+[2026-04-04 17:53:23,965] DEEPMD INFO    -- _5/6H2_54NH3/pre/recal/set_train/deepmd     228       1      28  2.060e-03    T
+[2026-04-04 17:53:23,965] DEEPMD INFO    -- 5/72H2_24NH3/pre/recal/set_train/deepmd     240       1      25  1.839e-03    T
+[2026-04-04 17:53:23,965] DEEPMD INFO    -- 5/90H2_10NH3/pre/recal/set_train/deepmd     220       1      16  1.177e-03    T
+[2026-04-04 17:53:23,965] DEEPMD INFO    -- 1/17H2_51NH3/pre/recal/set_train/deepmd     238       1      28  2.060e-03    T
+[2026-04-04 17:53:23,965] DEEPMD INFO    -- _1/6H2_54NH3/pre/recal/set_train/deepmd     228       1      27  1.987e-03    T
+[2026-04-04 17:53:23,965] DEEPMD INFO    -- 1/40H2_40NH3/pre/recal/set_train/deepmd     240       1      28  2.060e-03    T
+[2026-04-04 17:53:23,965] DEEPMD INFO    -- 1/72H2_24NH3/pre/recal/set_train/deepmd     240       1      28  2.060e-03    T
+[2026-04-04 17:53:23,965] DEEPMD INFO    -- 1/90H2_10NH3/pre/recal/set_train/deepmd     220       1      28  2.060e-03    T
+[2026-04-04 17:53:23,966] DEEPMD INFO    -- 2/17H2_51NH3/pre/recal/set_train/deepmd     238       1      28  2.060e-03    T
+[2026-04-04 17:53:23,966] DEEPMD INFO    -- 2/40H2_40NH3/pre/recal/set_train/deepmd     240       1      27  1.987e-03    T
+[2026-04-04 17:53:23,966] DEEPMD INFO    -- _2/6H2_54NH3/pre/recal/set_train/deepmd     228       1      28  2.060e-03    T
+[2026-04-04 17:53:23,966] DEEPMD INFO    -- 2/72H2_24NH3/pre/recal/set_train/deepmd     240       1      26  1.913e-03    T
+[2026-04-04 17:53:23,966] DEEPMD INFO    -- 2/90H2_10NH3/pre/recal/set_train/deepmd     220       1      28  2.060e-03    T
+[2026-04-04 17:53:23,966] DEEPMD INFO    -- 3/17H2_51NH3/pre/recal/set_train/deepmd     238       1      27  1.987e-03    T
+[2026-04-04 17:53:23,966] DEEPMD INFO    -- 3/40H2_40NH3/pre/recal/set_train/deepmd     240       1      28  2.060e-03    T
+[2026-04-04 17:53:23,966] DEEPMD INFO    -- _3/6H2_54NH3/pre/recal/set_train/deepmd     228       1      27  1.987e-03    T
+[2026-04-04 17:53:23,966] DEEPMD INFO    -- 3/72H2_24NH3/pre/recal/set_train/deepmd     240       1      27  1.987e-03    T
+[2026-04-04 17:53:23,967] DEEPMD INFO    -- 3/90H2_10NH3/pre/recal/set_train/deepmd     220       1      27  1.987e-03    T
+[2026-04-04 17:53:23,967] DEEPMD INFO    -- 4/17H2_51NH3/pre/recal/set_train/deepmd     238       1      26  1.913e-03    T
+[2026-04-04 17:53:23,967] DEEPMD INFO    -- 4/40H2_40NH3/pre/recal/set_train/deepmd     240       1      27  1.987e-03    T
+[2026-04-04 17:53:23,967] DEEPMD INFO    -- _4/6H2_54NH3/pre/recal/set_train/deepmd     228       1      26  1.913e-03    T
+[2026-04-04 17:53:23,967] DEEPMD INFO    -- 4/72H2_24NH3/pre/recal/set_train/deepmd     240       1      27  1.987e-03    T
+[2026-04-04 17:53:23,967] DEEPMD INFO    -- 4/90H2_10NH3/pre/recal/set_train/deepmd     220       1      28  2.060e-03    T
+[2026-04-04 17:53:23,967] DEEPMD INFO    -- 5/17H2_51NH3/pre/recal/set_train/deepmd     238       1      28  2.060e-03    T
+[2026-04-04 17:53:23,967] DEEPMD INFO    -- 5/40H2_40NH3/pre/recal/set_train/deepmd     240       1      26  1.913e-03    T
+[2026-04-04 17:53:23,967] DEEPMD INFO    -- _5/6H2_54NH3/pre/recal/set_train/deepmd     228       1      28  2.060e-03    T
+[2026-04-04 17:53:23,968] DEEPMD INFO    -- 5/72H2_24NH3/pre/recal/set_train/deepmd     240       1      28  2.060e-03    T
+[2026-04-04 17:53:23,968] DEEPMD INFO    -- 5/90H2_10NH3/pre/recal/set_train/deepmd     220       1      22  1.619e-03    T
+[2026-04-04 17:53:23,968] DEEPMD INFO    -- _1/6H2_54NH3/pre/recal/set_train/deepmd     228       1      28  2.060e-03    T
+[2026-04-04 17:53:23,968] DEEPMD INFO    -- 1/17H2_51NH3/pre/recal/set_train/deepmd     238       1      28  2.060e-03    T
+[2026-04-04 17:53:23,968] DEEPMD INFO    -- 1/40H2_40NH3/pre/recal/set_train/deepmd     240       1      28  2.060e-03    T
+[2026-04-04 17:53:23,968] DEEPMD INFO    -- 1/72H2_24NH3/pre/recal/set_train/deepmd     240       1      27  1.987e-03    T
+[2026-04-04 17:53:23,968] DEEPMD INFO    -- 1/90H2_10NH3/pre/recal/set_train/deepmd     220       1      28  2.060e-03    T
+[2026-04-04 17:53:23,968] DEEPMD INFO    -- 2/17H2_51NH3/pre/recal/set_train/deepmd     238       1      28  2.060e-03    T
+[2026-04-04 17:53:23,968] DEEPMD INFO    -- 2/40H2_40NH3/pre/recal/set_train/deepmd     240       1      28  2.060e-03    T
+[2026-04-04 17:53:23,968] DEEPMD INFO    -- _2/6H2_54NH3/pre/recal/set_train/deepmd     228       1      25  1.839e-03    T
+[2026-04-04 17:53:23,969] DEEPMD INFO    -- 2/72H2_24NH3/pre/recal/set_train/deepmd     240       1      27  1.987e-03    T
+[2026-04-04 17:53:23,969] DEEPMD INFO    -- 2/90H2_10NH3/pre/recal/set_train/deepmd     220       1      28  2.060e-03    T
+[2026-04-04 17:53:23,969] DEEPMD INFO    -- 3/17H2_51NH3/pre/recal/set_train/deepmd     238       1      28  2.060e-03    T
+[2026-04-04 17:53:23,969] DEEPMD INFO    -- 3/40H2_40NH3/pre/recal/set_train/deepmd     240       1      28  2.060e-03    T
+[2026-04-04 17:53:23,969] DEEPMD INFO    -- _3/6H2_54NH3/pre/recal/set_train/deepmd     228       1      28  2.060e-03    T
+[2026-04-04 17:53:23,969] DEEPMD INFO    -- 3/72H2_24NH3/pre/recal/set_train/deepmd     240       1      28  2.060e-03    T
+[2026-04-04 17:53:23,969] DEEPMD INFO    -- 3/90H2_10NH3/pre/recal/set_train/deepmd     220       1      26  1.913e-03    T
+[2026-04-04 17:53:23,969] DEEPMD INFO    -- 4/17H2_51NH3/pre/recal/set_train/deepmd     238       1      26  1.913e-03    T
+[2026-04-04 17:53:23,969] DEEPMD INFO    -- 4/40H2_40NH3/pre/recal/set_train/deepmd     240       1      25  1.839e-03    T
+[2026-04-04 17:53:23,970] DEEPMD INFO    -- _4/6H2_54NH3/pre/recal/set_train/deepmd     228       1      28  2.060e-03    T
+[2026-04-04 17:53:23,970] DEEPMD INFO    -- 4/72H2_24NH3/pre/recal/set_train/deepmd     240       1      26  1.913e-03    T
+[2026-04-04 17:53:23,970] DEEPMD INFO    -- 4/90H2_10NH3/pre/recal/set_train/deepmd     220       1      24  1.766e-03    T
+[2026-04-04 17:53:23,970] DEEPMD INFO    -- 5/17H2_51NH3/pre/recal/set_train/deepmd     238       1      26  1.913e-03    T
+[2026-04-04 17:53:23,970] DEEPMD INFO    -- 5/40H2_40NH3/pre/recal/set_train/deepmd     240       1      27  1.987e-03    T
+[2026-04-04 17:53:23,970] DEEPMD INFO    -- _5/6H2_54NH3/pre/recal/set_train/deepmd     228       1      25  1.839e-03    T
+[2026-04-04 17:53:23,970] DEEPMD INFO    -- 5/72H2_24NH3/pre/recal/set_train/deepmd     240       1      28  2.060e-03    T
+[2026-04-04 17:53:23,970] DEEPMD INFO    -- 5/90H2_10NH3/pre/recal/set_train/deepmd     220       1       9  6.622e-04    T
+[2026-04-04 17:53:23,970] DEEPMD INFO    -- 1/90H2_10NH3/pre/recal/set_train/deepmd     220       1      28  2.060e-03    T
+[2026-04-04 17:53:23,971] DEEPMD INFO    -- 2/17H2_51NH3/pre/recal/set_train/deepmd     238       1      28  2.060e-03    T
+[2026-04-04 17:53:23,971] DEEPMD INFO    -- 1/17H2_51NH3/pre/recal/set_train/deepmd     238       1      28  2.060e-03    T
+[2026-04-04 17:53:23,971] DEEPMD INFO    -- _1/6H2_54NH3/pre/recal/set_train/deepmd     228       1      28  2.060e-03    T
+[2026-04-04 17:53:23,971] DEEPMD INFO    -- 1/72H2_24NH3/pre/recal/set_train/deepmd     240       1      26  1.913e-03    T
+[2026-04-04 17:53:23,971] DEEPMD INFO    -- 1/40H2_40NH3/pre/recal/set_train/deepmd     240       1      28  2.060e-03    T
+[2026-04-04 17:53:23,971] DEEPMD INFO    -- 2/40H2_40NH3/pre/recal/set_train/deepmd     240       1      28  2.060e-03    T
+[2026-04-04 17:53:23,971] DEEPMD INFO    -- _2/6H2_54NH3/pre/recal/set_train/deepmd     228       1      28  2.060e-03    T
+[2026-04-04 17:53:23,971] DEEPMD INFO    -- 2/90H2_10NH3/pre/recal/set_train/deepmd     220       1      27  1.987e-03    T
+[2026-04-04 17:53:23,971] DEEPMD INFO    -- 2/72H2_24NH3/pre/recal/set_train/deepmd     240       1      28  2.060e-03    T
+[2026-04-04 17:53:23,971] DEEPMD INFO    -- 3/17H2_51NH3/pre/recal/set_train/deepmd     238       1      28  2.060e-03    T
+[2026-04-04 17:53:23,972] DEEPMD INFO    -- 3/40H2_40NH3/pre/recal/set_train/deepmd     240       1      28  2.060e-03    T
+[2026-04-04 17:53:23,972] DEEPMD INFO    -- _3/6H2_54NH3/pre/recal/set_train/deepmd     228       1      28  2.060e-03    T
+[2026-04-04 17:53:23,972] DEEPMD INFO    -- 3/72H2_24NH3/pre/recal/set_train/deepmd     240       1      26  1.913e-03    T
+[2026-04-04 17:53:23,972] DEEPMD INFO    -- 3/90H2_10NH3/pre/recal/set_train/deepmd     220       1      27  1.987e-03    T
+[2026-04-04 17:53:23,972] DEEPMD INFO    -- 4/17H2_51NH3/pre/recal/set_train/deepmd     238       1      28  2.060e-03    T
+[2026-04-04 17:53:23,972] DEEPMD INFO    -- 4/40H2_40NH3/pre/recal/set_train/deepmd     240       1      27  1.987e-03    T
+[2026-04-04 17:53:23,972] DEEPMD INFO    -- _4/6H2_54NH3/pre/recal/set_train/deepmd     228       1      28  2.060e-03    T
+[2026-04-04 17:53:23,972] DEEPMD INFO    -- 4/72H2_24NH3/pre/recal/set_train/deepmd     240       1      28  2.060e-03    T
+[2026-04-04 17:53:23,972] DEEPMD INFO    -- 4/90H2_10NH3/pre/recal/set_train/deepmd     220       1      26  1.913e-03    T
+[2026-04-04 17:53:23,973] DEEPMD INFO    -- 5/17H2_51NH3/pre/recal/set_train/deepmd     238       1      27  1.987e-03    T
+[2026-04-04 17:53:23,973] DEEPMD INFO    -- 5/40H2_40NH3/pre/recal/set_train/deepmd     240       1      28  2.060e-03    T
+[2026-04-04 17:53:23,973] DEEPMD INFO    -- _5/6H2_54NH3/pre/recal/set_train/deepmd     228       1      27  1.987e-03    T
+[2026-04-04 17:53:23,973] DEEPMD INFO    -- 5/72H2_24NH3/pre/recal/set_train/deepmd     240       1      27  1.987e-03    T
+[2026-04-04 17:53:23,973] DEEPMD INFO    -- 5/90H2_10NH3/pre/recal/set_train/deepmd     220       1      19  1.398e-03    T
+[2026-04-04 17:53:23,973] DEEPMD INFO    -- _1/6H2_54NH3/pre/recal/set_train/deepmd     228       1      28  2.060e-03    T
+[2026-04-04 17:53:23,973] DEEPMD INFO    -- 1/17H2_51NH3/pre/recal/set_train/deepmd     238       1      26  1.913e-03    T
+[2026-04-04 17:53:23,973] DEEPMD INFO    -- 1/40H2_40NH3/pre/recal/set_train/deepmd     240       1      28  2.060e-03    T
+[2026-04-04 17:53:23,973] DEEPMD INFO    -- 1/72H2_24NH3/pre/recal/set_train/deepmd     240       1      28  2.060e-03    T
+[2026-04-04 17:53:23,974] DEEPMD INFO    -- 1/90H2_10NH3/pre/recal/set_train/deepmd     220       1      28  2.060e-03    T
+[2026-04-04 17:53:23,974] DEEPMD INFO    -- 2/17H2_51NH3/pre/recal/set_train/deepmd     238       1      26  1.913e-03    T
+[2026-04-04 17:53:23,974] DEEPMD INFO    -- 2/40H2_40NH3/pre/recal/set_train/deepmd     240       1      28  2.060e-03    T
+[2026-04-04 17:53:23,974] DEEPMD INFO    -- _2/6H2_54NH3/pre/recal/set_train/deepmd     228       1      28  2.060e-03    T
+[2026-04-04 17:53:23,974] DEEPMD INFO    -- 2/72H2_24NH3/pre/recal/set_train/deepmd     240       1      27  1.987e-03    T
+[2026-04-04 17:53:23,974] DEEPMD INFO    -- 2/90H2_10NH3/pre/recal/set_train/deepmd     220       1      27  1.987e-03    T
+[2026-04-04 17:53:23,974] DEEPMD INFO    -- 3/17H2_51NH3/pre/recal/set_train/deepmd     238       1      28  2.060e-03    T
+[2026-04-04 17:53:23,974] DEEPMD INFO    -- 3/40H2_40NH3/pre/recal/set_train/deepmd     240       1      28  2.060e-03    T
+[2026-04-04 17:53:23,974] DEEPMD INFO    -- _3/6H2_54NH3/pre/recal/set_train/deepmd     228       1      28  2.060e-03    T
+[2026-04-04 17:53:23,974] DEEPMD INFO    -- 3/72H2_24NH3/pre/recal/set_train/deepmd     240       1      28  2.060e-03    T
+[2026-04-04 17:53:23,975] DEEPMD INFO    -- 3/90H2_10NH3/pre/recal/set_train/deepmd     220       1      27  1.987e-03    T
+[2026-04-04 17:53:23,975] DEEPMD INFO    -- 4/17H2_51NH3/pre/recal/set_train/deepmd     238       1      26  1.913e-03    T
+[2026-04-04 17:53:23,975] DEEPMD INFO    -- 4/40H2_40NH3/pre/recal/set_train/deepmd     240       1      27  1.987e-03    T
+[2026-04-04 17:53:23,975] DEEPMD INFO    -- _4/6H2_54NH3/pre/recal/set_train/deepmd     228       1      27  1.987e-03    T
+[2026-04-04 17:53:23,975] DEEPMD INFO    -- 4/72H2_24NH3/pre/recal/set_train/deepmd     240       1      27  1.987e-03    T
+[2026-04-04 17:53:23,975] DEEPMD INFO    -- 4/90H2_10NH3/pre/recal/set_train/deepmd     220       1      25  1.839e-03    T
+[2026-04-04 17:53:23,975] DEEPMD INFO    -- 5/17H2_51NH3/pre/recal/set_train/deepmd     238       1      28  2.060e-03    T
+[2026-04-04 17:53:23,975] DEEPMD INFO    -- 5/40H2_40NH3/pre/recal/set_train/deepmd     240       1      28  2.060e-03    T
+[2026-04-04 17:53:23,975] DEEPMD INFO    -- _5/6H2_54NH3/pre/recal/set_train/deepmd     228       1      27  1.987e-03    T
+[2026-04-04 17:53:23,976] DEEPMD INFO    -- 5/72H2_24NH3/pre/recal/set_train/deepmd     240       1      26  1.913e-03    T
+[2026-04-04 17:53:23,976] DEEPMD INFO    -- 5/90H2_10NH3/pre/recal/set_train/deepmd     220       1      24  1.766e-03    T
+[2026-04-04 17:53:23,976] DEEPMD INFO    -- _1/6H2_54NH3/pre/recal/set_train/deepmd     228       1      27  1.987e-03    T
+[2026-04-04 17:53:23,976] DEEPMD INFO    -- 1/17H2_51NH3/pre/recal/set_train/deepmd     238       1      28  2.060e-03    T
+[2026-04-04 17:53:23,976] DEEPMD INFO    -- 1/90H2_10NH3/pre/recal/set_train/deepmd     220       1      28  2.060e-03    T
+[2026-04-04 17:53:23,976] DEEPMD INFO    -- 1/72H2_24NH3/pre/recal/set_train/deepmd     240       1      27  1.987e-03    T
+[2026-04-04 17:53:23,976] DEEPMD INFO    -- 1/40H2_40NH3/pre/recal/set_train/deepmd     240       1      27  1.987e-03    T
+[2026-04-04 17:53:23,976] DEEPMD INFO    -- 2/17H2_51NH3/pre/recal/set_train/deepmd     238       1      28  2.060e-03    T
+[2026-04-04 17:53:23,976] DEEPMD INFO    -- 2/40H2_40NH3/pre/recal/set_train/deepmd     240       1      28  2.060e-03    T
+[2026-04-04 17:53:23,977] DEEPMD INFO    -- _2/6H2_54NH3/pre/recal/set_train/deepmd     228       1      28  2.060e-03    T
+[2026-04-04 17:53:23,977] DEEPMD INFO    -- 2/72H2_24NH3/pre/recal/set_train/deepmd     240       1      27  1.987e-03    T
+[2026-04-04 17:53:23,977] DEEPMD INFO    -- 2/90H2_10NH3/pre/recal/set_train/deepmd     220       1      28  2.060e-03    T
+[2026-04-04 17:53:23,977] DEEPMD INFO    -- 3/17H2_51NH3/pre/recal/set_train/deepmd     238       1      25  1.839e-03    T
+[2026-04-04 17:53:23,977] DEEPMD INFO    -- 3/40H2_40NH3/pre/recal/set_train/deepmd     240       1      28  2.060e-03    T
+[2026-04-04 17:53:23,977] DEEPMD INFO    -- _3/6H2_54NH3/pre/recal/set_train/deepmd     228       1      28  2.060e-03    T
+[2026-04-04 17:53:23,977] DEEPMD INFO    -- 3/72H2_24NH3/pre/recal/set_train/deepmd     240       1      26  1.913e-03    T
+[2026-04-04 17:53:23,977] DEEPMD INFO    -- 3/90H2_10NH3/pre/recal/set_train/deepmd     220       1      28  2.060e-03    T
+[2026-04-04 17:53:23,977] DEEPMD INFO    -- 4/17H2_51NH3/pre/recal/set_train/deepmd     238       1      27  1.987e-03    T
+[2026-04-04 17:53:23,978] DEEPMD INFO    -- 4/40H2_40NH3/pre/recal/set_train/deepmd     240       1      27  1.987e-03    T
+[2026-04-04 17:53:23,978] DEEPMD INFO    -- _4/6H2_54NH3/pre/recal/set_train/deepmd     228       1      27  1.987e-03    T
+[2026-04-04 17:53:23,978] DEEPMD INFO    -- 4/72H2_24NH3/pre/recal/set_train/deepmd     240       1      26  1.913e-03    T
+[2026-04-04 17:53:23,978] DEEPMD INFO    -- 4/90H2_10NH3/pre/recal/set_train/deepmd     220       1      27  1.987e-03    T
+[2026-04-04 17:53:23,978] DEEPMD INFO    -- 5/17H2_51NH3/pre/recal/set_train/deepmd     238       1      27  1.987e-03    T
+[2026-04-04 17:53:23,978] DEEPMD INFO    -- 5/40H2_40NH3/pre/recal/set_train/deepmd     240       1      27  1.987e-03    T
+[2026-04-04 17:53:23,978] DEEPMD INFO    -- _5/6H2_54NH3/pre/recal/set_train/deepmd     228       1      28  2.060e-03    T
+[2026-04-04 17:53:23,978] DEEPMD INFO    -- 5/72H2_24NH3/pre/recal/set_train/deepmd     240       1      28  2.060e-03    T
+[2026-04-04 17:53:23,978] DEEPMD INFO    -- 5/90H2_10NH3/pre/recal/set_train/deepmd     220       1      19  1.398e-03    T
+[2026-04-04 17:53:23,978] DEEPMD INFO    -- _1/6H2_54NH3/pre/recal/set_train/deepmd     228       1      26  1.913e-03    T
+[2026-04-04 17:53:23,979] DEEPMD INFO    -- 1/72H2_24NH3/pre/recal/set_train/deepmd     240       1      28  2.060e-03    T
+[2026-04-04 17:53:23,979] DEEPMD INFO    -- 1/17H2_51NH3/pre/recal/set_train/deepmd     238       1      27  1.987e-03    T
+[2026-04-04 17:53:23,979] DEEPMD INFO    -- 1/40H2_40NH3/pre/recal/set_train/deepmd     240       1      27  1.987e-03    T
+[2026-04-04 17:53:23,979] DEEPMD INFO    -- 1/90H2_10NH3/pre/recal/set_train/deepmd     220       1      26  1.913e-03    T
+[2026-04-04 17:53:23,979] DEEPMD INFO    -- 2/17H2_51NH3/pre/recal/set_train/deepmd     238       1      28  2.060e-03    T
+[2026-04-04 17:53:23,979] DEEPMD INFO    -- 2/40H2_40NH3/pre/recal/set_train/deepmd     240       1      25  1.839e-03    T
+[2026-04-04 17:53:23,979] DEEPMD INFO    -- _2/6H2_54NH3/pre/recal/set_train/deepmd     228       1      28  2.060e-03    T
+[2026-04-04 17:53:23,979] DEEPMD INFO    -- 2/72H2_24NH3/pre/recal/set_train/deepmd     240       1      28  2.060e-03    T
+[2026-04-04 17:53:23,979] DEEPMD INFO    -- 2/90H2_10NH3/pre/recal/set_train/deepmd     220       1      27  1.987e-03    T
+[2026-04-04 17:53:23,980] DEEPMD INFO    -- 3/17H2_51NH3/pre/recal/set_train/deepmd     238       1      28  2.060e-03    T
+[2026-04-04 17:53:23,980] DEEPMD INFO    -- 3/40H2_40NH3/pre/recal/set_train/deepmd     240       1      28  2.060e-03    T
+[2026-04-04 17:53:23,980] DEEPMD INFO    -- _3/6H2_54NH3/pre/recal/set_train/deepmd     228       1      28  2.060e-03    T
+[2026-04-04 17:53:23,980] DEEPMD INFO    -- 3/72H2_24NH3/pre/recal/set_train/deepmd     240       1      26  1.913e-03    T
+[2026-04-04 17:53:23,980] DEEPMD INFO    -- 3/90H2_10NH3/pre/recal/set_train/deepmd     220       1      28  2.060e-03    T
+[2026-04-04 17:53:23,980] DEEPMD INFO    -- 4/17H2_51NH3/pre/recal/set_train/deepmd     238       1      28  2.060e-03    T
+[2026-04-04 17:53:23,980] DEEPMD INFO    -- 4/40H2_40NH3/pre/recal/set_train/deepmd     240       1      25  1.839e-03    T
+[2026-04-04 17:53:23,980] DEEPMD INFO    -- _4/6H2_54NH3/pre/recal/set_train/deepmd     228       1      27  1.987e-03    T
+[2026-04-04 17:53:23,980] DEEPMD INFO    -- 4/72H2_24NH3/pre/recal/set_train/deepmd     240       1      26  1.913e-03    T
+[2026-04-04 17:53:23,980] DEEPMD INFO    -- 4/90H2_10NH3/pre/recal/set_train/deepmd     220       1      25  1.839e-03    T
+[2026-04-04 17:53:23,981] DEEPMD INFO    -- 5/17H2_51NH3/pre/recal/set_train/deepmd     238       1      21  1.545e-03    T
+[2026-04-04 17:53:23,981] DEEPMD INFO    -- 5/40H2_40NH3/pre/recal/set_train/deepmd     240       1      27  1.987e-03    T
+[2026-04-04 17:53:23,981] DEEPMD INFO    -- _5/6H2_54NH3/pre/recal/set_train/deepmd     228       1      27  1.987e-03    T
+[2026-04-04 17:53:23,981] DEEPMD INFO    -- 5/72H2_24NH3/pre/recal/set_train/deepmd     240       1      23  1.692e-03    T
+[2026-04-04 17:53:23,981] DEEPMD INFO    -- 5/90H2_10NH3/pre/recal/set_train/deepmd     220       1      19  1.398e-03    T
+[2026-04-04 17:53:23,981] DEEPMD INFO    -- _1/6H2_54NH3/pre/recal/set_train/deepmd     228       1      28  2.060e-03    T
+[2026-04-04 17:53:23,981] DEEPMD INFO    -- 1/17H2_51NH3/pre/recal/set_train/deepmd     238       1      28  2.060e-03    T
+[2026-04-04 17:53:23,981] DEEPMD INFO    -- 1/40H2_40NH3/pre/recal/set_train/deepmd     240       1      26  1.913e-03    T
+[2026-04-04 17:53:23,981] DEEPMD INFO    -- 1/72H2_24NH3/pre/recal/set_train/deepmd     240       1      27  1.987e-03    T
+[2026-04-04 17:53:23,982] DEEPMD INFO    -- 1/90H2_10NH3/pre/recal/set_train/deepmd     220       1      27  1.987e-03    T
+[2026-04-04 17:53:23,982] DEEPMD INFO    -- 2/17H2_51NH3/pre/recal/set_train/deepmd     238       1      26  1.913e-03    T
+[2026-04-04 17:53:23,982] DEEPMD INFO    -- 2/40H2_40NH3/pre/recal/set_train/deepmd     240       1      27  1.987e-03    T
+[2026-04-04 17:53:23,982] DEEPMD INFO    -- _2/6H2_54NH3/pre/recal/set_train/deepmd     228       1      27  1.987e-03    T
+[2026-04-04 17:53:23,982] DEEPMD INFO    -- 2/72H2_24NH3/pre/recal/set_train/deepmd     240       1      28  2.060e-03    T
+[2026-04-04 17:53:23,982] DEEPMD INFO    -- 2/90H2_10NH3/pre/recal/set_train/deepmd     220       1      27  1.987e-03    T
+[2026-04-04 17:53:23,982] DEEPMD INFO    -- 3/17H2_51NH3/pre/recal/set_train/deepmd     238       1      26  1.913e-03    T
+[2026-04-04 17:53:23,982] DEEPMD INFO    -- 3/40H2_40NH3/pre/recal/set_train/deepmd     240       1      27  1.987e-03    T
+[2026-04-04 17:53:23,982] DEEPMD INFO    -- _3/6H2_54NH3/pre/recal/set_train/deepmd     228       1      28  2.060e-03    T
+[2026-04-04 17:53:23,983] DEEPMD INFO    -- 3/72H2_24NH3/pre/recal/set_train/deepmd     240       1      26  1.913e-03    T
+[2026-04-04 17:53:23,983] DEEPMD INFO    -- 3/90H2_10NH3/pre/recal/set_train/deepmd     220       1      25  1.839e-03    T
+[2026-04-04 17:53:23,983] DEEPMD INFO    -- 4/17H2_51NH3/pre/recal/set_train/deepmd     238       1      27  1.987e-03    T
+[2026-04-04 17:53:23,983] DEEPMD INFO    -- 4/40H2_40NH3/pre/recal/set_train/deepmd     240       1      27  1.987e-03    T
+[2026-04-04 17:53:23,983] DEEPMD INFO    -- _4/6H2_54NH3/pre/recal/set_train/deepmd     228       1      26  1.913e-03    T
+[2026-04-04 17:53:23,983] DEEPMD INFO    -- 4/72H2_24NH3/pre/recal/set_train/deepmd     240       1      27  1.987e-03    T
+[2026-04-04 17:53:23,983] DEEPMD INFO    -- 4/90H2_10NH3/pre/recal/set_train/deepmd     220       1      27  1.987e-03    T
+[2026-04-04 17:53:23,983] DEEPMD INFO    -- 5/17H2_51NH3/pre/recal/set_train/deepmd     238       1      26  1.913e-03    T
+[2026-04-04 17:53:23,983] DEEPMD INFO    -- 5/40H2_40NH3/pre/recal/set_train/deepmd     240       1      26  1.913e-03    T
+[2026-04-04 17:53:23,984] DEEPMD INFO    -- _5/6H2_54NH3/pre/recal/set_train/deepmd     228       1      28  2.060e-03    T
+[2026-04-04 17:53:23,984] DEEPMD INFO    -- 5/72H2_24NH3/pre/recal/set_train/deepmd     240       1      27  1.987e-03    T
+[2026-04-04 17:53:23,984] DEEPMD INFO    -- 5/90H2_10NH3/pre/recal/set_train/deepmd     220       1      12  8.829e-04    T
+[2026-04-04 17:53:23,984] DEEPMD INFO    -- _1/6H2_54NH3/pre/recal/set_train/deepmd     228       1      27  1.987e-03    T
+[2026-04-04 17:53:23,984] DEEPMD INFO    -- 1/17H2_51NH3/pre/recal/set_train/deepmd     238       1      28  2.060e-03    T
+[2026-04-04 17:53:23,984] DEEPMD INFO    -- 1/40H2_40NH3/pre/recal/set_train/deepmd     240       1      28  2.060e-03    T
+[2026-04-04 17:53:23,984] DEEPMD INFO    -- 1/72H2_24NH3/pre/recal/set_train/deepmd     240       1      24  1.766e-03    T
+[2026-04-04 17:53:23,984] DEEPMD INFO    -- 1/90H2_10NH3/pre/recal/set_train/deepmd     220       1      27  1.987e-03    T
+[2026-04-04 17:53:23,984] DEEPMD INFO    -- 2/17H2_51NH3/pre/recal/set_train/deepmd     238       1      23  1.692e-03    T
+[2026-04-04 17:53:23,984] DEEPMD INFO    -- _2/6H2_54NH3/pre/recal/set_train/deepmd     228       1      26  1.913e-03    T
+[2026-04-04 17:53:23,985] DEEPMD INFO    -- 2/40H2_40NH3/pre/recal/set_train/deepmd     240       1      28  2.060e-03    T
+[2026-04-04 17:53:23,985] DEEPMD INFO    -- 3/17H2_51NH3/pre/recal/set_train/deepmd     238       1      26  1.913e-03    T
+[2026-04-04 17:53:23,985] DEEPMD INFO    -- 2/72H2_24NH3/pre/recal/set_train/deepmd     240       1      26  1.913e-03    T
+[2026-04-04 17:53:23,985] DEEPMD INFO    -- 2/90H2_10NH3/pre/recal/set_train/deepmd     220       1      26  1.913e-03    T
+[2026-04-04 17:53:23,985] DEEPMD INFO    -- 3/40H2_40NH3/pre/recal/set_train/deepmd     240       1      27  1.987e-03    T
+[2026-04-04 17:53:23,985] DEEPMD INFO    -- _3/6H2_54NH3/pre/recal/set_train/deepmd     228       1      26  1.913e-03    T
+[2026-04-04 17:53:23,985] DEEPMD INFO    -- 4/17H2_51NH3/pre/recal/set_train/deepmd     238       1      25  1.839e-03    T
+[2026-04-04 17:53:23,985] DEEPMD INFO    -- 3/72H2_24NH3/pre/recal/set_train/deepmd     240       1      26  1.913e-03    T
+[2026-04-04 17:53:23,985] DEEPMD INFO    -- 3/90H2_10NH3/pre/recal/set_train/deepmd     220       1      27  1.987e-03    T
+[2026-04-04 17:53:23,986] DEEPMD INFO    -- 4/40H2_40NH3/pre/recal/set_train/deepmd     240       1      24  1.766e-03    T
+[2026-04-04 17:53:23,986] DEEPMD INFO    -- _4/6H2_54NH3/pre/recal/set_train/deepmd     228       1      27  1.987e-03    T
+[2026-04-04 17:53:23,986] DEEPMD INFO    -- 5/17H2_51NH3/pre/recal/set_train/deepmd     238       1      26  1.913e-03    T
+[2026-04-04 17:53:23,986] DEEPMD INFO    -- 4/72H2_24NH3/pre/recal/set_train/deepmd     240       1      26  1.913e-03    T
+[2026-04-04 17:53:23,986] DEEPMD INFO    -- 4/90H2_10NH3/pre/recal/set_train/deepmd     220       1      18  1.324e-03    T
+[2026-04-04 17:53:23,986] DEEPMD INFO    -- 5/40H2_40NH3/pre/recal/set_train/deepmd     240       1      26  1.913e-03    T
+[2026-04-04 17:53:23,986] DEEPMD INFO    -- _5/6H2_54NH3/pre/recal/set_train/deepmd     228       1      25  1.839e-03    T
+[2026-04-04 17:53:23,986] DEEPMD INFO    -- 5/72H2_24NH3/pre/recal/set_train/deepmd     240       1      28  2.060e-03    T
+[2026-04-04 17:53:23,986] DEEPMD INFO    -- 5/90H2_10NH3/pre/recal/set_train/deepmd     220       1      14  1.030e-03    T
+[2026-04-04 17:53:23,987] DEEPMD INFO    -- _1/6H2_54NH3/pre/recal/set_train/deepmd     228       1      28  2.060e-03    T
+[2026-04-04 17:53:23,987] DEEPMD INFO    -- 1/90H2_10NH3/pre/recal/set_train/deepmd     220       1      27  1.987e-03    T
+[2026-04-04 17:53:23,987] DEEPMD INFO    -- 1/40H2_40NH3/pre/recal/set_train/deepmd     240       1      28  2.060e-03    T
+[2026-04-04 17:53:23,987] DEEPMD INFO    -- 1/17H2_51NH3/pre/recal/set_train/deepmd     238       1      28  2.060e-03    T
+[2026-04-04 17:53:23,987] DEEPMD INFO    -- 1/72H2_24NH3/pre/recal/set_train/deepmd     240       1      28  2.060e-03    T
+[2026-04-04 17:53:23,987] DEEPMD INFO    -- 2/17H2_51NH3/pre/recal/set_train/deepmd     238       1      27  1.987e-03    T
+[2026-04-04 17:53:23,987] DEEPMD INFO    -- 2/40H2_40NH3/pre/recal/set_train/deepmd     240       1      28  2.060e-03    T
+[2026-04-04 17:53:23,987] DEEPMD INFO    -- _2/6H2_54NH3/pre/recal/set_train/deepmd     228       1      26  1.913e-03    T
+[2026-04-04 17:53:23,987] DEEPMD INFO    -- 2/72H2_24NH3/pre/recal/set_train/deepmd     240       1      28  2.060e-03    T
+[2026-04-04 17:53:23,987] DEEPMD INFO    -- 2/90H2_10NH3/pre/recal/set_train/deepmd     220       1      27  1.987e-03    T
+[2026-04-04 17:53:23,988] DEEPMD INFO    -- 3/17H2_51NH3/pre/recal/set_train/deepmd     238       1      27  1.987e-03    T
+[2026-04-04 17:53:23,988] DEEPMD INFO    -- 3/40H2_40NH3/pre/recal/set_train/deepmd     240       1      27  1.987e-03    T
+[2026-04-04 17:53:23,988] DEEPMD INFO    -- _3/6H2_54NH3/pre/recal/set_train/deepmd     228       1      28  2.060e-03    T
+[2026-04-04 17:53:23,988] DEEPMD INFO    -- 3/72H2_24NH3/pre/recal/set_train/deepmd     240       1      28  2.060e-03    T
+[2026-04-04 17:53:23,988] DEEPMD INFO    -- 3/90H2_10NH3/pre/recal/set_train/deepmd     220       1      27  1.987e-03    T
+[2026-04-04 17:53:23,988] DEEPMD INFO    -- 4/17H2_51NH3/pre/recal/set_train/deepmd     238       1      28  2.060e-03    T
+[2026-04-04 17:53:23,988] DEEPMD INFO    -- 4/40H2_40NH3/pre/recal/set_train/deepmd     240       1      28  2.060e-03    T
+[2026-04-04 17:53:23,988] DEEPMD INFO    -- _4/6H2_54NH3/pre/recal/set_train/deepmd     228       1      26  1.913e-03    T
+[2026-04-04 17:53:23,988] DEEPMD INFO    -- 4/72H2_24NH3/pre/recal/set_train/deepmd     240       1      28  2.060e-03    T
+[2026-04-04 17:53:23,989] DEEPMD INFO    -- 4/90H2_10NH3/pre/recal/set_train/deepmd     220       1      26  1.913e-03    T
+[2026-04-04 17:53:23,989] DEEPMD INFO    -- 5/17H2_51NH3/pre/recal/set_train/deepmd     238       1      27  1.987e-03    T
+[2026-04-04 17:53:23,989] DEEPMD INFO    -- 5/40H2_40NH3/pre/recal/set_train/deepmd     240       1      27  1.987e-03    T
+[2026-04-04 17:53:23,989] DEEPMD INFO    -- _5/6H2_54NH3/pre/recal/set_train/deepmd     228       1      28  2.060e-03    T
+[2026-04-04 17:53:23,989] DEEPMD INFO    -- 5/72H2_24NH3/pre/recal/set_train/deepmd     240       1      24  1.766e-03    T
+[2026-04-04 17:53:23,989] DEEPMD INFO    -- 1/90H2_10NH3/pre/recal/set_train/deepmd     220       1      27  1.987e-03    T
+[2026-04-04 17:53:23,989] DEEPMD INFO    -- _1/6H2_54NH3/pre/recal/set_train/deepmd     228       1      23  1.692e-03    T
+[2026-04-04 17:53:23,989] DEEPMD INFO    -- 1/40H2_40NH3/pre/recal/set_train/deepmd     240       1      27  1.987e-03    T
+[2026-04-04 17:53:23,989] DEEPMD INFO    -- 2/40H2_40NH3/pre/recal/set_train/deepmd     240       1      28  2.060e-03    T
+[2026-04-04 17:53:23,990] DEEPMD INFO    -- _2/6H2_54NH3/pre/recal/set_train/deepmd     228       1      26  1.913e-03    T
+[2026-04-04 17:53:23,990] DEEPMD INFO    -- 1/17H2_51NH3/pre/recal/set_train/deepmd     238       1      28  2.060e-03    T
+[2026-04-04 17:53:23,990] DEEPMD INFO    -- 2/17H2_51NH3/pre/recal/set_train/deepmd     238       1      28  2.060e-03    T
+[2026-04-04 17:53:23,990] DEEPMD INFO    -- 1/72H2_24NH3/pre/recal/set_train/deepmd     240       1      23  1.692e-03    T
+[2026-04-04 17:53:23,990] DEEPMD INFO    -- 2/72H2_24NH3/pre/recal/set_train/deepmd     240       1      27  1.987e-03    T
+[2026-04-04 17:53:23,990] DEEPMD INFO    -- 2/90H2_10NH3/pre/recal/set_train/deepmd     220       1      28  2.060e-03    T
+[2026-04-04 17:53:23,990] DEEPMD INFO    -- 3/17H2_51NH3/pre/recal/set_train/deepmd     238       1      28  2.060e-03    T
+[2026-04-04 17:53:23,990] DEEPMD INFO    -- 3/40H2_40NH3/pre/recal/set_train/deepmd     240       1      28  2.060e-03    T
+[2026-04-04 17:53:23,990] DEEPMD INFO    -- _3/6H2_54NH3/pre/recal/set_train/deepmd     228       1      27  1.987e-03    T
+[2026-04-04 17:53:23,990] DEEPMD INFO    -- 3/72H2_24NH3/pre/recal/set_train/deepmd     240       1      25  1.839e-03    T
+[2026-04-04 17:53:23,991] DEEPMD INFO    -- 3/90H2_10NH3/pre/recal/set_train/deepmd     220       1      27  1.987e-03    T
+[2026-04-04 17:53:23,991] DEEPMD INFO    -- 4/17H2_51NH3/pre/recal/set_train/deepmd     238       1      28  2.060e-03    T
+[2026-04-04 17:53:23,991] DEEPMD INFO    -- 4/40H2_40NH3/pre/recal/set_train/deepmd     240       1      27  1.987e-03    T
+[2026-04-04 17:53:23,991] DEEPMD INFO    -- _4/6H2_54NH3/pre/recal/set_train/deepmd     228       1      25  1.839e-03    T
+[2026-04-04 17:53:23,991] DEEPMD INFO    -- 4/72H2_24NH3/pre/recal/set_train/deepmd     240       1      26  1.913e-03    T
+[2026-04-04 17:53:23,991] DEEPMD INFO    -- 4/90H2_10NH3/pre/recal/set_train/deepmd     220       1      27  1.987e-03    T
+[2026-04-04 17:53:23,991] DEEPMD INFO    -- 5/17H2_51NH3/pre/recal/set_train/deepmd     238       1      25  1.839e-03    T
+[2026-04-04 17:53:23,991] DEEPMD INFO    -- 5/40H2_40NH3/pre/recal/set_train/deepmd     240       1      26  1.913e-03    T
+[2026-04-04 17:53:23,991] DEEPMD INFO    -- _5/6H2_54NH3/pre/recal/set_train/deepmd     228       1      26  1.913e-03    T
+[2026-04-04 17:53:23,992] DEEPMD INFO    -- 5/72H2_24NH3/pre/recal/set_train/deepmd     240       1      25  1.839e-03    T
+[2026-04-04 17:53:23,992] DEEPMD INFO    -- 5/90H2_10NH3/pre/recal/set_train/deepmd     220       1      25  1.839e-03    T
+[2026-04-04 17:53:23,992] DEEPMD INFO    --------------------------------------------------------------------------------------
+[2026-04-04 17:53:23,992] DEEPMD INFO    training with 1 frame parameter(s)
+[2026-04-04 17:53:23,992] DEEPMD INFO    data stating... (this step may take long time)
+I0000 00:00:1775343209.361812 3598798 mlir_graph_optimization_pass.cc:437] MLIR V1 optimization pass is not enabled
+[2026-04-04 17:54:12,907] DEEPMD INFO    built lr
+[2026-04-04 17:54:13,719] DEEPMD INFO    built network
+[2026-04-04 17:54:14,907] DEEPMD INFO    built training
+[2026-04-04 17:54:14,908] DEEPMD WARNING To get the best performance, it is recommended to adjust the number of threads by setting the environment variables OMP_NUM_THREADS, DP_INTRA_OP_PARALLELISM_THREADS, and DP_INTER_OP_PARALLELISM_THREADS. See https://deepmd.rtfd.io/parallelism/ for more information.
+I0000 00:00:1775343254.915510 3598798 gpu_device.cc:2043] Created device /job:localhost/replica:0/task:0/device:GPU:0 with 43694 MB memory:  -> device: 0, name: NVIDIA A40, pci bus id: 0000:85:00.0, compute capability: 8.6
+[2026-04-04 17:54:14,965] DEEPMD INFO    initialize model from scratch
+I0000 00:00:1775343255.263928 3598874 gpu_device.cc:2043] Created device /job:localhost/replica:0/task:0/device:GPU:0 with 43694 MB memory:  -> device: 0, name: NVIDIA A40, pci bus id: 0000:85:00.0, compute capability: 8.6
+[2026-04-04 17:54:15,264] DEEPMD INFO    start training at lr 1.00e-03 (== 1.00e-03), final lr will be 5.00e-08
+[2026-04-04 17:54:17,000] DEEPMD INFO    Batch       0: trn: rmse = 3.25e+01, rmse_e = 5.14e-01, rmse_f = 1.03e+00, rmse_v = 1.46e-01, lr = 1.00e-03
+[2026-04-04 17:54:30,434] DEEPMD INFO    Batch     100: trn: rmse = 4.45e+01, rmse_e = 9.79e-02, rmse_f = 1.49e+00, rmse_v = 4.84e-01, lr = 8.84e-04
+[2026-04-04 17:54:30,435] DEEPMD INFO    Batch     100: total wall time = 15.17 s
+[2026-04-04 17:54:43,041] DEEPMD INFO    Batch     200: trn: rmse = 4.54e+01, rmse_e = 4.35e-02, rmse_f = 1.62e+00, rmse_v = 9.62e-02, lr = 7.81e-04
+[2026-04-04 17:54:43,042] DEEPMD INFO    Batch     200: total wall time = 12.61 s
+[2026-04-04 17:54:55,807] DEEPMD INFO    Batch     300: trn: rmse = 2.94e+01, rmse_e = 1.11e-01, rmse_f = 1.11e+00, rmse_v = 1.50e-01, lr = 6.90e-04
+[2026-04-04 17:54:55,807] DEEPMD INFO    Batch     300: total wall time = 12.77 s
+[2026-04-04 17:55:08,492] DEEPMD INFO    Batch     400: trn: rmse = 3.75e+01, rmse_e = 1.01e-01, rmse_f = 1.52e+00, rmse_v = 7.32e-02, lr = 6.09e-04
+[2026-04-04 17:55:08,493] DEEPMD INFO    Batch     400: total wall time = 12.69 s
+[2026-04-04 17:55:21,174] DEEPMD INFO    Batch     500: trn: rmse = 2.95e+01, rmse_e = 1.67e-01, rmse_f = 1.27e+00, rmse_v = 4.04e-02, lr = 5.38e-04
+[2026-04-04 17:55:21,174] DEEPMD INFO    Batch     500: total wall time = 12.68 s
+[2026-04-04 17:55:33,806] DEEPMD INFO    Batch     600: trn: rmse = 3.05e+01, rmse_e = 5.41e-02, rmse_f = 1.39e+00, rmse_v = 1.32e-01, lr = 4.76e-04
+[2026-04-04 17:55:33,819] DEEPMD INFO    Batch     600: total wall time = 12.64 s
+[2026-04-04 17:55:46,528] DEEPMD INFO    Batch     700: trn: rmse = 3.71e+01, rmse_e = 5.70e-02, rmse_f = 1.79e+00, rmse_v = 2.84e-01, lr = 4.20e-04
+[2026-04-04 17:55:46,543] DEEPMD INFO    Batch     700: total wall time = 12.72 s
+[2026-04-04 17:55:59,339] DEEPMD INFO    Batch     800: trn: rmse = 1.66e+01, rmse_e = 2.98e-02, rmse_f = 8.51e-01, rmse_v = 1.22e-01, lr = 3.71e-04
+[2026-04-04 17:55:59,352] DEEPMD INFO    Batch     800: total wall time = 12.81 s
+[2026-04-04 17:56:12,041] DEEPMD INFO    Batch     900: trn: rmse = 1.72e+01, rmse_e = 5.43e-02, rmse_f = 9.43e-01, rmse_v = 5.54e-02, lr = 3.28e-04
+[2026-04-04 17:56:12,271] DEEPMD INFO    Batch     900: total wall time = 12.92 s
+[2026-04-04 17:56:25,014] DEEPMD INFO    Batch    1000: trn: rmse = 2.32e+01, rmse_e = 9.73e-02, rmse_f = 1.36e+00, rmse_v = 1.75e-02, lr = 2.90e-04
+[2026-04-04 17:56:25,028] DEEPMD INFO    Batch    1000: total wall time = 12.76 s
+[2026-04-04 17:56:25,267] DEEPMD INFO    saved checkpoint model-compression/model.ckpt
+[2026-04-04 17:56:38,001] DEEPMD INFO    Batch    1100: trn: rmse = 2.61e+01, rmse_e = 1.87e-01, rmse_f = 1.60e+00, rmse_v = 1.83e-01, lr = 2.56e-04
+[2026-04-04 17:56:38,014] DEEPMD INFO    Batch    1100: total wall time = 12.99 s
+[2026-04-04 17:56:50,598] DEEPMD INFO    Batch    1200: trn: rmse = 1.50e+01, rmse_e = 7.90e-03, rmse_f = 9.95e-01, rmse_v = 5.88e-02, lr = 2.26e-04
+[2026-04-04 17:56:50,611] DEEPMD INFO    Batch    1200: total wall time = 12.60 s
+[2026-04-04 17:57:03,303] DEEPMD INFO    Batch    1300: trn: rmse = 1.71e+01, rmse_e = 1.51e-01, rmse_f = 1.18e+00, rmse_v = 5.21e-02, lr = 2.00e-04
+[2026-04-04 17:57:03,317] DEEPMD INFO    Batch    1300: total wall time = 12.71 s
+[2026-04-04 17:57:16,054] DEEPMD INFO    Batch    1400: trn: rmse = 1.96e+01, rmse_e = 1.44e-01, rmse_f = 1.27e+00, rmse_v = 4.83e-01, lr = 1.77e-04
+[2026-04-04 17:57:16,068] DEEPMD INFO    Batch    1400: total wall time = 12.75 s
+[2026-04-04 17:57:28,846] DEEPMD INFO    Batch    1500: trn: rmse = 1.38e+01, rmse_e = 6.11e-02, rmse_f = 1.08e+00, rmse_v = 1.09e-01, lr = 1.56e-04
+[2026-04-04 17:57:28,859] DEEPMD INFO    Batch    1500: total wall time = 12.79 s
+[2026-04-04 17:57:41,623] DEEPMD INFO    Batch    1600: trn: rmse = 1.93e+01, rmse_e = 6.05e-02, rmse_f = 1.63e+00, rmse_v = 4.87e-02, lr = 1.38e-04
+[2026-04-04 17:57:41,635] DEEPMD INFO    Batch    1600: total wall time = 12.78 s
+[2026-04-04 17:57:54,368] DEEPMD INFO    Batch    1700: trn: rmse = 2.45e+01, rmse_e = 8.54e-02, rmse_f = 2.20e+00, rmse_v = 7.39e-02, lr = 1.22e-04
+[2026-04-04 17:57:54,381] DEEPMD INFO    Batch    1700: total wall time = 12.75 s
+[2026-04-04 17:58:07,071] DEEPMD INFO    Batch    1800: trn: rmse = 1.63e+01, rmse_e = 9.89e-02, rmse_f = 1.54e+00, rmse_v = 6.14e-02, lr = 1.08e-04
+[2026-04-04 17:58:07,085] DEEPMD INFO    Batch    1800: total wall time = 12.70 s
+[2026-04-04 17:58:19,866] DEEPMD INFO    Batch    1900: trn: rmse = 1.12e+01, rmse_e = 5.19e-02, rmse_f = 1.13e+00, rmse_v = 2.12e-02, lr = 9.52e-05
+[2026-04-04 17:58:19,880] DEEPMD INFO    Batch    1900: total wall time = 12.79 s
+[2026-04-04 17:58:32,510] DEEPMD INFO    Batch    2000: trn: rmse = 1.85e+01, rmse_e = 3.06e-03, rmse_f = 1.99e+00, rmse_v = 6.85e-02, lr = 8.41e-05
+[2026-04-04 17:58:32,522] DEEPMD INFO    Batch    2000: total wall time = 12.64 s
+[2026-04-04 17:58:32,678] DEEPMD INFO    saved checkpoint model-compression/model.ckpt
+[2026-04-04 17:58:45,329] DEEPMD INFO    Batch    2100: trn: rmse = 8.30e+00, rmse_e = 2.59e-02, rmse_f = 9.36e-01, rmse_v = 7.17e-02, lr = 7.43e-05
+[2026-04-04 17:58:45,342] DEEPMD INFO    Batch    2100: total wall time = 12.82 s
+[2026-04-04 17:58:58,055] DEEPMD INFO    Batch    2200: trn: rmse = 1.16e+01, rmse_e = 9.89e-03, rmse_f = 1.38e+00, rmse_v = 1.29e-01, lr = 6.56e-05
+[2026-04-04 17:58:58,069] DEEPMD INFO    Batch    2200: total wall time = 12.73 s
+[2026-04-04 17:59:10,658] DEEPMD INFO    Batch    2300: trn: rmse = 1.01e+01, rmse_e = 3.25e-03, rmse_f = 1.29e+00, rmse_v = 7.20e-02, lr = 5.80e-05
+[2026-04-04 17:59:10,659] DEEPMD INFO    Batch    2300: total wall time = 12.59 s
+[2026-04-04 17:59:23,349] DEEPMD INFO    Batch    2400: trn: rmse = 6.68e+00, rmse_e = 5.15e-02, rmse_f = 8.94e-01, rmse_v = 5.48e-02, lr = 5.12e-05
+[2026-04-04 17:59:23,350] DEEPMD INFO    Batch    2400: total wall time = 12.69 s
+[2026-04-04 17:59:36,083] DEEPMD INFO    Batch    2500: trn: rmse = 7.69e+00, rmse_e = 5.01e-02, rmse_f = 1.11e+00, rmse_v = 2.89e-02, lr = 4.53e-05
+[2026-04-04 17:59:36,084] DEEPMD INFO    Batch    2500: total wall time = 12.73 s
+[2026-04-04 17:59:48,857] DEEPMD INFO    Batch    2600: trn: rmse = 9.70e+00, rmse_e = 1.15e-03, rmse_f = 1.45e+00, rmse_v = 1.24e-01, lr = 4.00e-05
+[2026-04-04 17:59:48,857] DEEPMD INFO    Batch    2600: total wall time = 12.77 s
+[2026-04-04 18:00:01,575] DEEPMD INFO    Batch    2700: trn: rmse = 5.15e+00, rmse_e = 1.41e-01, rmse_f = 6.84e-01, rmse_v = 1.67e-02, lr = 3.54e-05
+[2026-04-04 18:00:01,576] DEEPMD INFO    Batch    2700: total wall time = 12.72 s
+[2026-04-04 18:00:14,230] DEEPMD INFO    Batch    2800: trn: rmse = 6.70e+00, rmse_e = 2.82e-02, rmse_f = 1.15e+00, rmse_v = 5.78e-02, lr = 3.12e-05
+[2026-04-04 18:00:14,231] DEEPMD INFO    Batch    2800: total wall time = 12.65 s
+[2026-04-04 18:00:26,927] DEEPMD INFO    Batch    2900: trn: rmse = 6.18e+00, rmse_e = 4.52e-02, rmse_f = 1.13e+00, rmse_v = 2.67e-02, lr = 2.76e-05
+[2026-04-04 18:00:26,928] DEEPMD INFO    Batch    2900: total wall time = 12.70 s
+[2026-04-04 18:00:39,550] DEEPMD INFO    Batch    3000: trn: rmse = 7.09e+00, rmse_e = 8.11e-02, rmse_f = 1.33e+00, rmse_v = 5.54e-02, lr = 2.44e-05
+[2026-04-04 18:00:39,551] DEEPMD INFO    Batch    3000: total wall time = 12.62 s
+[2026-04-04 18:00:39,774] DEEPMD INFO    saved checkpoint model-compression/model.ckpt
+[2026-04-04 18:00:52,515] DEEPMD INFO    Batch    3100: trn: rmse = 5.08e+00, rmse_e = 3.15e-02, rmse_f = 1.03e+00, rmse_v = 4.24e-02, lr = 2.15e-05
+[2026-04-04 18:00:52,516] DEEPMD INFO    Batch    3100: total wall time = 12.96 s
+[2026-04-04 18:01:05,278] DEEPMD INFO    Batch    3200: trn: rmse = 8.41e+00, rmse_e = 1.19e-01, rmse_f = 1.64e+00, rmse_v = 1.45e-01, lr = 1.90e-05
+[2026-04-04 18:01:05,278] DEEPMD INFO    Batch    3200: total wall time = 12.76 s
+[2026-04-04 18:01:17,999] DEEPMD INFO    Batch    3300: trn: rmse = 4.70e+00, rmse_e = 5.14e-02, rmse_f = 1.05e+00, rmse_v = 3.56e-02, lr = 1.68e-05
+[2026-04-04 18:01:17,999] DEEPMD INFO    Batch    3300: total wall time = 12.72 s
+[2026-04-04 18:01:30,681] DEEPMD INFO    Batch    3400: trn: rmse = 5.62e+00, rmse_e = 8.27e-02, rmse_f = 1.29e+00, rmse_v = 5.12e-02, lr = 1.49e-05
+[2026-04-04 18:01:30,681] DEEPMD INFO    Batch    3400: total wall time = 12.68 s
+[2026-04-04 18:01:43,420] DEEPMD INFO    Batch    3500: trn: rmse = 5.31e+00, rmse_e = 1.10e-01, rmse_f = 1.22e+00, rmse_v = 3.45e-02, lr = 1.31e-05
+[2026-04-04 18:01:43,421] DEEPMD INFO    Batch    3500: total wall time = 12.74 s
+[2026-04-04 18:01:56,037] DEEPMD INFO    Batch    3600: trn: rmse = 4.52e+00, rmse_e = 5.35e-02, rmse_f = 1.15e+00, rmse_v = 6.12e-02, lr = 1.16e-05
+[2026-04-04 18:01:56,038] DEEPMD INFO    Batch    3600: total wall time = 12.62 s
+[2026-04-04 18:02:08,686] DEEPMD INFO    Batch    3700: trn: rmse = 3.56e+00, rmse_e = 9.27e-02, rmse_f = 7.61e-01, rmse_v = 6.62e-02, lr = 1.03e-05
+[2026-04-04 18:02:08,686] DEEPMD INFO    Batch    3700: total wall time = 12.65 s
+[2026-04-04 18:02:21,408] DEEPMD INFO    Batch    3800: trn: rmse = 4.33e+00, rmse_e = 1.21e-03, rmse_f = 1.27e+00, rmse_v = 6.08e-02, lr = 9.06e-06
+[2026-04-04 18:02:21,409] DEEPMD INFO    Batch    3800: total wall time = 12.72 s
+[2026-04-04 18:02:34,037] DEEPMD INFO    Batch    3900: trn: rmse = 5.49e+00, rmse_e = 9.76e-02, rmse_f = 1.57e+00, rmse_v = 6.74e-02, lr = 8.00e-06
+[2026-04-04 18:02:34,038] DEEPMD INFO    Batch    3900: total wall time = 12.63 s
+[2026-04-04 18:02:46,720] DEEPMD INFO    Batch    4000: trn: rmse = 3.54e+00, rmse_e = 1.69e-02, rmse_f = 1.12e+00, rmse_v = 6.05e-02, lr = 7.07e-06
+[2026-04-04 18:02:46,720] DEEPMD INFO    Batch    4000: total wall time = 12.68 s
+[2026-04-04 18:02:47,023] DEEPMD INFO    saved checkpoint model-compression/model.ckpt
+[2026-04-04 18:02:59,728] DEEPMD INFO    Batch    4100: trn: rmse = 3.04e+00, rmse_e = 3.99e-02, rmse_f = 9.65e-01, rmse_v = 5.21e-02, lr = 6.25e-06
+[2026-04-04 18:02:59,729] DEEPMD INFO    Batch    4100: total wall time = 13.01 s
+[2026-04-04T18:03:10.813] error: *** STEP 17256442.0 ON gpub053 CANCELLED AT 2026-04-04T18:03:10 DUE TO TIME LIMIT ***
+[2026-04-04T18:03:10.813] error: *** JOB 17256442 ON gpub053 CANCELLED AT 2026-04-04T18:03:10 DUE TO TIME LIMIT ***
