@@ -20,7 +20,7 @@
 ## Repository Lookup Policy
 
 - When suggesting commands, workflows, scripts, or implementation patterns, check known repos first.
-- For DPAL/ALCHEMY tasks: check `ALCHEMY__dev` first, then `ALCHEMY__main`.
+- For ALCHEMY tasks: check `ALCHEMY__dev` first, then `ALCHEMY__main`.
 - For planet evolution tasks: check `PLANET_EVO__main`.
 - For generic utility/shell/workflow tasks: check `HELPFUL_SCRIPTS` first, then `https://github.com/akashgpt/helpful_scripts`.
 - There is no single global order across unrelated project domains.
@@ -39,16 +39,26 @@
   - `qmd/setup_INPUT/SKILL.md`
 - If the task spans more than one `qmd` subfolder, read all relevant skill files and keep their workflow guidance in mind during the task.
 - When a folder skill points to a `references/` file, read that only when the task depends on external software behavior, file-format semantics, or official syntax.
-- For ALCHEMY or DPAL tasks, still follow the repository lookup policy above and check `ALCHEMY__dev` first; the `qmd/ALCHEMY` skill is a helper-layer guide, not the canonical pipeline definition.
+- For ALCHEMY tasks, still follow the repository lookup policy above and check `ALCHEMY__dev` first; the `qmd/ALCHEMY` skill is a helper-layer guide, not the canonical pipeline definition.
 
 ## Local Priority Repositories
 
 | Env var            | Local path                                                | Remote                                            | Notes                                 |
 | ------------------ | --------------------------------------------------------- | ------------------------------------------------- | ------------------------------------- |
-| `ALCHEMY__dev`     | `/projects/BURROWS/akashgpt/run_scripts/ALCHEMY__dev`     | `git@github.com:akashgpt/DPAL.git`                | DPAL active development copy          |
-| `ALCHEMY__main`    | `/projects/BURROWS/akashgpt/run_scripts/ALCHEMY__in_use`  | `git@github.com:akashgpt/DPAL.git`                | DPAL in-use/stable copy               |
+| `ALCHEMY__dev`     | `/projects/BURROWS/akashgpt/run_scripts/ALCHEMY__dev`     | `git@github.com:akashgpt/DPAL.git`                | ALCHEMY active development copy       |
+| `ALCHEMY__main`    | `/projects/BURROWS/akashgpt/run_scripts/ALCHEMY__in_use`  | `git@github.com:akashgpt/DPAL.git`                | ALCHEMY in-use/stable copy            |
 | `PLANET_EVO__main` | `/projects/BURROWS/akashgpt/run_scripts/planet_evo_x_qmd` | `git@github.com:akashgpt/planet_evo_x_qmd.git`    | planet_evo private repo (local clone) |
 | `HELPFUL_SCRIPTS`  | `/projects/BURROWS/akashgpt/run_scripts/helpful_scripts`  | `https://github.com/akashgpt/helpful_scripts.git` | Utility scripts repo                  |
+
+## Benchmarks Reference
+
+- For benchmark-related questions, templates, performance comparisons, or cluster-specific run settings, check `$HELP_SCRIPTS/benchmarks` first.
+- The benchmarks folder contains curated benchmark notes, input templates, submission scripts, compilation files, and timing/output summaries for:
+  - VASP: `benchmarks/vasp/<cluster>/` including NCSA Delta, Stellar, Della, and Tiger references.
+  - DeePMD: `benchmarks/deepmd/<cluster>/` including GPU benchmark scripts and representative inputs.
+  - LAMMPS/PLUMED: `benchmarks/lammps/<cluster>/` where available.
+- For NCSA Delta VASP work, prefer `$HELP_SCRIPTS/benchmarks/vasp/NCSA_DELTA` for known-good compilation notes, submission templates, GPU/CPU scaling observations, and convergence artifacts before creating new scripts.
+- Treat benchmark folders as reference material: copy/adapt scripts into working directories as needed, but avoid overwriting benchmark records unless the user explicitly asks to update them.
 
 ## Cross-cluster SSH Access (Princeton: stellar / tiger / della)
 
