@@ -1101,6 +1101,7 @@ run_rsync_timed_if_source_exists "$DIR7" "$PRIMARY_PROJECTS_FOLDER/$DIR7" rsync 
 run_rsync_timed_if_source_exists "${CLUSTER}${FILE2}" "$HOME/$FILE2" rsync -av --update --progress --delete "$HOME/$FILE2" "$HELP_SCRIPTS/sys/${CLUSTER}${FILE2}"
 run_rsync_timed_if_source_exists "${CLUSTER}${FILE3}" "$HOME/$FILE3" rsync -av --update --progress --delete "$HOME/$FILE3" "$HELP_SCRIPTS/sys/${CLUSTER}${FILE3}"
 # rsync -av --update --progress $PRIMARY_PROJECTS_FOLDER/VASP_POTPAW/* $SCRATCH/local_copy__projects/BURROWS/VASP_POTPAW
+
 end_block9=$(date +%s)
 elapsed_block9=$(( end_block9 - start_block9 ))
 if [ $elapsed_block9 -gt 10 ]; then
