@@ -125,13 +125,8 @@
 
 # =============================
 conda_env_name="ALCHEMY_env__PT" # name of the conda environment to create and install everything in
-# PLUMED custom CV patches directory — set by cluster detection below
-dir_w_plumed_patches=""
-# Build a second KOKKOS-enabled LAMMPS (lmp_kk) alongside the plain lmp for
-# A/B benchmarking. Set to 0 to skip.
-BUILD_KOKKOS_LAMMPS=1
-# KOKKOS GPU arch — AMPERE80 covers A100 on Della & Delta.
-KOKKOS_ARCH_FLAG="-DKokkos_ARCH_AMPERE80=yes"
+dir_w_plumed_patches="/projects/BURROWS/akashgpt/lammp*"
+# dir_w_plumed_patches="/projects/bguf/akashgpt/lammp*"
 # =============================
 
 
@@ -139,7 +134,6 @@ KOKKOS_ARCH_FLAG="-DKokkos_ARCH_AMPERE80=yes"
 deepmd_plmd_lmp_misc__folder_name="deepmd-kit_and_others__${conda_env_name}"
 conda_env="${conda_env_name}"
 lmp_exec_name="lmp"
-lmp_kk_exec_name="lmp_kk"
 
 
 # send all output to log file
@@ -178,8 +172,6 @@ if [[ $(hostname) == *"della"* ]]; then
     module load cudatoolkit/12.8
     module load fftw/gcc/openmpi-4.1.6/3.3.10
     module load anaconda3/2025.12
-    dir_w_plumed_patches="/projects/BURROWS/akashgpt/lammps_patches__akashgpt"
-    mpi_cxx_env_var="OMPI_CXX"
 elif [[ $(hostname) == *"stellar"* ]]; then
     module purge
     echo "# ========================== #"
@@ -190,8 +182,6 @@ elif [[ $(hostname) == *"stellar"* ]]; then
     module load cudatoolkit/12.4
     module load fftw/gcc/openmpi-4.1.6/3.3.10
     module load anaconda3/2025.12
-    dir_w_plumed_patches="/projects/BURROWS/akashgpt/lammps_patches__akashgpt"
-    mpi_cxx_env_var="OMPI_CXX"
 elif [[ $(hostname) == *"delta"* ]]; then
     module reset
     echo "# ========================== #"
@@ -203,8 +193,6 @@ elif [[ $(hostname) == *"delta"* ]]; then
     module load cudatoolkit/25.3_12.8
     module load fftw/3.3.10-gcc13.3.1
     module load miniforge3-python
-    dir_w_plumed_patches="/projects/bguf/akashgpt/lammps_patches__akashgpt"
-    mpi_cxx_env_var="MPICH_CXX"
 elif [[ $(hostname) == *"tiger"* ]]; then
     echo "Run the following command for Tiger (no access to GPUs on Tiger):" 
     echo "module purge && module load anaconda3/2025.12 && conda create -n ${conda_env_name} -c conda-forge -y deepmd-kit lammps horovod ase parallel dpdata"
@@ -564,99 +552,6 @@ rm -f ~/.local/bin/${lmp_exec_name}
 ln -s $PWD/lmp ~/.local/bin/${lmp_exec_name}
 
 
-# =======================================================================
-# KOKKOS LAMMPS build (lmp_kk)
-# =======================================================================
-# Builds a second LAMMPS executable with the KOKKOS package enabled,
-# targeting CUDA + OpenMP on A100 (AMPERE80). The plain `lmp` above is
-# left untouched so you can A/B compare: `lmp` vs `lmp_kk -k on g 1 -sf kk
-# -pk kokkos newton on neigh half`.
-#
-# Notes:
-#  - DeepMD's pair_style deepmd has NO KOKKOS variant (DeepMD already runs
-#    on GPU via its own PT kernels). KOKKOS here accelerates integrators,
-#    neighbor lists, comm, KSPACE, etc.
-#  - nvcc_wrapper is injected into the MPI CXX compiler via the
-#    cluster-specific env var (OMPI_CXX or MPICH_CXX) set above.
-#  - Uses the same DEEPMD C API + PLUMED static install from the first
-#    build — no rebuild of those pieces.
-# =======================================================================
-if [ "${BUILD_KOKKOS_LAMMPS}" = "1" ]; then
-    echo ""
-    echo "====================="
-    echo "Installing LAMMPS (KOKKOS variant -> lmp_kk)"
-    echo "====================="
-
-    cd $deepmd_source_dir/source/lammps-stable_2Aug2023_update3
-    mkdir -p build_kk
-    cd build_kk
-
-    # Point MPI CXX wrapper at kokkos nvcc_wrapper so that `mpicxx` invokes
-    # nvcc under the hood for CUDA kernels. This is standard practice for
-    # KOKKOS+CUDA LAMMPS builds.
-    kokkos_nvcc_wrapper="${deepmd_source_dir}/source/lammps-stable_2Aug2023_update3/lib/kokkos/bin/nvcc_wrapper"
-    export ${mpi_cxx_env_var}="${kokkos_nvcc_wrapper}"
-    echo "Using ${mpi_cxx_env_var}=${kokkos_nvcc_wrapper}"
-
-    # conda-forge PyTorch ships a stub `nvcc` in $CONDA_PREFIX/bin without a
-    # full toolkit (no targets/x86_64-linux/nvvm/bin/cicc). nvcc_wrapper
-    # resolves `nvcc` via PATH, so we must prepend the module-provided
-    # $CUDA_HOME/bin to PATH. Otherwise the KOKKOS cmake check errors with
-    # "nvvm/bin/cicc: No such file or directory".
-    _prev_PATH="$PATH"
-    export PATH="${CUDA_HOME}/bin:${PATH}"
-    echo "Prepended \$CUDA_HOME/bin to PATH: $(which nvcc)"
-
-    # BUILD_SHARED_LIBS=no: static link so we don't install an
-    # overlapping liblammps.so into CONDA_PREFIX/lib (the plain `lmp`
-    # build already put one there). Kokkos+CUDA also prefers static.
-    cmake3 \
-            -DCMAKE_CXX_COMPILER=${kokkos_nvcc_wrapper} \
-            -DCMAKE_CXX_FLAGS="-Wno-stringop-overflow" \
-            -DCMAKE_EXE_LINKER_FLAGS="-L${CONDA_PREFIX}/lib -Wl,-rpath,${CONDA_PREFIX}/lib" \
-            -DBUILD_MPI=yes \
-            -DBUILD_OMP=yes \
-            -DPKG_KOKKOS=yes \
-            -DKokkos_ENABLE_CUDA=yes \
-            -DKokkos_ENABLE_OPENMP=yes \
-            ${KOKKOS_ARCH_FLAG} \
-            -DPKG_KSPACE=yes \
-            -DPKG_RIGID=yes \
-            -DPKG_MANYBODY=yes \
-            -DPKG_MOLECULE=yes \
-            -DPKG_EXTRA-FIX=yes \
-            -DPKG_DEEPMD=yes \
-            -DPKG_EXTRA=yes \
-            -DPKG_REPLICA=yes \
-            -DPKG_SHAKE=yes \
-            -DPKG_PLUMED=yes \
-            -DDOWNLOAD_PLUMED=no \
-            -DPLUMED_MODE=static \
-            -DENABLE_TESTING=no \
-            -DBUILD_SHARED_LIBS=no \
-            ../cmake
-
-    # Build only the lmp binary — do NOT `make install` here (would clobber
-    # libraries from the first build). Symlink it into ~/.local/bin as lmp_kk.
-    make -j16 lmp
-
-    if [ -f lmp ]; then
-        rm -f ~/.local/bin/${lmp_kk_exec_name}
-        ln -s "$(pwd)/lmp" ~/.local/bin/${lmp_kk_exec_name}
-        echo "KOKKOS LAMMPS binary: $(pwd)/lmp"
-        echo "Symlink:             ~/.local/bin/${lmp_kk_exec_name}"
-    else
-        echo "WARNING: KOKKOS LAMMPS build did not produce lmp binary — skipping lmp_kk install."
-    fi
-
-    # Unset the MPI CXX override so it doesn't leak into any later commands.
-    unset ${mpi_cxx_env_var}
-    export PATH="${_prev_PATH}"
-    unset _prev_PATH
-fi
-# =======================================================================
-
-
 ## Verify PyTorch backend is available
 echo ""
 echo "====================="
@@ -676,10 +571,6 @@ echo "========================================================"
 echo ""
 echo "Conda environment:  ${conda_env}"
 echo "LAMMPS executable:  ${lmp_exec_name}"
-if [ "${BUILD_KOKKOS_LAMMPS}" = "1" ]; then
-    echo "LAMMPS (KOKKOS):    ${lmp_kk_exec_name}"
-    echo "  Usage: ${lmp_kk_exec_name} -k on g <N_GPU> -sf kk -pk kokkos newton on neigh half -in in.lammps"
-fi
 echo ""
 echo "--- Multi-GPU training (PyTorch DDP) ---"
 echo ""
