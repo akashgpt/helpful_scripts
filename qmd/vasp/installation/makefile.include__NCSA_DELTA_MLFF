@@ -1,0 +1,94 @@
+# Delta RH9 VASP 6.6.x makefile.include tuned for CPU + MLFF runs.
+#
+# This variant keeps the MLFF-friendly shared-memory settings from the
+# local oneAPI file (-Duse_shmem, -D_OPENMP, getshmem.o), but switches the
+# toolchain to Delta's native RH9 Cray PE wrappers. On Delta RH9, the most
+# reproducible path is to use ftn/cc/CC with the loaded Cray MPICH and
+# Cray LibSci stack rather than Intel MPI wrappers such as mpiifort, which
+# are not provided by default.
+#
+# Recommended module baseline before building:
+#   module reset
+#   module load PrgEnv-gnu cray-hdf5-parallel
+#
+# Runtime note:
+#   ulimit -s unlimited
+
+# Default precompiler options
+CPP_OPTIONS = -DHOST=\"LinuxGNU\" \
+              -DMPI -DMPI_BLOCK=8000 -Duse_collective \
+              -DscaLAPACK \
+              -DCACHE_SIZE=4000 \
+              -Davoidalloc \
+              -Dvasp6 \
+              -Dtbdyn \
+              -Dfock_dblbuf \
+              -Duse_shmem \
+              -D_OPENMP
+
+CPP         = gcc -E -C -w $*$(FUFFIX) >$*$(SUFFIX) $(CPP_OPTIONS)
+
+# Delta RH9 uses Cray compiler wrappers over the active PrgEnv compiler.
+FC          = ftn -fopenmp
+FCL         = $(FC)
+
+FREE        = -ffree-form -ffree-line-length-none
+FFLAGS      = -w -ffpe-summary=none
+
+OFLAG       = -O3
+OFLAG_IN    = $(OFLAG)
+DEBUG       = -O0
+
+# For what used to be vasp.5.lib
+CPP_LIB     = $(CPP)
+FC_LIB      = $(FC)
+CC_LIB      = cc
+CFLAGS_LIB  = -O2
+FFLAGS_LIB  = -O2
+FREE_LIB    = $(FREE)
+
+OBJECTS_LIB = linpack_double.o getshmem.o
+
+# For the parser library
+CXX_PARS    = CC
+LLIBS       = -lstdc++
+
+# Normally no need to change this
+SRCDIR      = ../../src
+BINDIR      = ../../bin
+
+# Delta CPU nodes are AMD Milan (EPYC 7xx3).
+VASP_TARGET_CPU ?= -march=znver3 -mtune=znver3
+FFLAGS      += $(VASP_TARGET_CPU)
+
+# For gcc-10 and higher
+FFLAGS      += -fallow-argument-mismatch
+
+# Cray LibSci provides BLAS/LAPACK/ScaLAPACK via the wrapper toolchain.
+# With GNU, the OpenMP-enabled LibSci is selected automatically when the
+# -fopenmp flag is present.
+
+# FFTW from the Cray PE stack
+FFTW_ROOT   ?= /opt/cray/pe/fftw/default/x86_milan
+LLIBS       += -L$(FFTW_ROOT)/lib -lfftw3 -lfftw3_omp
+INCS        += -I$(FFTW_ROOT)/include
+
+# HDF5 support is strongly recommended, and required for some features.
+# Loading cray-hdf5-parallel keeps this path aligned with the active PE.
+CPP_OPTIONS += -DVASP_HDF5
+HDF5_ROOT   ?= /opt/cray/pe/hdf5-parallel/1.14.3.5/gnu/12.2
+LLIBS       += -L$(HDF5_ROOT)/lib -lhdf5_fortran_parallel
+INCS        += -I$(HDF5_ROOT)/include
+
+# Optional interfaces
+#CPP_OPTIONS    += -DVASP2WANNIER90
+#WANNIER90_ROOT ?= /path/to/your/wannier90/installation
+#LLIBS          += -L$(WANNIER90_ROOT)/lib -lwannier
+
+# Optional fftlib
+#CPP_OPTIONS    += -Dsysv
+#FCL            += fftlib.o
+#CXX_FFTLIB      = CC -fopenmp -std=c++11 -DFFTLIB_THREADSAFE
+#INCS_FFTLIB     = -I./include -I$(FFTW_ROOT)/include
+#LIBS           += fftlib
+#LLIBS          += -ldl
