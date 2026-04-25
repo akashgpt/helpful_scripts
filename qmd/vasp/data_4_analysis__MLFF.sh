@@ -12,11 +12,17 @@ parent_dir=$(pwd)
 parent_dir_name=$(basename "$parent_dir")
 script_dir=$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)
 outcar_path="${1:-OUTCAR}"
+data_4_analysis_python="${DATA_4_ANALYSIS_PYTHON:-${HELPFUL_SCRIPTS_PYTHON:-python}}"
 peavg_script="${script_dir}/peavg_mlff.sh"
 band_summary_script="${script_dir}/extract_band_occupations.py"
 mlff_training_summary_script="${script_dir}/extract_mlff_training_summary.py"
 snapshot_plot_script="${script_dir}/plot_vasp_current_snapshot.py"
 mlff_summary_path="analysis/.mlff_training_summary.tmp"
+
+export DATA_4_ANALYSIS_PYTHON="$data_4_analysis_python"
+export PYTHONNOUSERSITE="${PYTHONNOUSERSITE:-1}"
+export MPLCONFIGDIR="${MPLCONFIGDIR:-${TMPDIR:-/tmp}/matplotlib-${USER:-user}}"
+mkdir -p "$MPLCONFIGDIR" 2>/dev/null || true
 
 resolve_helper_script() {
 	local script_name="$1"
@@ -199,7 +205,7 @@ mkdir -p analysis
 
 if [[ -f CONTCAR && -s CONTCAR && -f "$snapshot_plot_script" ]]; then
 	echo "Plotting current CONTCAR snapshot to analysis/current_snapshot.png."
-	python "$snapshot_plot_script" \
+	"$data_4_analysis_python" "$snapshot_plot_script" \
 		--structure CONTCAR \
 		--outcar "$outcar_path" \
 		--output analysis/current_snapshot.png \
@@ -216,7 +222,7 @@ bash "$peavg_script" "$outcar_path" || {
 
 if [[ -f "$band_summary_script" ]]; then
 	echo "Extracting occupied-band summary from OUTCAR."
-	python "$band_summary_script" \
+	"$data_4_analysis_python" "$band_summary_script" \
 		--outcar "$outcar_path" \
 		--output analysis/band_occupations_summary.out \
 		--selection second_last
@@ -230,7 +236,7 @@ fi
 if [[ -f "$mlff_training_summary_script" ]]; then
 	echo "Extracting MLFF training/storage summary from ML_LOGFILE."
 	rm -f analysis/mlff_training_summary.out "$mlff_summary_path"
-	python "$mlff_training_summary_script" \
+	"$data_4_analysis_python" "$mlff_training_summary_script" \
 		--ml-logfile ML_LOGFILE \
 		--outcar "$outcar_path" \
 		--incar INCAR \
@@ -239,7 +245,7 @@ else
 	echo "Warning: MLFF training summary helper not found: $mlff_training_summary_script"
 fi
 
-python <<'PY'
+"$data_4_analysis_python" <<'PY'
 import math
 import os
 from pathlib import Path

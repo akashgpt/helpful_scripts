@@ -1,0 +1,55 @@
+# Default precompiler options
+CPP_OPTIONS = -DHOST=\"LinuxIFC\" \
+              -DMPI -DMPI_BLOCK=8000 -Duse_collective \
+              -DscaLAPACK \
+              -DCACHE_SIZE=4000 \
+              -Davoidalloc \
+              -Dvasp6 \
+              -Dtbdyn \
+              -Dfock_dblbuf \
+              -Duse_shmem \
+              -D_OPENMP
+
+CPP         = fpp -f_com=no -free -w0  $*$(FUFFIX) $*$(SUFFIX) $(CPP_OPTIONS)
+
+FC          = mpiifort -fc=ifx -qopenmp
+FCL         = mpiifort -fc=ifx
+
+FREE        = -free -names lowercase
+FFLAGS      = -assume byterecl -w
+
+OFLAG       = -O2
+OFLAG_IN    = $(OFLAG)
+DEBUG       = -O0
+
+# For what used to be vasp.5.lib
+CPP_LIB     = $(CPP)
+FC_LIB      = $(FC)
+CC_LIB      = icx
+CFLAGS_LIB  = -O
+FFLAGS_LIB  = -O1
+FREE_LIB    = $(FREE)
+
+OBJECTS_LIB = linpack_double.o getshmem.o
+
+# For the parser library
+CXX_PARS    = icpx
+LLIBS       = -lstdc++
+
+# CPU target
+VASP_TARGET_CPU ?= -xHOST
+FFLAGS     += $(VASP_TARGET_CPU)
+
+# Intel MKL
+FCL        += -qmkl
+MKLROOT    ?= /opt/intel/oneapi/mkl/2024.2
+LLIBS      += -L$(MKLROOT)/lib/intel64 -lmkl_scalapack_lp64 -lmkl_blacs_intelmpi_lp64
+INCS        = -I$(MKLROOT)/include/fftw
+
+# HDF5
+CPP_OPTIONS += -DVASP_HDF5
+HDF5_ROOT   ?= /usr/local/hdf5/oneapi-2024.2/intel-mpi/1.14.4
+LLIBS       += -L$(HDF5_ROOT)/lib -lhdf5_fortran
+INCS        += -I$(HDF5_ROOT)/include
+# If static HDF5 is used, also add:
+#INCS       += -I$(HDF5_ROOT)/mod/static

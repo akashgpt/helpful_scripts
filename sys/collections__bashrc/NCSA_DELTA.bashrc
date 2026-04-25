@@ -32,8 +32,8 @@ unset rc
 
 # my aliases and functions
 
-if [ -f /projects/bguf/akashgpt/run_scripts/helpful_scripts/sys/myshortcuts.sh ] && [ ! -z "$PS1" ]; then
+if [ -f /work/nvme/bguf/akashgpt/local_copy__projects/bguf/akashgpt/run_scripts/helpful_scripts/sys/myshortcuts.sh ] && [ ! -z "$PS1" ]; then
+	source /work/nvme/bguf/akashgpt/local_copy__projects/bguf/akashgpt/run_scripts/helpful_scripts/sys/myshortcuts.sh ${verbose}
+elif [ -f /projects/bguf/akashgpt/run_scripts/helpful_scripts/sys/myshortcuts.sh ] && [ ! -z "$PS1" ]; then
 	source /projects/bguf/akashgpt/run_scripts/helpful_scripts/sys/myshortcuts.sh ${verbose}
-elif [ -f $SCRATCH/local_copy__projects/bguf/akashgpt/run_scripts/helpful_scripts/sys/myshortcuts.sh ] && [ ! -z "$PS1" ]; then
-	source $SCRATCH/local_copy__projects/bguf/akashgpt/run_scripts/helpful_scripts/sys/myshortcuts.sh ${verbose}
 fi

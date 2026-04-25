@@ -62,7 +62,9 @@
 
 ## Cross-cluster SSH Access (Princeton: stellar / tiger / della)
 
-**Hosts & aliases.** `tiger` and `della` are defined as SSH aliases in `~/.ssh/config`. From stellar, commands on the other two clusters run as `ssh tiger '<cmd>'` / `ssh della '<cmd>'`.
+**Hosts & aliases.** `stellar`, `tiger`, and `della` should be treated as direct SSH aliases in `~/.ssh/config`. When already logged into one Princeton cluster, hop to another with the simple alias form, e.g. `ssh tiger '<cmd>'`, `ssh stellar '<cmd>'`, or `ssh della '<cmd>'`.
+
+**Observed Princeton-to-Princeton behavior.** When running on one Princeton cluster and SSH-ing to another Princeton cluster, the simple alias-based hop above has been observed to work directly and does not require an extra DUO prompt in this setup. Prefer trying the direct alias first before assuming any warm-session or re-authentication workaround is needed.
 
 **Path invariant (relied on across clusters).**
 - User scratch root: `/scratch/gpfs/BURROWS/akashgpt/` — same absolute path on stellar, tiger, and della.
@@ -71,10 +73,10 @@
 
 **Data is NOT mirrored.** Identical top-level folder names across clusters do NOT imply identical contents or layout. Always diff before assuming overlap.
 
-**Auth model & the main failure mode.**
-- Princeton enforces DUO 2FA on first connect. A fresh `ssh <host> '<cmd>'` from a script/agent will fail with `Permission denied (keyboard-interactive)` unless a prior interactive session has been authenticated (another terminal) or a ControlMaster socket is active.
-- Recovery: ask the user to run `ssh tiger` / `ssh della` once in another terminal; subsequent non-interactive `ssh <host> '<cmd>'` calls then succeed.
-- If a tiger (or della) hostname changes (e.g. after a cluster rebuild), expect a `REMOTE HOST IDENTIFICATION HAS CHANGED` warning. Do NOT edit `~/.ssh/known_hosts` silently — surface it and let the user decide.
+**Auth / failure notes.**
+- For Princeton-cluster-to-Princeton-cluster hops, do not assume DUO is required; direct alias-based `ssh tiger` / `ssh stellar` / `ssh della` may work immediately.
+- If a cluster hostname changes (e.g. after a rebuild), expect a `REMOTE HOST IDENTIFICATION HAS CHANGED` warning. Do NOT edit `~/.ssh/known_hosts` silently — surface it and let the user decide.
+- If a direct alias hop still fails, then debug the specific SSH error that actually appears rather than defaulting to a “session not warm” explanation.
 
 **Recommended `~/.ssh/config` stanza for reusable non-interactive access:**
 ```
@@ -85,7 +87,7 @@ Host <alias>
     ControlPath ~/.ssh/cm-%r@%h:%p
     ControlPersist 8h
 ```
-After one manual `ssh <alias>` to authenticate, subsequent commands reuse the socket for 8h without re-prompting.
+If ControlMaster is configured, reused sockets are still helpful, but they should be treated as an optimization rather than a requirement for Princeton-cluster-to-Princeton-cluster hops.
 
 **Inventory / overlap-diff pattern.**
 ```bash
@@ -106,7 +108,7 @@ comm -13 /tmp/inv_stellar.txt /tmp/inv_tiger.txt   # only on tiger
 ```bash
 ssh -o ConnectTimeout=10 <host> 'hostname; id -un' 2>&1 | head -5
 ```
-If this hangs or returns the permission-denied message, the session isn't warm — stop and ask the user to authenticate.
+If this fails, inspect the actual SSH error message first. Do not immediately assume DUO or warm-session issues when hopping between Princeton clusters.
 
 ## GitHub Repository Index (`akashgpt`)
 

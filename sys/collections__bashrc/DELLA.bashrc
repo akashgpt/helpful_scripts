@@ -36,10 +36,10 @@ unset PYTHONPATH
 #   source $SCRATCH/local_copy__projects/BURROWS/akashgpt/myshortcuts.sh ${verbose}
 # fi
 
-if [ -f /projects/BURROWS/akashgpt/run_scripts/helpful_scripts/sys/myshortcuts.sh ] && [ ! -z "$PS1" ]; then
-  source /projects/BURROWS/akashgpt/run_scripts/helpful_scripts/sys/myshortcuts.sh ${verbose}
-elif [ -f $SCRATCH/local_copy__projects/BURROWS/akashgpt/run_scripts/helpful_scripts/sys/myshortcuts.sh ] && [ ! -z "$PS1" ]; then
-  source $SCRATCH/local_copy__projects/BURROWS/akashgpt/run_scripts/helpful_scripts/sys/myshortcuts.sh ${verbose}
+if [ -f /scratch/gpfs/BURROWS/akashgpt/local_copy__projects/BURROWS/akashgpt/run_scripts/helpful_scripts/sys/myshortcuts.sh ] && [ ! -z "$PS1" ]; then
+	source /scratch/gpfs/BURROWS/akashgpt/local_copy__projects/BURROWS/akashgpt/run_scripts/helpful_scripts/sys/myshortcuts.sh ${verbose}
+elif [ -f /projects/BURROWS/akashgpt/run_scripts/helpful_scripts/sys/myshortcuts.sh ] && [ ! -z "$PS1" ]; then
+	source /projects/BURROWS/akashgpt/run_scripts/helpful_scripts/sys/myshortcuts.sh ${verbose}
 fi
 
 #adding VASP to path

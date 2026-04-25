@@ -9,6 +9,10 @@
 #############################################################
 
 outcar_path="${1:-OUTCAR}"
+data_4_analysis_python="${DATA_4_ANALYSIS_PYTHON:-${HELPFUL_SCRIPTS_PYTHON:-python}}"
+
+export DATA_4_ANALYSIS_PYTHON="$data_4_analysis_python"
+export PYTHONNOUSERSITE="${PYTHONNOUSERSITE:-1}"
 
 if [[ ! -f "$outcar_path" ]]; then
 	echo "Error: OUTCAR file not found: $outcar_path"
@@ -17,7 +21,7 @@ fi
 
 mkdir -p analysis
 
-python - "$outcar_path" <<'PY'
+"$data_4_analysis_python" - "$outcar_path" <<'PY'
 import math
 import os
 import re

@@ -14,10 +14,16 @@ parent_dir=$(pwd)
 parent_dir_name=$(basename "$parent_dir")
 script_dir=$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)
 outcar_path="${1:-OUTCAR}"
+data_4_analysis_python="${DATA_4_ANALYSIS_PYTHON:-${HELPFUL_SCRIPTS_PYTHON:-python}}"
 band_summary_script="${script_dir}/extract_band_occupations.py"
 snapshot_plot_script="${script_dir}/plot_vasp_current_snapshot.py"
 standard_outcar_is_non_md=0
 last_snapshot_path=""
+
+export DATA_4_ANALYSIS_PYTHON="$data_4_analysis_python"
+export PYTHONNOUSERSITE="${PYTHONNOUSERSITE:-1}"
+export MPLCONFIGDIR="${MPLCONFIGDIR:-${TMPDIR:-/tmp}/matplotlib-${USER:-user}}"
+mkdir -p "$MPLCONFIGDIR" 2>/dev/null || true
 
 resolve_helper_script() {
     local script_name="$1"
@@ -96,7 +102,7 @@ plot_current_snapshot() {
 	fi
 
 	echo "Plotting current $structure_path snapshot to analysis/current_snapshot.png."
-	if python "$snapshot_plot_script" \
+	if "$data_4_analysis_python" "$snapshot_plot_script" \
 		--structure "$structure_path" \
 		--outcar "$outcar_path" \
 		--output analysis/current_snapshot.png \
@@ -117,7 +123,7 @@ extract_band_summary() {
 		fi
 
 		echo "Extracting occupied-band summary from OUTCAR."
-		if python "$band_summary_script" \
+		if "$data_4_analysis_python" "$band_summary_script" \
 			--outcar "$outcar_path" \
 			--output analysis/band_occupations_summary.out \
 			--selection second_last; then
@@ -511,7 +517,7 @@ echo "Plotting some relevant data."
 # 2. data in evo_total_energy vs time-step
 # 3. data in evo_cell_volume vs time-step
 # 4. data in evo_mean_temp vs time-step
-python << 'EOF'
+"$data_4_analysis_python" << 'EOF'
 import numpy as np
 import matplotlib.pyplot as plt
 import os
