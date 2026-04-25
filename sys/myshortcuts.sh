@@ -13,8 +13,8 @@
 #   5. Defines hog and hog_gpu functions to check the top CPU/GPU users.
 #   6. Sets up environment and conda aliases.
 #   7. Exports useful folder paths.
-#   8. Creates local copy of useful directories from the projects/ directory.
-#   9. Runs rsync operations to update the local copy of the directories.
+#   8. Creates local copy directories for useful project folders.
+#   9. Defines myshortcuts_sync for manual rsync refreshes of local copies.
 #   On NCSA_DELTA, PRIMARY_PROJECTS_FOLDER is expected to host active project content such as
 #   misc_libraries and run_scripts/ALCHEMY__in_use, while other trees may still be optional.
 #
@@ -277,6 +277,57 @@ NCSA_DELTA_conda_init() {
   fi
 }
 
+# configure_clean_python_environment
+#
+# Sets Python environment guards that prevent user-site package leakage and
+# gives Matplotlib a writable cache directory for cluster jobs.
+#
+# Args:
+#   None.
+# Returns:
+#   0 if the shell variables are configured.
+configure_clean_python_environment() {
+	local matplotlib_config_dir="${MPLCONFIGDIR:-${TMPDIR:-/tmp}/matplotlib-${USER:-user}}"
+
+	export PYTHONNOUSERSITE="${PYTHONNOUSERSITE:-1}"
+	export MPLCONFIGDIR="$matplotlib_config_dir"
+	mkdir -p "$MPLCONFIGDIR" >/dev/null 2>&1 || true
+}
+
+# pin_helper_python
+#
+# Pins helper-script Python variables to an explicit interpreter. When no
+# interpreter is passed, the currently active shell Python is used.
+#
+# Args:
+#   python_executable: Optional Python interpreter path or command.
+# Returns:
+#   0 if a Python interpreter is pinned; 1 otherwise.
+pin_helper_python() {
+	local python_executable="${1:-}"
+
+	configure_clean_python_environment
+
+	if [ -z "$python_executable" ]; then
+		python_executable=$(command -v python 2>/dev/null || command -v python3 2>/dev/null)
+	fi
+
+	if [ -z "$python_executable" ]; then
+		echo "WARNING: Could not find python or python3 to pin helper-script Python."
+		return 1
+	fi
+
+	export HELPFUL_SCRIPTS_PYTHON="$python_executable"
+	export DATA_4_ANALYSIS_PYTHON="$python_executable"
+	export QMD_PYTHON="$python_executable"
+
+	if [ "$verbose" -eq 1 ]; then
+		echo "Pinned helper-script Python to $python_executable"
+	fi
+}
+
+configure_clean_python_environment
+
 ##########################################
 # BLOCK 2: squeue aliases
 #
@@ -426,6 +477,7 @@ alias llf='ls --color=auto -hlctur -p -v' # only files + sort by time
 alias lls='ls --color=auto -vlhcS' # sort by size
 alias ll='ls --color=auto -lhc -v'
 alias du='du -csh'
+alias du2='du -csh -- * .[!.]* .??* 2>/dev/null'
 
 if [ "$CLUSTER" == "DELLA" ] || [ "$CLUSTER" == "TIGER" ] || [ "$CLUSTER" == "STELLAR" ]; then
   alias checkquota='checkquota'
@@ -658,6 +710,8 @@ fi
 # setting up environment in cluster
 alias modl='module load'
 alias sb='sbatch'
+alias pyclean='configure_clean_python_environment'
+alias pypin='pin_helper_python'
 
 if [ "$CLUSTER" == "DELLA" ] || [ "$CLUSTER" == "TIGER" ] || [ "$CLUSTER" == "STELLAR" ]; then
   alias js='jobstats'
@@ -683,11 +737,19 @@ if [ "$CLUSTER" == "DELLA" ] || [ "$CLUSTER" == "TIGER" ] || [ "$CLUSTER" == "ST
   # Returns:
   #   Exit status from conda activate.
   conda_a() {
+    local return_code=0
+
     if [ $# -eq 0 ]; then
       conda activate
     else
       conda activate "$@"
     fi
+
+    return_code=$?
+    if [ "$return_code" -eq 0 ]; then
+      pin_helper_python >/dev/null 2>&1 || true
+    fi
+    return "$return_code"
   }
 
   # conda_d
@@ -699,45 +761,52 @@ if [ "$CLUSTER" == "DELLA" ] || [ "$CLUSTER" == "TIGER" ] || [ "$CLUSTER" == "ST
   # Returns:
   #   Exit status from conda deactivate.
   conda_d() {
+    local return_code=0
+
     conda deactivate
+    return_code=$?
+    if [ "$return_code" -eq 0 ]; then
+      pin_helper_python >/dev/null 2>&1 || true
+    fi
+    return "$return_code"
   }
-  alias l_base='module load anaconda3/2025.12; conda activate base'
-  alias l_hpc='module load anaconda3/2025.12; conda activate hpc-tools'
+  alias l_base='module load anaconda3/2025.12; conda_a base'
+  alias l_hpc='module load anaconda3/2025.12; conda_a hpc-tools'
   # alias l_dpdev='module load anaconda3/2021.5; conda activate dpdev'
-  alias l_planet_evo='module load anaconda3/2021.5; conda activate planet_evo'
-  alias l_chhota_apple='module load anaconda3/2024.6; conda activate chhota_apple'
+  alias l_planet_evo='module load anaconda3/2021.5; conda_a planet_evo'
+  alias l_chhota_apple='module load anaconda3/2024.6; conda_a chhota_apple'
   # alias l_deepmd_cpu='module load anaconda3/2021.5; conda activate deepmd_cpu'
 
-  alias l_deepmd_cpu='module load anaconda3/2025.12; conda activate deepmd_cpu' #DELLA/STELLAR; deepmd-kit 3.1.2 -- deepmd_cpu is different from deepmd-cpu
+  alias l_deepmd_cpu='module load anaconda3/2025.12; conda_a deepmd_cpu' #DELLA/STELLAR; deepmd-kit 3.1.2 -- deepmd_cpu is different from deepmd-cpu
 
   if [[ $CLUSTER == "DELLA" ]]; then
-    alias l_deepmd_gpu='module load anaconda3/2021.5; conda activate deepmd_gpu' #DELLA; deepmd-kit 2.1.1
-    alias l_deepmd-cpu='module load anaconda3/2025.12; conda activate deepmd-cpu' #DELLA; deepmd-kit 2.2.10
+    alias l_deepmd_gpu='module load anaconda3/2021.5; conda_a deepmd_gpu' #DELLA; deepmd-kit 2.1.1
+    alias l_deepmd-cpu='module load anaconda3/2025.12; conda_a deepmd-cpu' #DELLA; deepmd-kit 2.2.10
   elif [[ $CLUSTER == "TIGER" ]]; then
-    alias l_deepmd='module load anaconda3/2024.6; conda activate deepmd' #TIGER
+    alias l_deepmd='module load anaconda3/2024.6; conda_a deepmd' #TIGER
     # alias l_deepmd_cpu='module load anaconda3/2024.6; conda activate deepmd_cpu' #TIGER
   elif [[ $CLUSTER == "STELLAR" ]]; then
-    alias l_deepmd='module load anaconda3/2024.6; conda activate deepmd' #STELLAR
+    alias l_deepmd='module load anaconda3/2024.6; conda_a deepmd' #STELLAR
   fi
 
   # alias l_dp2='module load anaconda3/2021.5; conda activate dp2.2.7; export PLUMED_KERNEL=$CONDA_PREFIX/lib/libplumedKernel.so; LAMMPS_PLUGIN_PATH=$CONDA_PREFIX/lib/deepmd_lmp; patchelf --add-rpath $CONDA_PREFIX/lib dpplugin.so'
-  alias l_mda='module load anaconda3/2025.12; conda activate mda_env' #TIGER | STELLAR | DELLA
-  alias l_asap='module load anaconda3/2024.6; conda activate asap'
-  alias l_pysr='module load anaconda3/2025.12; conda activate pysr_env' # TIGER
+  alias l_mda='module load anaconda3/2025.12; conda_a mda_env' #TIGER | STELLAR | DELLA
+  alias l_asap='module load anaconda3/2024.6; conda_a asap'
+  alias l_pysr='module load anaconda3/2025.12; conda_a pysr_env' # TIGER
 
   if [[ $CLUSTER == "STELLAR" ]]; then
-    alias l_qmda='module load anaconda3/2025.12; conda activate qmda' #STELLAR
-    alias l_dp_plmd='module load anaconda3/2025.12; conda activate dp_plmd_stellar' #STELLAR | DELLA
+    alias l_qmda='module load anaconda3/2025.12; conda_a qmda' #STELLAR
+    alias l_dp_plmd='module load anaconda3/2025.12; conda_a dp_plmd_stellar' #STELLAR | DELLA
   elif [[ $CLUSTER == "DELLA" ]]; then
-    alias l_qmda='module load anaconda3/2025.12; conda activate qmda' #DELLA
-    alias l_dp_plmd='module load anaconda3/2025.12; conda activate dp_plmd_della' #STELLAR | DELLA
+    alias l_qmda='module load anaconda3/2025.12; conda_a qmda' #DELLA
+    alias l_dp_plmd='module load anaconda3/2025.12; conda_a dp_plmd_della' #STELLAR | DELLA
   fi 
   # alias l_dp_plmd='module load anaconda3/2024.2; conda activate dp_plmd' #DELLA; deepmd-kit 2.2.12-dev
   # alias l_dpdev='module load anaconda3/2024.6; conda activate dpdev' #DELLA; deepmd-kit 2.2.12-dev
 
-  alias l_ase='module load anaconda3/2025.12; conda activate ase_env'
+  alias l_ase='module load anaconda3/2025.12; conda_a ase_env'
 
-  alias l_ALCHEMY='module load anaconda3/2025.12; conda activate ALCHEMY_env'
+  alias l_ALCHEMY='module load anaconda3/2025.12; conda_a ALCHEMY_env'
 
 elif [ "$CLUSTER" == "NCSA_DELTA" ]; then
   # conda_a
@@ -749,6 +818,8 @@ elif [ "$CLUSTER" == "NCSA_DELTA" ]; then
   # Returns:
   #   Exit status from conda activate.
   conda_a() {
+    local return_code=0
+
     NCSA_DELTA_conda_init || return 1
 
     if [ $# -eq 0 ]; then
@@ -756,6 +827,12 @@ elif [ "$CLUSTER" == "NCSA_DELTA" ]; then
     else
       conda activate "$@"
     fi
+
+    return_code=$?
+    if [ "$return_code" -eq 0 ]; then
+      pin_helper_python >/dev/null 2>&1 || true
+    fi
+    return "$return_code"
   }
   alias l_base='conda_a base'
   alias l_dp_plmd='conda_a dp_plmd_ncsa_delta'
@@ -771,10 +848,83 @@ elif [ "$CLUSTER" == "NCSA_DELTA" ]; then
   # Returns:
   #   Exit status from conda deactivate.
   conda_d() {
+    local return_code=0
+
     NCSA_DELTA_conda_init || return 1
     conda deactivate
+    return_code=$?
+    if [ "$return_code" -eq 0 ]; then
+      pin_helper_python >/dev/null 2>&1 || true
+    fi
+    return "$return_code"
   }
 fi
+
+# configure_python_runtime
+#
+# Pins Python-related runtime variables to the active Python interpreter.
+# This keeps sourced scripts and helper scripts from accidentally importing
+# packages from ~/.local or writing matplotlib cache files into a slow or
+# non-writable home config directory.
+#
+# Args:
+#   python_executable: Optional Python executable path. Defaults to the first
+#     python found on PATH.
+# Returns:
+#   0 if a Python executable is found and exported; 1 otherwise.
+configure_python_runtime() {
+  local python_executable="${1:-}"
+
+  if [ -z "$python_executable" ]; then
+    python_executable=$(command -v python 2>/dev/null || command -v python3 2>/dev/null)
+  fi
+
+  pin_helper_python "$python_executable" || return 1
+  export PROJECT_PYTHON="$HELPFUL_SCRIPTS_PYTHON"
+  hash -r >/dev/null 2>&1 || true
+}
+
+# pin_python_env
+#
+# Activates a conda environment and exports Python runtime guards for scripts.
+# After this function succeeds, bare `python` and `#!/usr/bin/env python`
+# should resolve through the activated conda environment, while project scripts
+# can use DATA_4_ANALYSIS_PYTHON for an explicit interpreter path.
+#
+# Args:
+#   env_name: Conda environment name. Defaults to ALCHEMY_env.
+#   module_name: Optional Princeton anaconda module name. Defaults to
+#     anaconda3/2025.12 on Princeton clusters. Ignored on NCSA_DELTA.
+# Returns:
+#   0 if the environment activates and Python is pinned; 1 otherwise.
+pin_python_env() {
+  local env_name="${1:-ALCHEMY_env}"
+  local module_name="${2:-anaconda3/2025.12}"
+  local python_executable=""
+
+  if [ "$CLUSTER" == "DELLA" ] || [ "$CLUSTER" == "TIGER" ] || [ "$CLUSTER" == "STELLAR" ]; then
+    module load "$module_name" || return 1
+    conda_a "$env_name" || return 1
+  elif [ "$CLUSTER" == "NCSA_DELTA" ]; then
+    conda_a "$env_name" || return 1
+  else
+    conda activate "$env_name" || return 1
+  fi
+
+  python_executable=$(command -v python 2>/dev/null || true)
+  configure_python_runtime "$python_executable" || return 1
+
+  if [ "$verbose" -eq 1 ]; then
+    echo "Pinned Python runtime: PROJECT_PYTHON=$PROJECT_PYTHON"
+    echo "Pinned Python runtime: PYTHONNOUSERSITE=$PYTHONNOUSERSITE"
+    echo "Pinned Python runtime: MPLCONFIGDIR=$MPLCONFIGDIR"
+  fi
+}
+
+alias pin_py='pin_python_env'
+alias pin_py_alchemy='pin_python_env ALCHEMY_env'
+alias pin_py_hpc='pin_python_env hpc-tools'
+alias pin_py_ase='pin_python_env ase_env'
 
 # git aliases
 alias git_merge_main="git switch main; git merge dev; git push origin main; git switch dev"
@@ -1036,29 +1186,33 @@ fi
 ##########################################
 # BLOCK 9: rsync operations
 ##########################################
-# if DELLA, don't run
-# if [[ $CLUSTER == "DELLA" ]]; then
-#   echo "DELLA cluster detected. Skipping rsync operations."
-#   return
-# fi
 start_block9=$(date +%s)
-if [ $verbose -eq 1 ]; then
-  echo "Running rsync operations at $(date) ..."
-fi
 
 warn_rsync_seconds=10
+MYSHORTCUTS_SYNC_LOCK_DIR="${MYSHORTCUTS_SYNC_LOCK_DIR:-$SCRATCH/.myshortcuts_sync.lock}"
+MYSHORTCUTS_RSYNC_EXCLUDES=(
+	--exclude='.git/'
+	--exclude='.claude/'
+	--exclude='.codex/'
+	--exclude='__pycache__/'
+	--exclude='*.pyc'
+	--exclude='.nfs*'
+	--exclude='.DS_Store'
+)
 
 run_rsync_timed() {
-  local label="$1"
-  shift
-  local start_rsync end_rsync elapsed_rsync
-  start_rsync=$(date +%s)
-  "$@" > /dev/null 2>&1
-  end_rsync=$(date +%s)
-  elapsed_rsync=$(( end_rsync - start_rsync ))
-  if [ "$elapsed_rsync" -gt "$warn_rsync_seconds" ]; then
-    echo "WARNING: rsync [$label] took $elapsed_rsync seconds!"
-  fi
+	local label="$1"
+	shift
+	local start_rsync end_rsync elapsed_rsync rsync_status
+	start_rsync=$(date +%s)
+	"$@" > /dev/null 2>&1
+	rsync_status=$?
+	end_rsync=$(date +%s)
+	elapsed_rsync=$(( end_rsync - start_rsync ))
+	if [ "$elapsed_rsync" -gt "$warn_rsync_seconds" ]; then
+		echo "WARNING: rsync [$label] took $elapsed_rsync seconds!"
+	fi
+	return "$rsync_status"
 }
 
 # run_rsync_timed_if_source_exists
@@ -1072,35 +1226,61 @@ run_rsync_timed() {
 # Returns:
 #   0 if rsync runs or is skipped safely.
 run_rsync_timed_if_source_exists() {
-  local label="$1"
-  local source_path="$2"
-  shift 2
+	local label="$1"
+	local source_path="$2"
+	shift 2
 
-  if [ ! -e "$source_path" ]; then
-    if [ "$verbose" -eq 1 ]; then
-      echo "Skipping rsync [$label]: source not found at $source_path"
-    fi
-    return 0
-  fi
+	if [ ! -e "$source_path" ]; then
+		if [ "$verbose" -eq 1 ]; then
+			echo "Skipping rsync [$label]: source not found at $source_path"
+		fi
+		return 0
+	fi
 
-  run_rsync_timed "$label" "$@"
+	run_rsync_timed "$label" "$@"
 }
 
-# # only update new or recently updated files in the local copy of the BURROWS and JIEDENG directory
-# rsync -av --update --progress $PRIMARY_PROJECTS_FOLDER/* $SCRATCH/local_copy__projects/BURROWS/akashgpt/ --exclude='/projects/BURROWS/akashgpt/run_scripts/MLMD_scripts/iteration_CROSS_CLUSTER' --exclude='/projects/BURROWS/akashgpt/VASP_POTPAW' --exclude='run_scripts/MLMD_scripts/mol_systems/MgSiOHN/deepmd_collection_TRAIN'  --exclude='run_scripts/MLMD_scripts/mol_systems/MgSiOHN/deepmd_collection_TEST'
-run_rsync_timed_if_source_exists "$DIR1" "$PRIMARY_PROJECTS_FOLDER/$DIR1" rsync -av --update --progress --delete "$PRIMARY_PROJECTS_FOLDER/$DIR1/" "$LOCAL_PRIMARY_PROJECTS_FOLDER/$DIR1/"
-run_rsync_timed_if_source_exists "$DIR2" "$PRIMARY_PROJECTS_FOLDER/$DIR2" rsync -av --update --progress --delete "$PRIMARY_PROJECTS_FOLDER/$DIR2/" "$LOCAL_PRIMARY_PROJECTS_FOLDER/$DIR2/"
-run_rsync_timed_if_source_exists "$DIR3" "$PRIMARY_PROJECTS_FOLDER/$DIR3" rsync -av --update --progress --delete "$PRIMARY_PROJECTS_FOLDER/$DIR3/" "$LOCAL_PRIMARY_PROJECTS_FOLDER/$DIR3/"
-run_rsync_timed_if_source_exists "$DIR4" "$PRIMARY_PROJECTS_FOLDER/$DIR4" rsync -av --update --progress --delete "$PRIMARY_PROJECTS_FOLDER/$DIR4/" "$LOCAL_PRIMARY_PROJECTS_FOLDER/$DIR4/"
-# rsync -av --update --progress --delete  --exclude='$PRIMARY_PROJECTS_FOLDER/$DIR5/deepmd_collection_TRAIN' --exclude='$PRIMARY_PROJECTS_FOLDER/$DIR5/deepmd_collection_TEST' --exclude='deepmd_collection_TRAIN' --exclude='deepmd_collection_TEST' $PRIMARY_PROJECTS_FOLDER/$DIR5/*  $LOCAL_PRIMARY_PROJECTS_FOLDER/$DIR5 > /dev/null 2>&1
-run_rsync_timed_if_source_exists "$DIR6" "$PRIMARY_PROJECTS_FOLDER/$DIR6" rsync -av --update --progress --delete "$PRIMARY_PROJECTS_FOLDER/$DIR6/" "$LOCAL_PRIMARY_PROJECTS_FOLDER/$DIR6/"
-run_rsync_timed_if_source_exists "$DIR7" "$PRIMARY_PROJECTS_FOLDER/$DIR7" rsync -av --update --progress --delete --exclude='iteration_CROSS_CLUSTER' "$PRIMARY_PROJECTS_FOLDER/$DIR7/" "$LOCAL_PRIMARY_PROJECTS_FOLDER/$DIR7/"
+# myshortcuts_sync
+#
+# Refreshes the scratch/local copies of the shared helper folders on demand.
+#
+# Args:
+#   None.
+# Returns:
+#   0 when all available sources sync successfully; 1 when any rsync fails.
+myshortcuts_sync() {
+	local sync_status=0
 
-# rsync -av --update --progress --delete $PRIMARY_PROJECTS_FOLDER/$FILE1  $LOCAL_PRIMARY_PROJECTS_FOLDER/$FILE1 > /dev/null 2>&1
-# rsync -av --update --progress --delete $PRIMARY_PROJECTS_FOLDER/$FILE1  $HELP_SCRIPTS/sys/$FILE1 > /dev/null 2>&1
-run_rsync_timed_if_source_exists "${CLUSTER}${FILE2}" "$HOME/$FILE2" rsync -av --update --progress --delete "$HOME/$FILE2" "$HELP_SCRIPTS/sys/${CLUSTER}${FILE2}"
-run_rsync_timed_if_source_exists "${CLUSTER}${FILE3}" "$HOME/$FILE3" rsync -av --update --progress --delete "$HOME/$FILE3" "$HELP_SCRIPTS/sys/${CLUSTER}${FILE3}"
-# rsync -av --update --progress $PRIMARY_PROJECTS_FOLDER/VASP_POTPAW/* $SCRATCH/local_copy__projects/BURROWS/VASP_POTPAW
+	if [ -z "$SCRATCH" ]; then
+		echo "ERROR: SCRATCH is not set; cannot run myshortcuts_sync."
+		return 1
+	fi
+
+	if ! mkdir "$MYSHORTCUTS_SYNC_LOCK_DIR" >/dev/null 2>&1; then
+		echo "myshortcuts_sync is already running; skipping this request."
+		return 0
+	fi
+
+	ensure_local_copy_dir "$PRIMARY_PROJECTS_FOLDER/$DIR1" "$LOCAL_PRIMARY_PROJECTS_FOLDER/$DIR1" "$DIR1"
+	ensure_local_copy_dir "$PRIMARY_PROJECTS_FOLDER/$DIR2" "$LOCAL_PRIMARY_PROJECTS_FOLDER/$DIR2" "$DIR2"
+	ensure_local_copy_dir "$PRIMARY_PROJECTS_FOLDER/$DIR3" "$LOCAL_PRIMARY_PROJECTS_FOLDER/$DIR3" "$DIR3"
+	ensure_local_copy_dir "$PRIMARY_PROJECTS_FOLDER/$DIR4" "$LOCAL_PRIMARY_PROJECTS_FOLDER/$DIR4" "$DIR4"
+	ensure_local_copy_dir "$PRIMARY_PROJECTS_FOLDER/$DIR6" "$LOCAL_PRIMARY_PROJECTS_FOLDER/$DIR6" "$DIR6"
+	ensure_local_copy_dir "$PRIMARY_PROJECTS_FOLDER/$DIR7" "$LOCAL_PRIMARY_PROJECTS_FOLDER/$DIR7" "$DIR7"
+
+	run_rsync_timed_if_source_exists "$DIR1" "$PRIMARY_PROJECTS_FOLDER/$DIR1" rsync -av --update --progress --delete "${MYSHORTCUTS_RSYNC_EXCLUDES[@]}" "$PRIMARY_PROJECTS_FOLDER/$DIR1/" "$LOCAL_PRIMARY_PROJECTS_FOLDER/$DIR1/" || sync_status=1
+	run_rsync_timed_if_source_exists "$DIR2" "$PRIMARY_PROJECTS_FOLDER/$DIR2" rsync -av --update --progress --delete "${MYSHORTCUTS_RSYNC_EXCLUDES[@]}" "$PRIMARY_PROJECTS_FOLDER/$DIR2/" "$LOCAL_PRIMARY_PROJECTS_FOLDER/$DIR2/" || sync_status=1
+	run_rsync_timed_if_source_exists "$DIR3" "$PRIMARY_PROJECTS_FOLDER/$DIR3" rsync -av --update --progress --delete "${MYSHORTCUTS_RSYNC_EXCLUDES[@]}" "$PRIMARY_PROJECTS_FOLDER/$DIR3/" "$LOCAL_PRIMARY_PROJECTS_FOLDER/$DIR3/" || sync_status=1
+	run_rsync_timed_if_source_exists "$DIR4" "$PRIMARY_PROJECTS_FOLDER/$DIR4" rsync -av --update --progress --delete "${MYSHORTCUTS_RSYNC_EXCLUDES[@]}" "$PRIMARY_PROJECTS_FOLDER/$DIR4/" "$LOCAL_PRIMARY_PROJECTS_FOLDER/$DIR4/" || sync_status=1
+	run_rsync_timed_if_source_exists "$DIR6" "$PRIMARY_PROJECTS_FOLDER/$DIR6" rsync -av --update --progress --delete "${MYSHORTCUTS_RSYNC_EXCLUDES[@]}" "$PRIMARY_PROJECTS_FOLDER/$DIR6/" "$LOCAL_PRIMARY_PROJECTS_FOLDER/$DIR6/" || sync_status=1
+	run_rsync_timed_if_source_exists "$DIR7" "$PRIMARY_PROJECTS_FOLDER/$DIR7" rsync -av --update --progress --delete "${MYSHORTCUTS_RSYNC_EXCLUDES[@]}" --exclude='iteration_CROSS_CLUSTER' "$PRIMARY_PROJECTS_FOLDER/$DIR7/" "$LOCAL_PRIMARY_PROJECTS_FOLDER/$DIR7/" || sync_status=1
+
+	run_rsync_timed_if_source_exists "${CLUSTER}${FILE2}" "$HOME/$FILE2" rsync -av --update --progress --delete "$HOME/$FILE2" "$HELP_SCRIPTS/sys/collections__bashrc/${CLUSTER}${FILE2}" || sync_status=1
+	run_rsync_timed_if_source_exists "${CLUSTER}${FILE3}" "$HOME/$FILE3" rsync -av --update --progress --delete "$HOME/$FILE3" "$HELP_SCRIPTS/sys/collections__condarc/${CLUSTER}${FILE3}" || sync_status=1
+
+	rmdir "$MYSHORTCUTS_SYNC_LOCK_DIR" >/dev/null 2>&1 || true
+	return "$sync_status"
+}
 
 end_block9=$(date +%s)
 elapsed_block9=$(( end_block9 - start_block9 ))
@@ -1114,6 +1294,7 @@ if [ "$CLUSTER" == "NCSA_DELTA" ]; then
   echo 
 elif [ "$CLUSTER" == "DELLA" ] || [ "$CLUSTER" == "TIGER" ] || [ "$CLUSTER" == "STELLAR" ]; then
   module purge >/dev/null 2>&1
+  l_base >/dev/null 2>&1
 fi
 ##########################################
 
