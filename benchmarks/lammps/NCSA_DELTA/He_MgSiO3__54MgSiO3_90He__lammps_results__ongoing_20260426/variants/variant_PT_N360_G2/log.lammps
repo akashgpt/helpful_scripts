@@ -1,0 +1,317 @@
+LAMMPS (2 Aug 2023 - Update 3)
+  using 1 OpenMP thread(s) per MPI task
+############################################################
+# KOKKOS benchmark input — shortened version of the
+# testing__LAMMPS/.../in.lammps (single NPT loop, 5k steps).
+#
+# Model is set via the LAMMPS variable ${MODEL} (injected at
+# runtime via `lmp -var MODEL <path>`), so the same input
+# drives both PT (.pth) and PT+KOKKOS runs without editing.
+############################################################
+
+echo            both
+
+variable        T1                  equal 3200
+variable        T2                  equal 4800
+variable        P1                  equal 100E4
+variable        P2                  equal 10E4
+
+variable        TEMP                equal ((${T1}+${T2})/2)
+variable        TEMP                equal ((3200+${T2})/2)
+variable        TEMP                equal ((3200+4800)/2)
+variable        PRES                equal ((${P1}+${P2})/2)
+variable        PRES                equal ((1000000+${P2})/2)
+variable        PRES                equal ((1000000+100000)/2)
+
+variable        TIMESTEP            equal 0.5e-3
+variable        THERMO_FREQ         equal 100
+variable        DUMP_FREQ           equal 500
+variable        NSTEPS_relax        index 200
+variable        NSTEPS_4training    index 5000
+variable        TAU_T               equal 0.0100000
+variable        TAU_P               equal 0.100000
+
+variable        kBeV                equal 8.617333262e-5
+variable        TeV                 equal ${TEMP}*${kBeV}
+variable        TeV                 equal 4000*${kBeV}
+variable        TeV                 equal 4000*8.617333262e-05
+
+units           metal
+boundary        p p p
+atom_style      atomic
+neighbor        1.0 bin
+neigh_modify    every 1 delay 0 check no
+
+read_data       conf.lmp
+Reading data file ...
+  orthogonal box = (0 0 0) to (14.01 14.01 13.28)
+  1 by 1 by 1 MPI processor grid
+  reading atoms ...
+  360 atoms
+  read_data CPU = 0.007 seconds
+
+# ${MODEL} is injected via `lmp -var MODEL <path>` from the sub script.
+pair_style      deepmd ${MODEL} fparam ${TeV}
+pair_style      deepmd /work/nvme/bguf/akashgpt/softwares/installing_MLMD_related_stuff/deepmd-kit__w_plumed/testing__LAMMPS__kokkos_bench/He_MgSiO3__54MgSiO3_90He/shared/model_comp.pth fparam ${TeV}
+pair_style      deepmd /work/nvme/bguf/akashgpt/softwares/installing_MLMD_related_stuff/deepmd-kit__w_plumed/testing__LAMMPS__kokkos_bench/He_MgSiO3__54MgSiO3_90He/shared/model_comp.pth fparam 0.34469333048
+Summary of lammps deepmd module ...
+  >>> Info of deepmd-kit:
+  installed to:       /work/nvme/bguf/agupta46/softwares/conda_envs_dir_secondary/envs/ALCHEMY_env__PT
+  source:             v3.1.3
+  source branch:      HEAD
+  source commit:      b2c8511e
+  source commit at:   2026-03-18 14:20:41 +0000
+  support model ver.: 1.1 
+  build variant:      cuda
+  build with pt lib:  torch;torch_library;/work/nvme/bguf/agupta46/softwares/conda_envs_dir_secondary/envs/ALCHEMY_env__PT/lib/libc10.so;CUDA::nvrtc;/work/nvme/bguf/agupta46/softwares/conda_envs_dir_secondary/envs/ALCHEMY_env__PT/lib/libc10_cuda.so
+  set tf intra_op_parallelism_threads: 0
+  set tf inter_op_parallelism_threads: 0
+  >>> Info of lammps module:
+  use deepmd-kit at:  /work/nvme/bguf/agupta46/softwares/conda_envs_dir_secondary/envs/ALCHEMY_env__PT
+  source:             
+  source branch:      
+  source commit:      
+  source commit at:   
+  build with inc:     
+  build with lib:     
+pair_coeff      * *
+
+# Equilibration
+reset_timestep  0
+velocity        all create ${T1} 6149
+velocity        all create 3200 6149
+fix             NPTSTATE all npt temp ${T1} ${T1} ${TAU_T} iso ${P1} ${P1} ${TAU_P}
+fix             NPTSTATE all npt temp 3200 ${T1} ${TAU_T} iso ${P1} ${P1} ${TAU_P}
+fix             NPTSTATE all npt temp 3200 3200 ${TAU_T} iso ${P1} ${P1} ${TAU_P}
+fix             NPTSTATE all npt temp 3200 3200 0.01 iso ${P1} ${P1} ${TAU_P}
+fix             NPTSTATE all npt temp 3200 3200 0.01 iso 1000000 ${P1} ${TAU_P}
+fix             NPTSTATE all npt temp 3200 3200 0.01 iso 1000000 1000000 ${TAU_P}
+fix             NPTSTATE all npt temp 3200 3200 0.01 iso 1000000 1000000 0.1
+timestep        ${TIMESTEP}
+timestep        0.0005
+thermo          ${THERMO_FREQ}
+thermo          100
+thermo_style    custom step temp press vol etotal ke pe enthalpy
+run             ${NSTEPS_relax}
+run             200
+
+CITE-CITE-CITE-CITE-CITE-CITE-CITE-CITE-CITE-CITE-CITE-CITE-CITE
+
+Your simulation uses code contributions which should be cited:
+
+- USER-DEEPMD package:
+
+@article{Wang_ComputPhysCommun_2018_v228_p178,
+  author = {Wang, Han and Zhang, Linfeng and Han, Jiequn and E, Weinan},
+  doi = {10.1016/j.cpc.2018.03.016},
+  url = {https://doi.org/10.1016/j.cpc.2018.03.016},
+  year = 2018,
+  month = {jul},
+  publisher = {Elsevier {BV}},
+  volume = 228,
+  journal = {Comput. Phys. Commun.},
+  title = {{DeePMD-kit: A deep learning package for many-body potential energy representation and molecular dynamics}},
+  pages = {178--184}
+}
+@article{Zeng_JChemPhys_2023_v159_p054801,
+  title  = {{DeePMD-kit v2: A software package for deep potential models}},
+  author =   {Jinzhe Zeng and Duo Zhang and Denghui Lu and Pinghui Mo and Zeyu Li
+         and Yixiao Chen and Mari{\'a}n Rynik and Li'ang Huang and Ziyao Li and 
+         Shaochen Shi and Yingze Wang and Haotian Ye and Ping Tuo and Jiabin
+         Yang and Ye Ding and Yifan Li and Davide Tisi and Qiyu Zeng and Han 
+         Bao and Yu Xia and Jiameng Huang and Koki Muraoka and Yibo Wang and 
+         Junhan Chang and Fengbo Yuan and Sigbj{\o}rn L{\o}land Bore and Chun
+         Cai and Yinnian Lin and Bo Wang and Jiayan Xu and Jia-Xin Zhu and 
+         Chenxing Luo and Yuzhi Zhang and Rhys E A Goodall and Wenshuo Liang
+         and Anurag Kumar Singh and Sikai Yao and Jingchao Zhang and Renata
+         Wentzcovitch and Jiequn Han and Jie Liu and Weile Jia and Darrin M
+         York and Weinan E and Roberto Car and Linfeng Zhang and Han Wang},
+  journal =  {J. Chem. Phys.},
+  volume =   159,
+  issue =    5,  
+  year =    2023,
+  pages  =   054801,
+  doi =      {10.1063/5.0155600},
+}
+@Article{Zeng_JChemTheoryComput_2025_v21_p4375,
+  author =   {Jinzhe Zeng and Duo Zhang and Anyang Peng and Xiangyu Zhang and Sensen
+             He and Yan Wang and Xinzijian Liu and Hangrui Bi and Yifan Li and Chun
+             Cai and Chengqian Zhang and Yiming Du and Jia-Xin Zhu and Pinghui Mo
+             and Zhengtao Huang and Qiyu Zeng and Shaochen Shi and Xuejian Qin and
+             Zhaoxi Yu and Chenxing Luo and Ye Ding and Yun-Pei Liu and Ruosong Shi
+             and Zhenyu Wang and Sigbj{\o}rn L{\o}land Bore and Junhan Chang and
+             Zhe Deng and Zhaohan Ding and Siyuan Han and Wanrun Jiang and Guolin
+             Ke and Zhaoqing Liu and Denghui Lu and Koki Muraoka and Hananeh Oliaei
+             and Anurag Kumar Singh and Haohui Que and Weihong Xu and Zhangmancang
+             Xu and Yong-Bin Zhuang and Jiayu Dai and Timothy J. Giese and Weile
+             Jia and Ben Xu and Darrin M. York and Linfeng Zhang and Han Wang},
+    title =    {{DeePMD-kit v3: A Multiple-Backend Framework for Machine Learning
+             Potentials}},
+  journal =  {J. Chem. Theory Comput.},
+  year =     2025,
+  volume =   21,
+  number =   9,
+  pages =    {4375--4385},
+  doi =      {10.1021/acs.jctc.5c00340},
+}
+
+CITE-CITE-CITE-CITE-CITE-CITE-CITE-CITE-CITE-CITE-CITE-CITE-CITE
+
+Generated 0 of 6 mixed pair_coeff terms from geometric mixing rule
+Neighbor list info ...
+  update: every = 1 steps, delay = 0 steps, check = no
+  max neighbors/atom: 2000, page size: 100000
+  master list distance cutoff = 7
+  ghost atom cutoff = 7
+  binsize = 3.5, bins = 5 5 4
+  1 neighbor lists, perpetual/occasional/extra = 1 0 0
+  (1) pair deepmd, perpetual
+      attributes: full, newton on
+      pair build: full/bin/atomonly
+      stencil: full/bin/3d
+      bin: standard
+Per MPI rank memory allocation (min/avg/max) = 2.681 | 2.681 | 2.681 Mbytes
+   Step          Temp          Press          Volume         TotEng         KinEng         PotEng        Enthalpy   
+         0   3200           101699.38      2606.5997     -2720.3366      148.49405     -2868.8306     -2554.8807    
+       100   4840.4772      1064550.5      1635.4494     -2144.6599      224.6194      -2369.2793     -1058.0015    
+       200   3350.46        1082282.5      1610.1107     -2183.3673      155.47606     -2338.8434     -1095.7252    
+Loop time of 9.55105 on 1 procs for 200 steps with 360 atoms
+
+Performance: 0.905 ns/day, 26.531 hours/ns, 20.940 timesteps/s, 7.538 katom-step/s
+91.3% CPU use with 1 MPI tasks x 1 OpenMP threads
+
+MPI task timing breakdown:
+Section |  min time  |  avg time  |  max time  |%varavg| %total
+---------------------------------------------------------------
+Pair    | 8.2974     | 8.2974     | 8.2974     |   0.0 | 86.87
+Neigh   | 1.2029     | 1.2029     | 1.2029     |   0.0 | 12.59
+Comm    | 0.035115   | 0.035115   | 0.035115   |   0.0 |  0.37
+Output  | 0.00016937 | 0.00016937 | 0.00016937 |   0.0 |  0.00
+Modify  | 0.013035   | 0.013035   | 0.013035   |   0.0 |  0.14
+Other   |            | 0.002422   |            |       |  0.03
+
+Nlocal:            360 ave         360 max         360 min
+Histogram: 1 0 0 0 0 0 0 0 0 0
+Nghost:           3369 ave        3369 max        3369 min
+Histogram: 1 0 0 0 0 0 0 0 0 0
+Neighs:              0 ave           0 max           0 min
+Histogram: 1 0 0 0 0 0 0 0 0 0
+FullNghs:       115858 ave      115858 max      115858 min
+Histogram: 1 0 0 0 0 0 0 0 0 0
+
+Total # of neighbors = 115858
+Ave neighs/atom = 321.82778
+Neighbor list builds = 200
+Dangerous builds not checked
+unfix           NPTSTATE
+
+# Main timed loop — this is the number used for the ms/step metric.
+velocity        all create ${T1} 6149
+velocity        all create 3200 6149
+fix             4TRAINING all npt temp ${T1} ${T2} ${TAU_T} iso ${P1} ${P2} ${TAU_P}
+fix             4TRAINING all npt temp 3200 ${T2} ${TAU_T} iso ${P1} ${P2} ${TAU_P}
+fix             4TRAINING all npt temp 3200 4800 ${TAU_T} iso ${P1} ${P2} ${TAU_P}
+fix             4TRAINING all npt temp 3200 4800 0.01 iso ${P1} ${P2} ${TAU_P}
+fix             4TRAINING all npt temp 3200 4800 0.01 iso 1000000 ${P2} ${TAU_P}
+fix             4TRAINING all npt temp 3200 4800 0.01 iso 1000000 100000 ${TAU_P}
+fix             4TRAINING all npt temp 3200 4800 0.01 iso 1000000 100000 0.1
+timestep        ${TIMESTEP}
+timestep        0.0005
+thermo          ${THERMO_FREQ}
+thermo          100
+thermo_style    custom step temp press vol etotal ke pe enthalpy
+dump            myDUMP all custom ${DUMP_FREQ} npt.dump id type element x y z
+dump            myDUMP all custom 500 npt.dump id type element x y z
+dump_modify     myDUMP sort id
+dump_modify     myDUMP element Mg Si O He
+run             ${NSTEPS_4training}
+run             5000
+Generated 0 of 6 mixed pair_coeff terms from geometric mixing rule
+Per MPI rank memory allocation (min/avg/max) = 3.072 | 3.072 | 3.072 Mbytes
+   Step          Temp          Press          Volume         TotEng         KinEng         PotEng        Enthalpy   
+       200   3200           1077650.8      1610.1107     -2190.3493      148.49405     -2338.8434     -1107.3619    
+       300   3335.2915      910178.12      1617.0879     -2349.6126      154.77218     -2504.3848     -1430.9635    
+       400   3494.6617      1017807.2      1598.8876     -2307.2335      162.16765     -2469.4012     -1291.5157    
+       500   3516.0281      848757.09      1609.1555     -2394.3542      163.15915     -2557.5134     -1541.9       
+       600   3874.9154      955308.57      1578.6427     -2380.512       179.81309     -2560.3251     -1439.2357    
+       700   3573.9922      1025431.7      1568.8216     -2349.8839      165.84894     -2515.7328     -1345.8001    
+       800   3701.0177      789692.26      1610.4119     -2471.8863      171.74348     -2643.6298     -1678.1349    
+       900   3661.8017      828298.58      1586.0669     -2441.8197      169.92368     -2611.7434     -1621.8495    
+      1000   3597.8734      899538.49      1588.7924     -2439.0989      166.95713     -2606.0561     -1547.0749    
+      1100   3784.3484      735003.23      1579.7505     -2549.0806      175.61039     -2724.691      -1824.3654    
+      1200   3646.9792      728191.44      1607.882      -2492.6375      169.23585     -2661.8734     -1761.8529    
+      1300   3766.1815      927064.22      1511.7162     -2473.6667      174.76736     -2648.4341     -1598.9453    
+      1400   3683.2969      762937.29      1595.3049     -2529.0758      170.92115     -2699.9969     -1769.4107    
+      1500   3639.2356      628169.78      1616.477      -2547.5844      168.87651     -2716.4609     -1913.8078    
+      1600   4102.9312      685942.32      1574.313      -2545.2682      190.39403     -2735.6622     -1871.2551    
+      1700   3938.551       821600.3       1556.8519     -2498.8795      182.76606     -2681.6455     -1700.5217    
+      1800   3701.9754      655146.35      1623.9878     -2568.6583      171.78792     -2740.4463     -1904.5931    
+      1900   3873.5239      677794.26      1545.3722     -2555.6544      179.74852     -2735.4029     -1901.8909    
+      2000   3910.2588      561118.4       1662.6357     -2571.2866      181.45318     -2752.7397     -1988.994     
+      2100   3912.7119      680446.72      1598.6687     -2537.0057      181.56702     -2718.5727     -1858.0488    
+      2200   3912.4417      619483.01      1610.297      -2574.2958      181.55448     -2755.8503     -1951.6729    
+      2300   3962.6184      548614.88      1632.2799     -2585.922       183.8829      -2769.8049     -2026.9992    
+      2400   3979.7571      619253.69      1619.8164     -2540.9188      184.67821     -2725.597      -1914.8471    
+      2500   4203.6654      689174.64      1600.9854     -2513.4179      195.06854     -2708.4864     -1824.7556    
+      2600   3943.7825      671565.32      1622.1513     -2537.4599      183.00883     -2720.4688     -1857.522     
+      2700   4131.129       530672.48      1708.9631     -2555.2013      191.70253     -2746.9039     -1989.159     
+      2800   4011.9343      576513.62      1671.2517     -2532.1523      186.17137     -2718.3237     -1930.7832    
+      2900   4533.7951      588700.8       1639.0295     -2492.5068      210.388       -2702.8948     -1890.2648    
+      3000   4270.0347      598513.59      1639.845      -2510.3432      198.14836     -2708.4916     -1897.7581    
+      3100   4221.4591      529038.15      1689.8461     -2532.6804      195.89424     -2728.5746     -1974.6938    
+      3200   4215.8818      477620.99      1682.0071     -2555.2401      195.63543     -2750.8755     -2053.821     
+      3300   4432.38        491665.92      1708.7866     -2570.5575      205.6819      -2776.2394     -2046.1758    
+      3400   4241.7178      450161.33      1694.8075     -2573.837       196.83433     -2770.6713     -2097.6493    
+      3500   3941.5017      430350.73      1710.7623     -2580.1293      182.90299     -2763.0322     -2120.612     
+      3600   4298.8859      402683.56      1708.9733     -2582.3697      199.48719     -2781.8569     -2152.8444    
+      3700   4498.8816      363487.5       1711.3951     -2568.211       208.76786     -2776.9788     -2179.9449    
+      3800   4493.3854      469687.35      1696.6358     -2542.676       208.51282     -2751.1889     -2045.2974    
+      3900   4228.0272      442021.69      1699.8197     -2571.8634      196.19903     -2768.0625     -2102.9031    
+      4000   4454.6374      316218.61      1774.0426     -2604.4359      206.71474     -2811.1506     -2254.2964    
+      4100   4711.5211      265956.17      1776.4128     -2592.73        218.63527     -2811.3653     -2297.8512    
+      4200   4847.8409      313117.59      1739.4096     -2585.0303      224.96111     -2809.9914     -2245.0928    
+      4300   4404.0645      305920.38      1729.4567     -2587.6818      204.36794     -2792.0498     -2257.4585    
+      4400   4284.8593      250304.79      1774.4171     -2625.0353      198.83629     -2823.8716     -2347.8217    
+      4500   4479.6142      267799.72      1750.6583     -2593.0924      207.87377     -2800.9661     -2300.4743    
+      4600   4665.626       159581.81      1802.5826     -2638.3253      216.50554     -2854.8308     -2458.7824    
+      4700   4988.2634      208631.63      1806.1825     -2605.5499      231.47733     -2837.0272     -2370.3531    
+      4800   4471.5614      220669.45      1764.0932     -2606.7061      207.50009     -2814.2061     -2363.7356    
+      4900   4458.7714      123208.35      1831.7929     -2656.1597      206.90657     -2863.0663     -2515.2937    
+      5000   4677.3332      127727.41      1829.6273     -2645.2535      217.0488      -2862.3023     -2499.3934    
+      5100   4570.2324      117258.72      1957.9045     -2656.6697      212.07886     -2868.7485     -2513.3763    
+      5200   4689.4621      121201.92      2035.1833     -2652.3193      217.61164     -2869.931      -2498.3612    
+Loop time of 183.326 on 1 procs for 5000 steps with 360 atoms
+
+Performance: 1.178 ns/day, 20.370 hours/ns, 27.274 timesteps/s, 9.819 katom-step/s
+99.2% CPU use with 1 MPI tasks x 1 OpenMP threads
+
+MPI task timing breakdown:
+Section |  min time  |  avg time  |  max time  |%varavg| %total
+---------------------------------------------------------------
+Pair    | 151.49     | 151.49     | 151.49     |   0.0 | 82.64
+Neigh   | 30.586     | 30.586     | 30.586     |   0.0 | 16.68
+Comm    | 0.92793    | 0.92793    | 0.92793    |   0.0 |  0.51
+Output  | 0.0068344  | 0.0068344  | 0.0068344  |   0.0 |  0.00
+Modify  | 0.25327    | 0.25327    | 0.25327    |   0.0 |  0.14
+Other   |            | 0.05918    |            |       |  0.03
+
+Nlocal:            360 ave         360 max         360 min
+Histogram: 1 0 0 0 0 0 0 0 0 0
+Nghost:           2938 ave        2938 max        2938 min
+Histogram: 1 0 0 0 0 0 0 0 0 0
+Neighs:              0 ave           0 max           0 min
+Histogram: 1 0 0 0 0 0 0 0 0 0
+FullNghs:        91256 ave       91256 max       91256 min
+Histogram: 1 0 0 0 0 0 0 0 0 0
+
+Total # of neighbors = 91256
+Ave neighs/atom = 253.48889
+Neighbor list builds = 5000
+Dangerous builds not checked
+unfix           4TRAINING
+undump          myDUMP
+
+write_data      conf.lmp.end
+System init for write_data ...
+Generated 0 of 6 mixed pair_coeff terms from geometric mixing rule
+Total wall time: 0:03:19

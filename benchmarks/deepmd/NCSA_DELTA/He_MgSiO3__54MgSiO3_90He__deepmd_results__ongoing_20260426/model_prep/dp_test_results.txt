@@ -1,0 +1,97 @@
+Test system: /work/nvme/bguf/akashgpt/qmd_data/MgSiOH__R2SCAN/deepmd_collection_TRAIN/u.h.j.j.pro-l.liquid_vapor.water1.0g.merge.recal/deepmd
+N frames:    10
+Date:        Sat Apr 25 19:01:13 CDT 2026
+
+=== variant_train_dpa2_PT ===
+checkpoint: model.ckpt-1000000.pt
+[2026-04-25 19:03:19,692] DEEPMD INFO    Energy MAE         : 7.724992e+01 eV
+[2026-04-25 19:03:19,692] DEEPMD INFO    Energy RMSE        : 7.786450e+01 eV
+[2026-04-25 19:03:19,692] DEEPMD INFO    Energy MAE/Natoms  : 4.768514e-01 eV
+[2026-04-25 19:03:19,692] DEEPMD INFO    Energy RMSE/Natoms : 4.806451e-01 eV
+[2026-04-25 19:03:19,692] DEEPMD INFO    Force  MAE         : 1.917239e+00 eV/Å
+[2026-04-25 19:03:19,692] DEEPMD INFO    Force  RMSE        : 2.640264e+00 eV/Å
+[2026-04-25 19:03:19,692] DEEPMD INFO    Virial MAE         : 2.878102e+01 eV
+[2026-04-25 19:03:19,692] DEEPMD INFO    Virial RMSE        : 4.193154e+01 eV
+[2026-04-25 19:03:19,692] DEEPMD INFO    Virial MAE/Natoms  : 1.776606e-01 eV
+[2026-04-25 19:03:19,692] DEEPMD INFO    Virial RMSE/Natoms : 2.588367e-01 eV
+[2026-04-25 19:03:19,693] DEEPMD INFO    Energy MAE         : 7.724992e+01 eV
+[2026-04-25 19:03:19,693] DEEPMD INFO    Energy RMSE        : 7.786450e+01 eV
+[2026-04-25 19:03:19,693] DEEPMD INFO    Energy MAE/Natoms  : 4.768514e-01 eV
+[2026-04-25 19:03:19,693] DEEPMD INFO    Energy RMSE/Natoms : 4.806451e-01 eV
+[2026-04-25 19:03:19,693] DEEPMD INFO    Force  MAE         : 1.917239e+00 eV/Å
+[2026-04-25 19:03:19,693] DEEPMD INFO    Force  RMSE        : 2.640264e+00 eV/Å
+[2026-04-25 19:03:19,693] DEEPMD INFO    Virial MAE         : 2.878102e+01 eV
+[2026-04-25 19:03:19,693] DEEPMD INFO    Virial RMSE        : 4.193154e+01 eV
+[2026-04-25 19:03:19,693] DEEPMD INFO    Virial MAE/Natoms  : 1.776606e-01 eV
+[2026-04-25 19:03:19,693] DEEPMD INFO    Virial RMSE/Natoms : 2.588367e-01 eV
+
+=== variant_train_dpa2_PT_big ===
+checkpoint: model.ckpt-1000000.pt
+[2026-04-25 19:03:35,586] DEEPMD INFO    Energy MAE         : 1.686604e+01 eV
+[2026-04-25 19:03:35,586] DEEPMD INFO    Energy RMSE        : 2.244341e+01 eV
+[2026-04-25 19:03:35,586] DEEPMD INFO    Energy MAE/Natoms  : 1.041114e-01 eV
+[2026-04-25 19:03:35,586] DEEPMD INFO    Energy RMSE/Natoms : 1.385396e-01 eV
+[2026-04-25 19:03:35,586] DEEPMD INFO    Force  MAE         : 1.917239e+00 eV/Å
+[2026-04-25 19:03:35,586] DEEPMD INFO    Force  RMSE        : 2.640264e+00 eV/Å
+[2026-04-25 19:03:35,586] DEEPMD INFO    Virial MAE         : 2.878102e+01 eV
+[2026-04-25 19:03:35,586] DEEPMD INFO    Virial RMSE        : 4.193154e+01 eV
+[2026-04-25 19:03:35,586] DEEPMD INFO    Virial MAE/Natoms  : 1.776606e-01 eV
+[2026-04-25 19:03:35,586] DEEPMD INFO    Virial RMSE/Natoms : 2.588367e-01 eV
+[2026-04-25 19:03:35,586] DEEPMD INFO    Energy MAE         : 1.686604e+01 eV
+[2026-04-25 19:03:35,586] DEEPMD INFO    Energy RMSE        : 2.244341e+01 eV
+[2026-04-25 19:03:35,586] DEEPMD INFO    Energy MAE/Natoms  : 1.041114e-01 eV
+[2026-04-25 19:03:35,587] DEEPMD INFO    Energy RMSE/Natoms : 1.385396e-01 eV
+[2026-04-25 19:03:35,587] DEEPMD INFO    Force  MAE         : 1.917239e+00 eV/Å
+[2026-04-25 19:03:35,587] DEEPMD INFO    Force  RMSE        : 2.640264e+00 eV/Å
+[2026-04-25 19:03:35,587] DEEPMD INFO    Virial MAE         : 2.878102e+01 eV
+[2026-04-25 19:03:35,587] DEEPMD INFO    Virial RMSE        : 4.193154e+01 eV
+[2026-04-25 19:03:35,587] DEEPMD INFO    Virial MAE/Natoms  : 1.776606e-01 eV
+[2026-04-25 19:03:35,587] DEEPMD INFO    Virial RMSE/Natoms : 2.588367e-01 eV
+
+=== variant_train_dpa2_PT_big_strip ===
+checkpoint: model.ckpt-1000000.pt
+[2026-04-25 19:03:50,980] DEEPMD INFO    Energy MAE         : 4.262400e+01 eV
+[2026-04-25 19:03:50,980] DEEPMD INFO    Energy RMSE        : 4.976943e+01 eV
+[2026-04-25 19:03:50,980] DEEPMD INFO    Energy MAE/Natoms  : 2.631111e-01 eV
+[2026-04-25 19:03:50,980] DEEPMD INFO    Energy RMSE/Natoms : 3.072187e-01 eV
+[2026-04-25 19:03:50,980] DEEPMD INFO    Force  MAE         : 1.917239e+00 eV/Å
+[2026-04-25 19:03:50,980] DEEPMD INFO    Force  RMSE        : 2.640264e+00 eV/Å
+[2026-04-25 19:03:50,981] DEEPMD INFO    Virial MAE         : 2.878102e+01 eV
+[2026-04-25 19:03:50,981] DEEPMD INFO    Virial RMSE        : 4.193154e+01 eV
+[2026-04-25 19:03:50,981] DEEPMD INFO    Virial MAE/Natoms  : 1.776606e-01 eV
+[2026-04-25 19:03:50,981] DEEPMD INFO    Virial RMSE/Natoms : 2.588367e-01 eV
+[2026-04-25 19:03:50,981] DEEPMD INFO    Energy MAE         : 4.262400e+01 eV
+[2026-04-25 19:03:50,981] DEEPMD INFO    Energy RMSE        : 4.976943e+01 eV
+[2026-04-25 19:03:50,981] DEEPMD INFO    Energy MAE/Natoms  : 2.631111e-01 eV
+[2026-04-25 19:03:50,981] DEEPMD INFO    Energy RMSE/Natoms : 3.072187e-01 eV
+[2026-04-25 19:03:50,981] DEEPMD INFO    Force  MAE         : 1.917239e+00 eV/Å
+[2026-04-25 19:03:50,981] DEEPMD INFO    Force  RMSE        : 2.640264e+00 eV/Å
+[2026-04-25 19:03:50,981] DEEPMD INFO    Virial MAE         : 2.878102e+01 eV
+[2026-04-25 19:03:50,981] DEEPMD INFO    Virial RMSE        : 4.193154e+01 eV
+[2026-04-25 19:03:50,981] DEEPMD INFO    Virial MAE/Natoms  : 1.776606e-01 eV
+[2026-04-25 19:03:50,981] DEEPMD INFO    Virial RMSE/Natoms : 2.588367e-01 eV
+
+=== variant_train_se_e2_a_PT ===
+checkpoint: model.ckpt-1000000.pt
+[2026-04-25 19:04:07,213] DEEPMD INFO    Energy MAE         : 1.434950e+00 eV
+[2026-04-25 19:04:07,213] DEEPMD INFO    Energy RMSE        : 1.644789e+00 eV
+[2026-04-25 19:04:07,214] DEEPMD INFO    Energy MAE/Natoms  : 8.857715e-03 eV
+[2026-04-25 19:04:07,214] DEEPMD INFO    Energy RMSE/Natoms : 1.015302e-02 eV
+[2026-04-25 19:04:07,214] DEEPMD INFO    Force  MAE         : 3.130145e-01 eV/Å
+[2026-04-25 19:04:07,214] DEEPMD INFO    Force  RMSE        : 4.112893e-01 eV/Å
+[2026-04-25 19:04:07,214] DEEPMD INFO    Virial MAE         : 3.475328e+00 eV
+[2026-04-25 19:04:07,214] DEEPMD INFO    Virial RMSE        : 4.635975e+00 eV
+[2026-04-25 19:04:07,214] DEEPMD INFO    Virial MAE/Natoms  : 2.145264e-02 eV
+[2026-04-25 19:04:07,214] DEEPMD INFO    Virial RMSE/Natoms : 2.861713e-02 eV
+[2026-04-25 19:04:07,214] DEEPMD INFO    Energy MAE         : 1.434950e+00 eV
+[2026-04-25 19:04:07,214] DEEPMD INFO    Energy RMSE        : 1.644789e+00 eV
+[2026-04-25 19:04:07,214] DEEPMD INFO    Energy MAE/Natoms  : 8.857715e-03 eV
+[2026-04-25 19:04:07,214] DEEPMD INFO    Energy RMSE/Natoms : 1.015302e-02 eV
+[2026-04-25 19:04:07,214] DEEPMD INFO    Force  MAE         : 3.130145e-01 eV/Å
+[2026-04-25 19:04:07,214] DEEPMD INFO    Force  RMSE        : 4.112893e-01 eV/Å
+[2026-04-25 19:04:07,214] DEEPMD INFO    Virial MAE         : 3.475328e+00 eV
+[2026-04-25 19:04:07,214] DEEPMD INFO    Virial RMSE        : 4.635975e+00 eV
+[2026-04-25 19:04:07,214] DEEPMD INFO    Virial MAE/Natoms  : 2.145264e-02 eV
+[2026-04-25 19:04:07,214] DEEPMD INFO    Virial RMSE/Natoms : 2.861713e-02 eV
+
+=== Done [Sat Apr 25 19:04:08 CDT 2026] ===

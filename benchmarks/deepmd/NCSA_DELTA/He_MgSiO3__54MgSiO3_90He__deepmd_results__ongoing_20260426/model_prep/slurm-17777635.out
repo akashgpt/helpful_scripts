@@ -1,0 +1,14 @@
+=== diagnostics ===
+uid=93758(agupta46) gid=202(grp_202) groups=202(grp_202),2286(delta_active_users),3444(deltaai_active_users),21056(delta_bguf)
+pwd: /var/spool/slurmd/job17777635
+drwxr-x--- 2 root grp_202 60 Apr 21 14:15 /var/spool/slurmd/job17777635
+getfacl: Removing leading '/' from absolute path names
+# file: var/spool/slurmd/job17777635
+# owner: root
+# group: grp_202
+user::rwx
+group::r-x
+other::---
+
+=== end diagnostics ===
+mkdir: cannot create directory ‘model-compression’: Permission denied

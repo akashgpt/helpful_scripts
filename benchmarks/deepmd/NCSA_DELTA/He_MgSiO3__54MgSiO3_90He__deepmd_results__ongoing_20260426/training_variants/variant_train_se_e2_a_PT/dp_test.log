@@ -1,0 +1,29 @@
+[2026-04-25 19:03:57,896] DEEPMD WARNING To get the best performance, it is recommended to adjust the number of threads by setting the environment variables OMP_NUM_THREADS, DP_INTRA_OP_PARALLELISM_THREADS, and DP_INTER_OP_PARALLELISM_THREADS. See https://deepmd.rtfd.io/parallelism/ for more information.
+[2026-04-25 19:04:04,074] DEEPMD INFO    # ---------------output of dp test--------------- 
+[2026-04-25 19:04:04,074] DEEPMD INFO    # testing system : /work/nvme/bguf/akashgpt/qmd_data/MgSiOH__R2SCAN/deepmd_collection_TRAIN/u.h.j.j.pro-l.liquid_vapor.water1.0g.merge.recal/deepmd
+[2026-04-25 19:04:05,759] DEEPMD INFO    Adjust batch size from 1024 to 2048
+[2026-04-25 19:04:07,213] DEEPMD INFO    # number of test data : 10 
+[2026-04-25 19:04:07,213] DEEPMD INFO    Energy MAE         : 1.434950e+00 eV
+[2026-04-25 19:04:07,213] DEEPMD INFO    Energy RMSE        : 1.644789e+00 eV
+[2026-04-25 19:04:07,214] DEEPMD INFO    Energy MAE/Natoms  : 8.857715e-03 eV
+[2026-04-25 19:04:07,214] DEEPMD INFO    Energy RMSE/Natoms : 1.015302e-02 eV
+[2026-04-25 19:04:07,214] DEEPMD INFO    Force  MAE         : 3.130145e-01 eV/Å
+[2026-04-25 19:04:07,214] DEEPMD INFO    Force  RMSE        : 4.112893e-01 eV/Å
+[2026-04-25 19:04:07,214] DEEPMD INFO    Virial MAE         : 3.475328e+00 eV
+[2026-04-25 19:04:07,214] DEEPMD INFO    Virial RMSE        : 4.635975e+00 eV
+[2026-04-25 19:04:07,214] DEEPMD INFO    Virial MAE/Natoms  : 2.145264e-02 eV
+[2026-04-25 19:04:07,214] DEEPMD INFO    Virial RMSE/Natoms : 2.861713e-02 eV
+[2026-04-25 19:04:07,214] DEEPMD INFO    # ----------------------------------------------- 
+[2026-04-25 19:04:07,214] DEEPMD INFO    # ----------weighted average of errors----------- 
+[2026-04-25 19:04:07,214] DEEPMD INFO    # number of systems : 1
+[2026-04-25 19:04:07,214] DEEPMD INFO    Energy MAE         : 1.434950e+00 eV
+[2026-04-25 19:04:07,214] DEEPMD INFO    Energy RMSE        : 1.644789e+00 eV
+[2026-04-25 19:04:07,214] DEEPMD INFO    Energy MAE/Natoms  : 8.857715e-03 eV
+[2026-04-25 19:04:07,214] DEEPMD INFO    Energy RMSE/Natoms : 1.015302e-02 eV
+[2026-04-25 19:04:07,214] DEEPMD INFO    Force  MAE         : 3.130145e-01 eV/Å
+[2026-04-25 19:04:07,214] DEEPMD INFO    Force  RMSE        : 4.112893e-01 eV/Å
+[2026-04-25 19:04:07,214] DEEPMD INFO    Virial MAE         : 3.475328e+00 eV
+[2026-04-25 19:04:07,214] DEEPMD INFO    Virial RMSE        : 4.635975e+00 eV
+[2026-04-25 19:04:07,214] DEEPMD INFO    Virial MAE/Natoms  : 2.145264e-02 eV
+[2026-04-25 19:04:07,214] DEEPMD INFO    Virial RMSE/Natoms : 2.861713e-02 eV
+[2026-04-25 19:04:07,214] DEEPMD INFO    # ----------------------------------------------- 
