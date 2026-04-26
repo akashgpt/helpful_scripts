@@ -1,4 +1,10 @@
-"""Analyze MgSiOFe static KSPACING and ENCUT convergence benchmarks."""
+"""Analyze static VASP KSPACING and ENCUT convergence benchmarks.
+
+The script expects a TSV manifest with these columns:
+``run_id, family, case, label, value, run_dir``.  The ``family`` column should
+contain ``KSPACING`` or ``ENCUT``.  Each ``run_dir`` should contain ``OUTCAR``
+and ``POSCAR`` for completed runs.
+"""
 
 from __future__ import annotations
 
@@ -6,6 +12,7 @@ import argparse
 import csv
 import math
 import re
+import shutil
 import statistics
 from collections import OrderedDict
 from dataclasses import dataclass
@@ -14,9 +21,6 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 from matplotlib.ticker import FuncFormatter
 
-
-DEFAULT_SOURCE_DIR = Path("/scratch/gpfs/BURROWS/akashgpt/qmd_data/MgSiOFe__R2SCAN/test")
-DEFAULT_OUTPUT_DIR = Path(__file__).resolve().parent
 
 TOTEN_PATTERN = re.compile(r"free\s+energy\s+TOTEN\s+=\s+(?P<energy>[-+0-9.Ee]+)")
 INTERNAL_PATTERN = re.compile(
@@ -48,7 +52,7 @@ class ManifestRow:
 
 @dataclass(frozen=True)
 class RunResult:
-	"""Parsed data from one completed benchmark run."""
+	"""Parsed data from one completed and electronically converged run."""
 
 	manifest: ManifestRow
 	n_atoms: int
@@ -87,25 +91,80 @@ def parse_args() -> argparse.Namespace:
 		Parsed argument namespace.
 	"""
 	parser = argparse.ArgumentParser(
-		description="Analyze MgSiOFe static KSPACING and ENCUT benchmark runs."
+		description="Analyze static VASP KSPACING and ENCUT convergence benchmarks."
 	)
 	parser.add_argument(
 		"--source-dir",
 		type=Path,
-		default=DEFAULT_SOURCE_DIR,
+		required=True,
 		help="Benchmark source directory containing the manifest and run folders.",
+	)
+	parser.add_argument(
+		"--manifest",
+		type=Path,
+		default=None,
+		help="Manifest TSV path. Defaults to the first benchmark_manifest*.tsv in --source-dir.",
 	)
 	parser.add_argument(
 		"--output-dir",
 		type=Path,
-		default=DEFAULT_OUTPUT_DIR,
-		help="Directory where CSV, PNG, and Markdown outputs will be written.",
+		default=None,
+		help="Directory where CSV, PNG, and Markdown outputs are written. Defaults to --source-dir.",
+	)
+	parser.add_argument(
+		"--system-label",
+		default=None,
+		help="System label for CSVs and plot titles. Defaults to the source directory name.",
+	)
+	parser.add_argument(
+		"--encut-kspacing",
+		default="0.40",
+		help="Fixed KSPACING label written to the ENCUT CSV and plot title.",
+	)
+	parser.add_argument(
+		"--kspacing-encut",
+		default="800",
+		help="Fixed ENCUT value written to the KSPACING plot title.",
+	)
+	parser.add_argument(
+		"--threshold-mev-per-atom",
+		type=float,
+		default=1.0,
+		help="Threshold used in the text summary for converged sweep settings.",
+	)
+	parser.add_argument(
+		"--copy-plots-to-source",
+		action="store_true",
+		help="Also copy the generated PNG plots into --source-dir.",
 	)
 	return parser.parse_args()
 
 
+def resolve_manifest(source_dir: Path, manifest_path: Path | None) -> Path:
+	"""Resolve the manifest path for a benchmark source directory.
+
+	Args:
+		source_dir: Benchmark source directory.
+		manifest_path: Optional user-provided manifest path.
+
+	Returns:
+		Resolved manifest path.
+
+	Raises:
+		FileNotFoundError: If no unique manifest can be found.
+	"""
+	if manifest_path is not None:
+		return manifest_path
+	candidates = sorted(source_dir.glob("benchmark_manifest*.tsv"))
+	if len(candidates) != 1:
+		raise FileNotFoundError(
+			f"Expected exactly one benchmark_manifest*.tsv in {source_dir}, found {len(candidates)}"
+		)
+	return candidates[0]
+
+
 def read_manifest(manifest_path: Path) -> list[ManifestRow]:
-	"""Read the MgSiOFe benchmark manifest.
+	"""Read a benchmark manifest.
 
 	Args:
 		manifest_path: Path to the manifest TSV file.
@@ -233,13 +292,13 @@ def electronic_convergence_status(outcar_path: Path) -> tuple[bool, str]:
 
 
 def load_results(manifest_rows: list[ManifestRow]) -> list[RunResult]:
-	"""Load completed benchmark results from the manifest.
+	"""Load completed and electronically converged benchmark results.
 
 	Args:
 		manifest_rows: Manifest rows to inspect.
 
 	Returns:
-		Completed run results sorted by family, case, and sweep value.
+		Converged run results sorted by family, case, and sweep value.
 	"""
 	results: list[RunResult] = []
 	for manifest_row in manifest_rows:
@@ -326,15 +385,17 @@ def mev_per_atom_delta(energy_ev: float, reference_ev: float, n_atoms: int) -> f
 	return abs(energy_ev - reference_ev) * 1000.0 / float(n_atoms)
 
 
-def write_kspacing_csv(grouped: OrderedDict[str, list[RunResult]], output_csv: Path) -> list[dict[str, str | float | int]]:
-	"""Write the Delta-style static KSPACING convergence table.
+def write_kspacing_csv(
+	grouped: OrderedDict[str, list[RunResult]],
+	output_csv: Path,
+	system_label: str,
+) -> None:
+	"""Write a static KSPACING convergence table.
 
 	Args:
 		grouped: KSPACING results grouped by case name.
 		output_csv: Destination CSV path.
-
-	Returns:
-		Rows written to the CSV, kept in memory for summary/plotting.
+		system_label: Label written into the CSV ``family`` column.
 	"""
 	fieldnames = [
 		"family",
@@ -347,38 +408,40 @@ def write_kspacing_csv(grouped: OrderedDict[str, list[RunResult]], output_csv: P
 		"delta_toten_meV_per_atom",
 		"delta_internal_meV_per_atom",
 	]
-	rows_to_write: list[dict[str, str | float | int]] = []
 	with output_csv.open("w", encoding="utf-8", newline="") as handle:
 		writer = csv.DictWriter(handle, fieldnames=fieldnames)
 		writer.writeheader()
 		for case_name, case_results in grouped.items():
 			reference = min(case_results, key=lambda item: item.manifest.value)
 			for result in case_results:
-				row = {
-					"family": "MgSiOFe__R2SCAN",
-					"config": case_name,
-					"run": display_run_label(result.manifest.label),
-					"kspacing": f"{result.manifest.value:.2f}",
-					"nkpts": result.nkpts,
-					"reference_run": display_run_label(reference.manifest.label),
-					"reference_kspacing": f"{reference.manifest.value:.2f}",
-					"delta_toten_meV_per_atom": f"{mev_per_atom_delta(result.toten_ev, reference.toten_ev, result.n_atoms):.8f}",
-					"delta_internal_meV_per_atom": f"{mev_per_atom_delta(result.internal_ev, reference.internal_ev, result.n_atoms):.8f}",
-				}
-				writer.writerow(row)
-				rows_to_write.append(row)
-	return rows_to_write
+				writer.writerow(
+					{
+						"family": system_label,
+						"config": case_name,
+						"run": display_run_label(result.manifest.label),
+						"kspacing": f"{result.manifest.value:.2f}",
+						"nkpts": result.nkpts,
+						"reference_run": display_run_label(reference.manifest.label),
+						"reference_kspacing": f"{reference.manifest.value:.2f}",
+						"delta_toten_meV_per_atom": f"{mev_per_atom_delta(result.toten_ev, reference.toten_ev, result.n_atoms):.8f}",
+						"delta_internal_meV_per_atom": f"{mev_per_atom_delta(result.internal_ev, reference.internal_ev, result.n_atoms):.8f}",
+					}
+				)
 
 
-def write_encut_csv(grouped: OrderedDict[str, list[RunResult]], output_csv: Path) -> list[dict[str, str | float | int]]:
-	"""Write the Delta-style static ENCUT convergence table.
+def write_encut_csv(
+	grouped: OrderedDict[str, list[RunResult]],
+	output_csv: Path,
+	system_label: str,
+	encut_kspacing: str,
+) -> None:
+	"""Write a static ENCUT convergence table.
 
 	Args:
 		grouped: ENCUT results grouped by case name.
 		output_csv: Destination CSV path.
-
-	Returns:
-		Rows written to the CSV, kept in memory for summary/plotting.
+		system_label: Label written into the CSV ``family`` column.
+		encut_kspacing: KSPACING label written into the CSV.
 	"""
 	fieldnames = [
 		"family",
@@ -394,30 +457,28 @@ def write_encut_csv(grouped: OrderedDict[str, list[RunResult]], output_csv: Path
 		"delta_internal_meV_per_atom",
 		"path",
 	]
-	rows_to_write: list[dict[str, str | float | int]] = []
 	with output_csv.open("w", encoding="utf-8", newline="") as handle:
 		writer = csv.DictWriter(handle, fieldnames=fieldnames)
 		writer.writeheader()
 		for case_name, case_results in grouped.items():
 			reference = max(case_results, key=lambda item: item.manifest.value)
 			for result in case_results:
-				row = {
-					"family": "MgSiOFe__R2SCAN",
-					"config": case_name,
-					"encut": int(result.manifest.value),
-					"kspacing": "0.40",
-					"nkpts": result.nkpts,
-					"n_atoms": result.n_atoms,
-					"reference_encut": int(reference.manifest.value),
-					"toten_eV_per_atom": f"{result.toten_ev / float(result.n_atoms):.10f}",
-					"internal_eV_per_atom": f"{result.internal_ev / float(result.n_atoms):.10f}",
-					"delta_toten_meV_per_atom": f"{mev_per_atom_delta(result.toten_ev, reference.toten_ev, result.n_atoms):.8f}",
-					"delta_internal_meV_per_atom": f"{mev_per_atom_delta(result.internal_ev, reference.internal_ev, result.n_atoms):.8f}",
-					"path": str(result.manifest.run_dir),
-				}
-				writer.writerow(row)
-				rows_to_write.append(row)
-	return rows_to_write
+				writer.writerow(
+					{
+						"family": system_label,
+						"config": case_name,
+						"encut": int(result.manifest.value),
+						"kspacing": encut_kspacing,
+						"nkpts": result.nkpts,
+						"n_atoms": result.n_atoms,
+						"reference_encut": int(reference.manifest.value),
+						"toten_eV_per_atom": f"{result.toten_ev / float(result.n_atoms):.10f}",
+						"internal_eV_per_atom": f"{result.internal_ev / float(result.n_atoms):.10f}",
+						"delta_toten_meV_per_atom": f"{mev_per_atom_delta(result.toten_ev, reference.toten_ev, result.n_atoms):.8f}",
+						"delta_internal_meV_per_atom": f"{mev_per_atom_delta(result.internal_ev, reference.internal_ev, result.n_atoms):.8f}",
+						"path": str(result.manifest.run_dir),
+					}
+				)
 
 
 def describe_resources(results: list[RunResult]) -> str:
@@ -441,10 +502,11 @@ def describe_resources(results: list[RunResult]) -> str:
 		mpi_ranks, threads_per_rank = next(iter(resource_counts))
 		return f"{mpi_ranks} MPI ranks, {threads_per_rank} thread/rank"
 	(mpi_ranks, threads_per_rank), dominant_count = max(resource_counts.items(), key=lambda item: item[1])
-	parts: list[str] = []
-	parts.append(f"mostly {mpi_ranks} MPI ranks")
-	parts.append(f"{threads_per_rank} thread/rank")
-	parts.append(f"{len(results) - dominant_count} outlier run(s)")
+	parts = [
+		f"mostly {mpi_ranks} MPI ranks",
+		f"{threads_per_rank} thread/rank",
+		f"{len(results) - dominant_count} outlier run(s)",
+	]
 	return ", ".join(parts)
 
 
@@ -561,23 +623,28 @@ def stagger_offset(
 	return (rank - (count - 1) / 2.0) * step
 
 
-def plot_kspacing(grouped: OrderedDict[str, list[RunResult]], output_png: Path) -> None:
-	"""Plot the MgSiOFe KSPACING convergence figure.
+def plot_kspacing(
+	grouped: OrderedDict[str, list[RunResult]],
+	output_png: Path,
+	system_label: str,
+	kspacing_encut: str,
+) -> None:
+	"""Plot the KSPACING convergence figure.
 
 	Args:
 		grouped: KSPACING results grouped by case name.
 		output_png: Destination PNG path.
+		system_label: System label used in the figure title.
+		kspacing_encut: Fixed ENCUT value used for the KSPACING sweep.
 	"""
 	all_results = [result for case_results in grouped.values() for result in case_results]
-	fig = plt.figure(figsize=(13.8, 10.4), dpi=220, constrained_layout=True)
-	grid_spec = fig.add_gridspec(3, 2, height_ratios=[1.0, 0.58, 0.58])
+	fig = plt.figure(figsize=(12.8, 10.4), dpi=220, constrained_layout=True)
+	grid_spec = fig.add_gridspec(3, 1, height_ratios=[1.0, 0.58, 0.58])
 	toten_axis = fig.add_subplot(grid_spec[0, 0])
-	internal_axis = fig.add_subplot(grid_spec[0, 1])
-	kpoint_axis = fig.add_subplot(grid_spec[1, :])
-	runtime_axis = fig.add_subplot(grid_spec[2, :])
+	kpoint_axis = fig.add_subplot(grid_spec[1, 0])
+	runtime_axis = fig.add_subplot(grid_spec[2, 0])
 
 	toten_values: list[float] = []
-	internal_values: list[float] = []
 	unique_meshes = sorted(
 		{result.kpoint_mesh for result in all_results},
 		key=lambda mesh: (mesh[0] * mesh[1] * mesh[2], mesh),
@@ -596,15 +663,19 @@ def plot_kspacing(grouped: OrderedDict[str, list[RunResult]], output_png: Path) 
 			mev_per_atom_delta(result.toten_ev, reference.toten_ev, result.n_atoms)
 			for result in ordered
 		]
-		delta_internal = [
-			mev_per_atom_delta(result.internal_ev, reference.internal_ev, result.n_atoms)
-			for result in ordered
-		]
 		toten_values.extend(delta_toten)
-		internal_values.extend(delta_internal)
 		label = ordered[0].case_label
-		toten_axis.plot(kspacing_values, delta_toten, marker="o", linewidth=1.8, markersize=6.5, label=label)
-		internal_axis.plot(kspacing_values, delta_internal, marker="s", linewidth=1.8, markersize=6.5, label=label)
+		toten_line = toten_axis.plot(kspacing_values, delta_toten, linewidth=1.8, label=label)[0]
+		toten_axis.scatter(
+			kspacing_values,
+			delta_toten,
+			marker="o",
+			s=90,
+			color=toten_line.get_color(),
+			edgecolor="black",
+			linewidth=0.8,
+			zorder=3,
+		)
 
 		positions: list[float] = []
 		for result in ordered:
@@ -643,15 +714,13 @@ def plot_kspacing(grouped: OrderedDict[str, list[RunResult]], output_png: Path) 
 			)
 
 	toten_axis.set_title(r"$|\Delta$ TOTEN| vs smallest valid KSPACING", fontsize=14)
-	internal_axis.set_title(r"$|\Delta$ internal energy| vs smallest valid KSPACING", fontsize=14)
-	for axis, values in ((toten_axis, toten_values), (internal_axis, internal_values)):
-		axis.set_xlabel("KSPACING", fontsize=11)
-		axis.set_ylabel("meV/atom", fontsize=11)
-		configure_energy_scale(axis, values)
-		axis.grid(True, which="both", alpha=0.25)
-		axis.tick_params(axis="both", labelsize=10)
-		axis.invert_xaxis()
-		axis.legend(fontsize=8, loc="upper right")
+	toten_axis.set_xlabel("KSPACING", fontsize=11)
+	toten_axis.set_ylabel("meV/atom", fontsize=11)
+	configure_energy_scale(toten_axis, toten_values)
+	toten_axis.grid(True, which="both", alpha=0.25)
+	toten_axis.tick_params(axis="both", labelsize=10)
+	toten_axis.invert_xaxis()
+	toten_axis.legend(fontsize=8, loc="upper right")
 
 	kpoint_axis.set_title("VASP-generated k-point mesh", fontsize=12)
 	kpoint_axis.set_xlabel("KSPACING", fontsize=11)
@@ -677,28 +746,33 @@ def plot_kspacing(grouped: OrderedDict[str, list[RunResult]], output_png: Path) 
 	runtime_axis.invert_xaxis()
 	runtime_axis.legend(fontsize=8, loc="upper left")
 
-	fig.suptitle("MgSiOFe static KSPACING convergence", fontsize=16)
+	fig.suptitle(f"{system_label} static KSPACING convergence (ENCUT = {kspacing_encut} eV)", fontsize=16)
 	fig.savefig(output_png)
 	plt.close(fig)
 
 
-def plot_encut(grouped: OrderedDict[str, list[RunResult]], output_png: Path) -> None:
-	"""Plot the MgSiOFe ENCUT convergence figure.
+def plot_encut(
+	grouped: OrderedDict[str, list[RunResult]],
+	output_png: Path,
+	system_label: str,
+	encut_kspacing: str,
+) -> None:
+	"""Plot the ENCUT convergence figure.
 
 	Args:
 		grouped: ENCUT results grouped by case name.
 		output_png: Destination PNG path.
+		system_label: System label used in the figure title.
+		encut_kspacing: Fixed KSPACING value used for the ENCUT sweep.
 	"""
 	all_results = [result for case_results in grouped.values() for result in case_results]
-	fig = plt.figure(figsize=(13.8, 10.4), dpi=220, constrained_layout=True)
-	grid_spec = fig.add_gridspec(3, 2, height_ratios=[1.0, 0.58, 0.58])
+	fig = plt.figure(figsize=(12.8, 10.4), dpi=220, constrained_layout=True)
+	grid_spec = fig.add_gridspec(3, 1, height_ratios=[1.0, 0.58, 0.58])
 	toten_axis = fig.add_subplot(grid_spec[0, 0])
-	internal_axis = fig.add_subplot(grid_spec[0, 1])
-	kpoint_axis = fig.add_subplot(grid_spec[1, :])
-	runtime_axis = fig.add_subplot(grid_spec[2, :])
+	kpoint_axis = fig.add_subplot(grid_spec[1, 0])
+	runtime_axis = fig.add_subplot(grid_spec[2, 0])
 
 	toten_values: list[float] = []
-	internal_values: list[float] = []
 	unique_meshes = sorted(
 		{result.kpoint_mesh for result in all_results},
 		key=lambda mesh: (mesh[0] * mesh[1] * mesh[2], mesh),
@@ -709,14 +783,19 @@ def plot_encut(grouped: OrderedDict[str, list[RunResult]], output_png: Path) -> 
 		reference = max(case_results, key=lambda item: item.manifest.value)
 		encut_values = [result.manifest.value for result in ordered]
 		delta_toten = [mev_per_atom_delta(result.toten_ev, reference.toten_ev, result.n_atoms) for result in ordered]
-		delta_internal = [
-			mev_per_atom_delta(result.internal_ev, reference.internal_ev, result.n_atoms) for result in ordered
-		]
 		toten_values.extend(delta_toten)
-		internal_values.extend(delta_internal)
 		label = ordered[0].case_label
-		toten_axis.plot(encut_values, delta_toten, marker="o", linewidth=1.8, markersize=6.5, label=label)
-		internal_axis.plot(encut_values, delta_internal, marker="s", linewidth=1.8, markersize=6.5, label=label)
+		toten_line = toten_axis.plot(encut_values, delta_toten, linewidth=1.8, label=label)[0]
+		toten_axis.scatter(
+			encut_values,
+			delta_toten,
+			marker="o",
+			s=90,
+			color=toten_line.get_color(),
+			edgecolor="black",
+			linewidth=0.8,
+			zorder=3,
+		)
 
 		positions = [mesh_positions[result.kpoint_mesh] for result in ordered]
 		line = kpoint_axis.plot(encut_values, positions, linewidth=1.3, alpha=0.55, label=label)[0]
@@ -748,14 +827,12 @@ def plot_encut(grouped: OrderedDict[str, list[RunResult]], output_png: Path) -> 
 			)
 
 	toten_axis.set_title(r"$|\Delta$ TOTEN| vs highest valid ENCUT", fontsize=14)
-	internal_axis.set_title(r"$|\Delta$ internal energy| vs highest valid ENCUT", fontsize=14)
-	for axis, values in ((toten_axis, toten_values), (internal_axis, internal_values)):
-		axis.set_xlabel("ENCUT (eV)", fontsize=11)
-		axis.set_ylabel("meV/atom", fontsize=11)
-		configure_energy_scale(axis, values)
-		axis.grid(True, which="both", alpha=0.25)
-		axis.tick_params(axis="both", labelsize=10)
-		axis.legend(fontsize=8, loc="upper right")
+	toten_axis.set_xlabel("ENCUT (eV)", fontsize=11)
+	toten_axis.set_ylabel("meV/atom", fontsize=11)
+	configure_energy_scale(toten_axis, toten_values)
+	toten_axis.grid(True, which="both", alpha=0.25)
+	toten_axis.tick_params(axis="both", labelsize=10)
+	toten_axis.legend(fontsize=8, loc="upper right")
 
 	kpoint_axis.set_title("VASP-generated k-point mesh", fontsize=12)
 	kpoint_axis.set_xlabel("ENCUT (eV)", fontsize=11)
@@ -779,7 +856,7 @@ def plot_encut(grouped: OrderedDict[str, list[RunResult]], output_png: Path) -> 
 	runtime_axis.tick_params(axis="both", labelsize=10)
 	runtime_axis.legend(fontsize=8, loc="upper left")
 
-	fig.suptitle("MgSiOFe static ENCUT convergence", fontsize=16)
+	fig.suptitle(f"{system_label} static ENCUT convergence (KSPACING = {encut_kspacing})", fontsize=16)
 	fig.savefig(output_png)
 	plt.close(fig)
 
@@ -822,26 +899,30 @@ def write_summary(
 	skipped_rows: list[SkippedRun],
 	kspacing_grouped: OrderedDict[str, list[RunResult]],
 	encut_grouped: OrderedDict[str, list[RunResult]],
+	system_label: str,
+	threshold_mev_per_atom: float,
 ) -> None:
 	"""Write a short Markdown summary of the benchmark analysis.
 
 	Args:
 		output_path: Destination Markdown file.
 		source_dir: Source benchmark directory.
-		results: All parsed results.
+		manifest_rows: All manifest rows.
+		results: All parsed and electronically converged results.
+		skipped_rows: Rows excluded from the analysis.
 		kspacing_grouped: KSPACING results grouped by case.
 		encut_grouped: ENCUT results grouped by case.
+		system_label: System label used in the report heading.
+		threshold_mev_per_atom: Threshold used for the summary recommendation.
 	"""
 	lines: list[str] = []
-	lines.append("# MgSiOFe R2SCAN static convergence benchmark")
+	lines.append(f"# {system_label} static convergence benchmark")
 	lines.append("")
 	lines.append(f"- Source benchmark directory: `{source_dir}`")
 	lines.append(f"- Manifest rows: `{len(manifest_rows)}`")
 	lines.append(f"- Converged runs analyzed: `{len(results)}`")
 	lines.append(f"- Incomplete or non-converged rows skipped: `{len(skipped_rows)}`")
 	lines.append(f"- Shared runtime footprint: `{describe_resources(results)}`")
-	lines.append("- ENCUT sweep: `400, 500, 600, 800, 1000, 1200 eV`")
-	lines.append("- KSPACING sweep: `0.20, 0.25, 0.30, 0.40, 0.50`")
 	if skipped_rows:
 		lines.append("- Skipped rows:")
 		for skipped_run in skipped_rows:
@@ -858,15 +939,20 @@ def write_summary(
 		max_internal = max(
 			mev_per_atom_delta(result.internal_ev, reference.internal_ev, result.n_atoms) for result in case_results
 		)
-		converged = find_first_converged(case_results, "min", 1.0, prefer_highest_value=True)
+		converged = find_first_converged(
+			case_results,
+			"min",
+			threshold_mev_per_atom,
+			prefer_highest_value=True,
+		)
 		converged_text = (
 			f"`{display_run_label(converged.manifest.label)}` ({converged.manifest.value:.2f})"
 			if converged is not None
-			else "none within 1 meV/atom"
+			else f"none within {threshold_mev_per_atom:g} meV/atom"
 		)
 		runtime_minutes = [result.elapsed_seconds / 60.0 for result in case_results]
 		lines.append(
-			f"- `{case_name}`: reference is `{display_run_label(reference.manifest.label)}`; loosest completed setting within 1 meV/atom in both metrics is {converged_text}; max |dTOTEN| = `{max_toten:.4f}` meV/atom; max |dE_internal| = `{max_internal:.4f}` meV/atom; runtime span = `{min(runtime_minutes):.1f}` to `{max(runtime_minutes):.1f}` min."
+			f"- `{case_name}`: reference is `{display_run_label(reference.manifest.label)}`; loosest completed setting within {threshold_mev_per_atom:g} meV/atom in both metrics is {converged_text}; max |dTOTEN| = `{max_toten:.4f}` meV/atom; max |dE_internal| = `{max_internal:.4f}` meV/atom; runtime span = `{min(runtime_minutes):.1f}` to `{max(runtime_minutes):.1f}` min."
 		)
 	lines.append("")
 	lines.append("## ENCUT observations")
@@ -877,43 +963,67 @@ def write_summary(
 		max_internal = max(
 			mev_per_atom_delta(result.internal_ev, reference.internal_ev, result.n_atoms) for result in case_results
 		)
-		converged = find_first_converged(case_results, "max", 1.0, prefer_highest_value=False)
+		converged = find_first_converged(
+			case_results,
+			"max",
+			threshold_mev_per_atom,
+			prefer_highest_value=False,
+		)
 		converged_text = (
 			f"`{display_run_label(converged.manifest.label)}` ({int(converged.manifest.value)} eV)"
 			if converged is not None
-			else "none within 1 meV/atom"
+			else f"none within {threshold_mev_per_atom:g} meV/atom"
 		)
 		runtime_minutes = [result.elapsed_seconds / 60.0 for result in case_results]
 		lines.append(
-			f"- `{case_name}`: reference is `{display_run_label(reference.manifest.label)}`; lowest completed setting within 1 meV/atom in both metrics is {converged_text}; max |dTOTEN| = `{max_toten:.4f}` meV/atom; max |dE_internal| = `{max_internal:.4f}` meV/atom; runtime span = `{min(runtime_minutes):.1f}` to `{max(runtime_minutes):.1f}` min."
+			f"- `{case_name}`: reference is `{display_run_label(reference.manifest.label)}`; lowest completed setting within {threshold_mev_per_atom:g} meV/atom in both metrics is {converged_text}; max |dTOTEN| = `{max_toten:.4f}` meV/atom; max |dE_internal| = `{max_internal:.4f}` meV/atom; runtime span = `{min(runtime_minutes):.1f}` to `{max(runtime_minutes):.1f}` min."
 		)
 	lines.append("")
 	lines.append("## Runtime notes")
 	lines.append("")
 	lines.append(
-		f"- Mean runtime across all completed runs: `{statistics.mean(result.elapsed_seconds for result in results) / 60.0:.1f}` min."
+		f"- Mean runtime across all converged runs: `{statistics.mean(result.elapsed_seconds for result in results) / 60.0:.1f}` min."
 	)
 	lines.append(
-		f"- Slowest run: `{display_run_label(max(results, key=lambda item: item.elapsed_seconds).manifest.label)}` at `{max(result.elapsed_seconds for result in results) / 60.0:.1f}` min."
+		f"- Slowest converged run: `{display_run_label(max(results, key=lambda item: item.elapsed_seconds).manifest.label)}` at `{max(result.elapsed_seconds for result in results) / 60.0:.1f}` min."
 	)
 	lines.append(
-		f"- Fastest run: `{display_run_label(min(results, key=lambda item: item.elapsed_seconds).manifest.label)}` at `{min(result.elapsed_seconds for result in results) / 60.0:.1f}` min."
+		f"- Fastest converged run: `{display_run_label(min(results, key=lambda item: item.elapsed_seconds).manifest.label)}` at `{min(result.elapsed_seconds for result in results) / 60.0:.1f}` min."
 	)
 	output_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
+def copy_plots_to_source(output_dir: Path, source_dir: Path) -> None:
+	"""Copy generated plot PNGs to the benchmark source directory.
+
+	Args:
+		output_dir: Directory containing generated plot PNGs.
+		source_dir: Benchmark source directory that should receive plot copies.
+	"""
+	for filename in (
+		"kspacing_convergence_delta_mev_per_atom_static.png",
+		"encut_convergence_delta_mev_per_atom_static.png",
+	):
+		source_path = output_dir / filename
+		destination_path = source_dir / filename
+		if source_path.is_file() and source_path.resolve() != destination_path.resolve():
+			shutil.copy2(source_path, destination_path)
+
+
 def main() -> None:
-	"""Run the MgSiOFe convergence analysis workflow."""
+	"""Run the static VASP convergence analysis workflow."""
 	args = parse_args()
-	output_dir: Path = args.output_dir
+	source_dir: Path = args.source_dir
+	output_dir: Path = args.output_dir if args.output_dir is not None else source_dir
+	system_label = args.system_label if args.system_label is not None else source_dir.name
 	output_dir.mkdir(parents=True, exist_ok=True)
 
-	manifest_path = args.source_dir / "benchmark_manifest__MgSiOFe__KSPACING_ENCUT.tsv"
+	manifest_path = resolve_manifest(source_dir, args.manifest)
 	manifest_rows = read_manifest(manifest_path)
 	skipped_rows = find_skipped_rows(manifest_rows)
 	results = load_results(manifest_rows)
 	if not results:
-		raise RuntimeError(f"No completed benchmark runs found under {args.source_dir}")
+		raise RuntimeError(f"No electronically converged benchmark runs found under {source_dir}")
 
 	kspacing_grouped = group_results(results, "KSPACING")
 	encut_grouped = group_results(results, "ENCUT")
@@ -924,17 +1034,31 @@ def main() -> None:
 	encut_png = output_dir / "encut_convergence_delta_mev_per_atom_static.png"
 	summary_md = output_dir / "SUMMARY.md"
 
-	write_kspacing_csv(kspacing_grouped, kspacing_csv)
-	write_encut_csv(encut_grouped, encut_csv)
-	plot_kspacing(kspacing_grouped, kspacing_png)
-	plot_encut(encut_grouped, encut_png)
-	write_summary(summary_md, args.source_dir, manifest_rows, results, skipped_rows, kspacing_grouped, encut_grouped)
+	write_kspacing_csv(kspacing_grouped, kspacing_csv, system_label)
+	write_encut_csv(encut_grouped, encut_csv, system_label, args.encut_kspacing)
+	plot_kspacing(kspacing_grouped, kspacing_png, system_label, args.kspacing_encut)
+	plot_encut(encut_grouped, encut_png, system_label, args.encut_kspacing)
+	write_summary(
+		summary_md,
+		source_dir,
+		manifest_rows,
+		results,
+		skipped_rows,
+		kspacing_grouped,
+		encut_grouped,
+		system_label,
+		args.threshold_mev_per_atom,
+	)
+	if args.copy_plots_to_source:
+		copy_plots_to_source(output_dir, source_dir)
 
 	print(f"Wrote {kspacing_csv}")
 	print(f"Wrote {encut_csv}")
 	print(f"Wrote {kspacing_png}")
 	print(f"Wrote {encut_png}")
 	print(f"Wrote {summary_md}")
+	if args.copy_plots_to_source:
+		print(f"Copied plots to {source_dir}")
 
 
 if __name__ == "__main__":
