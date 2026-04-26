@@ -1,0 +1,82 @@
+{
+  "created_at": "20260421_194804",
+  "sample_dir": "/work/nvme/bguf/akashgpt/qmd_data/He_MgSiO3/sim_data_ML/v1_i1/md/ZONE_3/71MgSiO3_5He/pre/recal/1",
+  "template_dir": "/work/nvme/bguf/akashgpt/qmd_data/He_MgSiO3/sim_data_ML/setup_MLMD/submission_scripts",
+  "purpose": "VASP GPU resource smoke tests using sub_vasp_gpu-style single-frame jobs.",
+  "note": "NELM is reduced to 8 to bound walltime; memory-heavy allocations remain representative. Walltime updated to 02:00:00 after submission.",
+  "matrix": [
+    {
+      "name": "g01_r01_c01_kpar1_algoN",
+      "gpus": 1,
+      "ranks": 1,
+      "cpus": 1,
+      "kpar": 1,
+      "algo": "N",
+      "mem": 80
+    },
+    {
+      "name": "g01_r01_c08_kpar1_algoN",
+      "gpus": 1,
+      "ranks": 1,
+      "cpus": 8,
+      "kpar": 1,
+      "algo": "N",
+      "mem": 120
+    },
+    {
+      "name": "g02_r02_c01_kpar1_algoN",
+      "gpus": 2,
+      "ranks": 2,
+      "cpus": 1,
+      "kpar": 1,
+      "algo": "N",
+      "mem": 120
+    },
+    {
+      "name": "g02_r02_c01_kpar2_algoN",
+      "gpus": 2,
+      "ranks": 2,
+      "cpus": 1,
+      "kpar": 2,
+      "algo": "N",
+      "mem": 120
+    },
+    {
+      "name": "g02_r02_c08_kpar2_algoN",
+      "gpus": 2,
+      "ranks": 2,
+      "cpus": 8,
+      "kpar": 2,
+      "algo": "N",
+      "mem": 180
+    },
+    {
+      "name": "g04_r04_c01_kpar1_algoN",
+      "gpus": 4,
+      "ranks": 4,
+      "cpus": 1,
+      "kpar": 1,
+      "algo": "N",
+      "mem": 180
+    },
+    {
+      "name": "g04_r04_c01_kpar4_algoN",
+      "gpus": 4,
+      "ranks": 4,
+      "cpus": 1,
+      "kpar": 4,
+      "algo": "N",
+      "mem": 180
+    },
+    {
+      "name": "g02_r02_c01_kpar2_algoExact",
+      "gpus": 2,
+      "ranks": 2,
+      "cpus": 1,
+      "kpar": 2,
+      "algo": "Exact",
+      "mem": 120
+    }
+  ],
+  "time_limit": "02:00:00"
+}

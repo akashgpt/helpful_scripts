@@ -523,3 +523,18 @@ SIGMA  = 0.689387
 4. **The HPC-X `mpirun` + rank-wrapper approach got closest** to working but still showed severe contention.
 5. **The Cray MPICH + GTL approach crashes** on multi-GPU due to illegal GPU memory access in VASP's MPI communication layer.
 6. **The most promising path forward** is either (a) fixing the HPC-X GPU binding or (b) building VASP against a standalone OpenMPI installation on DELTA to replicate the Stellar environment.
+
+---
+
+## 10. Related Resource Test
+
+A follow-up benchmark focused on a larger `ZONE_3/71MgSiO3_5He` production-like frame now
+lives under:
+
+- `resource_tests/GPU_VASP_RESOURCE_TEST__ZONE3_71MgSiO3_5He__20260421_194804/`
+
+That benchmark is complementary to the scaling study in this document:
+
+- this file explains why DELTA multi-GPU launch behavior can fail in general
+- the `resource_tests` benchmark shows which layouts are actually usable for one large
+  `360`-atom, `1536`-band R2SCAN frame under the tested DELTA setup
