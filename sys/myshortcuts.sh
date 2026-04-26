@@ -382,7 +382,8 @@ function sqpmy_eta {
   squeue -u "$USER" -h -t PD   -o "%.12i %.9Q %.9q %.20j %.8u %.8a %.2t %.10M %.10L %.6D %.6C %.12b %.20S %R" 2>/dev/null
 }
 
-alias sq='squeue -u $USER -o "%.18i %.9P %.12j %.8u %.2t %.10M %.6D %.8C %.10l"'
+alias sq='squeue -u $USER -o "%.18i %.9Q %.6P %.6q %.12j %.2t %.9M %.5D %.4C %.10b %.10l"'
+# alias sq='squeue -u $USER -o "%.18i %.9P %.12j %.8u %.2t %.10M %.6D %.8C %.10l"'
 
 # assesses cluster "busyness" by comparing running vs pending jobs for CPU and GPU partitions
 # Uses partition column to identify GPU jobs (partition name contains "gpu" on both DELTA and Stellar).
