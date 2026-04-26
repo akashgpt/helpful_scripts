@@ -1,0 +1,142 @@
+{
+    "model": {
+        "type_map": [
+            "Mg",
+            "Si",
+            "O",
+            "H",
+            "He"
+        ],
+        "descriptor": {
+            "type": "se_e2_a",
+            "sel": [
+                50,
+                50,
+                140,
+                700,
+                500
+            ],
+            "rcut_smth": 5.8,
+            "rcut": 6.0,
+            "neuron": [
+                25,
+                50,
+                100
+            ],
+            "resnet_dt": false,
+            "axis_neuron": 16,
+            "seed": 1,
+            "activation_function": "tanh",
+            "type_one_side": false,
+            "precision": "float64",
+            "trainable": true,
+            "exclude_types": [],
+            "set_davg_zero": false,
+            "env_protection": 0.0
+        },
+        "fitting_net": {
+            "neuron": [
+                240,
+                240,
+                240
+            ],
+            "resnet_dt": true,
+            "numb_fparam": 1,
+            "seed": 1,
+            "type": "ener",
+            "numb_aparam": 0,
+            "activation_function": "tanh",
+            "precision": "float64",
+            "trainable": true,
+            "rcond": 0.001,
+            "atom_ener": [],
+            "default_fparam": null,
+            "dim_case_embd": 0,
+            "use_aparam_as_mask": false
+        },
+        "data_stat_nbatch": 2,
+        "data_stat_protect": 0.01,
+        "data_bias_nsample": 10,
+        "pair_exclude_types": [],
+        "atom_exclude_types": [],
+        "preset_out_bias": null,
+        "srtab_add_bias": true,
+        "type": "standard",
+        "model_branch_alias": [],
+        "info": {}
+    },
+    "learning_rate": {
+        "type": "exp",
+        "start_lr": 0.001,
+        "decay_steps": 50,
+        "scale_by_worker": "linear",
+        "stop_lr": 5e-08,
+        "stop_lr_ratio": null,
+        "warmup_steps": 0,
+        "warmup_ratio": null,
+        "warmup_start_factor": 0.0,
+        "decay_rate": null,
+        "smooth": false
+    },
+    "loss": {
+        "start_pref_e": 0.04,
+        "limit_pref_e": 2,
+        "start_pref_f": 1000,
+        "limit_pref_f": 1.5,
+        "start_pref_v": 0.04,
+        "limit_pref_v": 2,
+        "type": "ener",
+        "start_pref_ae": 0.0,
+        "limit_pref_ae": 0.0,
+        "start_pref_pf": 0.0,
+        "limit_pref_pf": 0.0,
+        "start_pref_h": 0.0,
+        "limit_pref_h": 0.0,
+        "enable_atom_ener_coeff": false,
+        "start_pref_gf": 0.0,
+        "limit_pref_gf": 0.0,
+        "numb_generalized_coord": 0,
+        "use_huber": false,
+        "huber_delta": 0.01
+    },
+    "training": {
+        "seed": 1,
+        "disp_file": "lcurve.out",
+        "disp_freq": 10,
+        "save_freq": 100,
+        "save_ckpt": "model-compression/model.ckpt",
+        "disp_training": true,
+        "time_training": true,
+        "numb_steps": 100,
+        "training_data": {
+            "systems": [
+                "/work/nvme/bguf/akashgpt/qmd_data/MgSiOH__R2SCAN/deepmd_collection_TRAIN/u.h.j.j.pro-l.liquid_vapor.water1.0g.merge.recal/deepmd",
+                "/work/nvme/bguf/akashgpt/qmd_data/MgSiOH__R2SCAN/deepmd_collection_TRAIN/u.h.j.j.pro-l.liquid_vapor.water1.220g.merge.recal/deepmd",
+                "/work/nvme/bguf/akashgpt/qmd_data/MgSiOH__R2SCAN/deepmd_collection_TRAIN/u.h.j.j.pro-l.liquid_vapor.water1.80g.recal/deepmd"
+            ],
+            "batch_size": "auto",
+            "auto_prob": "prob_sys_size",
+            "rglob_patterns": null,
+            "sys_probs": null
+        },
+        "validation_data": null,
+        "max_ckpt_keep": 5,
+        "change_bias_after_training": false,
+        "disp_avg": false,
+        "profiling": false,
+        "profiling_file": "timeline.json",
+        "enable_profiler": false,
+        "tensorboard": false,
+        "tensorboard_log_dir": "log",
+        "tensorboard_freq": 1,
+        "acc_freq": 1,
+        "zero_stage": 0,
+        "enable_compile": false
+    },
+    "optimizer": {
+        "type": "Adam",
+        "adam_beta1": 0.9,
+        "adam_beta2": 0.999,
+        "weight_decay": 0.0
+    }
+}
