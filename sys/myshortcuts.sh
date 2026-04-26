@@ -927,7 +927,7 @@ alias pin_py_hpc='pin_python_env hpc-tools'
 alias pin_py_ase='pin_python_env ase_env'
 
 # git aliases
-alias git_merge_main="git switch main; git merge dev; git push origin main; git switch dev"
+alias git_merge_main="git fetch origin; git switch main; git merge origin/main; git merge dev; git push origin main; git switch dev"
 
 git_update_dev() {
   date_time=$(date +"%Y-%m-%d %T")
