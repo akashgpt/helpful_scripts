@@ -119,7 +119,12 @@ def parse_args() -> argparse.Namespace:
 	parser.add_argument(
 		"--encut-kspacing",
 		default="0.40",
-		help="KSPACING label written to the ENCUT CSV.",
+		help="Fixed KSPACING label written to the ENCUT CSV and plot title.",
+	)
+	parser.add_argument(
+		"--kspacing-encut",
+		default="800",
+		help="Fixed ENCUT value written to the KSPACING plot title.",
 	)
 	parser.add_argument(
 		"--threshold-mev-per-atom",
@@ -622,6 +627,7 @@ def plot_kspacing(
 	grouped: OrderedDict[str, list[RunResult]],
 	output_png: Path,
 	system_label: str,
+	kspacing_encut: str,
 ) -> None:
 	"""Plot the KSPACING convergence figure.
 
@@ -629,17 +635,16 @@ def plot_kspacing(
 		grouped: KSPACING results grouped by case name.
 		output_png: Destination PNG path.
 		system_label: System label used in the figure title.
+		kspacing_encut: Fixed ENCUT value used for the KSPACING sweep.
 	"""
 	all_results = [result for case_results in grouped.values() for result in case_results]
-	fig = plt.figure(figsize=(13.8, 10.4), dpi=220, constrained_layout=True)
-	grid_spec = fig.add_gridspec(3, 2, height_ratios=[1.0, 0.58, 0.58])
+	fig = plt.figure(figsize=(12.8, 10.4), dpi=220, constrained_layout=True)
+	grid_spec = fig.add_gridspec(3, 1, height_ratios=[1.0, 0.58, 0.58])
 	toten_axis = fig.add_subplot(grid_spec[0, 0])
-	internal_axis = fig.add_subplot(grid_spec[0, 1])
-	kpoint_axis = fig.add_subplot(grid_spec[1, :])
-	runtime_axis = fig.add_subplot(grid_spec[2, :])
+	kpoint_axis = fig.add_subplot(grid_spec[1, 0])
+	runtime_axis = fig.add_subplot(grid_spec[2, 0])
 
 	toten_values: list[float] = []
-	internal_values: list[float] = []
 	unique_meshes = sorted(
 		{result.kpoint_mesh for result in all_results},
 		key=lambda mesh: (mesh[0] * mesh[1] * mesh[2], mesh),
@@ -658,15 +663,19 @@ def plot_kspacing(
 			mev_per_atom_delta(result.toten_ev, reference.toten_ev, result.n_atoms)
 			for result in ordered
 		]
-		delta_internal = [
-			mev_per_atom_delta(result.internal_ev, reference.internal_ev, result.n_atoms)
-			for result in ordered
-		]
 		toten_values.extend(delta_toten)
-		internal_values.extend(delta_internal)
 		label = ordered[0].case_label
-		toten_axis.plot(kspacing_values, delta_toten, marker="o", linewidth=1.8, markersize=6.5, label=label)
-		internal_axis.plot(kspacing_values, delta_internal, marker="s", linewidth=1.8, markersize=6.5, label=label)
+		toten_line = toten_axis.plot(kspacing_values, delta_toten, linewidth=1.8, label=label)[0]
+		toten_axis.scatter(
+			kspacing_values,
+			delta_toten,
+			marker="o",
+			s=90,
+			color=toten_line.get_color(),
+			edgecolor="black",
+			linewidth=0.8,
+			zorder=3,
+		)
 
 		positions: list[float] = []
 		for result in ordered:
@@ -705,15 +714,13 @@ def plot_kspacing(
 			)
 
 	toten_axis.set_title(r"$|\Delta$ TOTEN| vs smallest valid KSPACING", fontsize=14)
-	internal_axis.set_title(r"$|\Delta$ internal energy| vs smallest valid KSPACING", fontsize=14)
-	for axis, values in ((toten_axis, toten_values), (internal_axis, internal_values)):
-		axis.set_xlabel("KSPACING", fontsize=11)
-		axis.set_ylabel("meV/atom", fontsize=11)
-		configure_energy_scale(axis, values)
-		axis.grid(True, which="both", alpha=0.25)
-		axis.tick_params(axis="both", labelsize=10)
-		axis.invert_xaxis()
-		axis.legend(fontsize=8, loc="upper right")
+	toten_axis.set_xlabel("KSPACING", fontsize=11)
+	toten_axis.set_ylabel("meV/atom", fontsize=11)
+	configure_energy_scale(toten_axis, toten_values)
+	toten_axis.grid(True, which="both", alpha=0.25)
+	toten_axis.tick_params(axis="both", labelsize=10)
+	toten_axis.invert_xaxis()
+	toten_axis.legend(fontsize=8, loc="upper right")
 
 	kpoint_axis.set_title("VASP-generated k-point mesh", fontsize=12)
 	kpoint_axis.set_xlabel("KSPACING", fontsize=11)
@@ -739,7 +746,7 @@ def plot_kspacing(
 	runtime_axis.invert_xaxis()
 	runtime_axis.legend(fontsize=8, loc="upper left")
 
-	fig.suptitle(f"{system_label} static KSPACING convergence", fontsize=16)
+	fig.suptitle(f"{system_label} static KSPACING convergence (ENCUT = {kspacing_encut} eV)", fontsize=16)
 	fig.savefig(output_png)
 	plt.close(fig)
 
@@ -748,6 +755,7 @@ def plot_encut(
 	grouped: OrderedDict[str, list[RunResult]],
 	output_png: Path,
 	system_label: str,
+	encut_kspacing: str,
 ) -> None:
 	"""Plot the ENCUT convergence figure.
 
@@ -755,17 +763,16 @@ def plot_encut(
 		grouped: ENCUT results grouped by case name.
 		output_png: Destination PNG path.
 		system_label: System label used in the figure title.
+		encut_kspacing: Fixed KSPACING value used for the ENCUT sweep.
 	"""
 	all_results = [result for case_results in grouped.values() for result in case_results]
-	fig = plt.figure(figsize=(13.8, 10.4), dpi=220, constrained_layout=True)
-	grid_spec = fig.add_gridspec(3, 2, height_ratios=[1.0, 0.58, 0.58])
+	fig = plt.figure(figsize=(12.8, 10.4), dpi=220, constrained_layout=True)
+	grid_spec = fig.add_gridspec(3, 1, height_ratios=[1.0, 0.58, 0.58])
 	toten_axis = fig.add_subplot(grid_spec[0, 0])
-	internal_axis = fig.add_subplot(grid_spec[0, 1])
-	kpoint_axis = fig.add_subplot(grid_spec[1, :])
-	runtime_axis = fig.add_subplot(grid_spec[2, :])
+	kpoint_axis = fig.add_subplot(grid_spec[1, 0])
+	runtime_axis = fig.add_subplot(grid_spec[2, 0])
 
 	toten_values: list[float] = []
-	internal_values: list[float] = []
 	unique_meshes = sorted(
 		{result.kpoint_mesh for result in all_results},
 		key=lambda mesh: (mesh[0] * mesh[1] * mesh[2], mesh),
@@ -776,14 +783,19 @@ def plot_encut(
 		reference = max(case_results, key=lambda item: item.manifest.value)
 		encut_values = [result.manifest.value for result in ordered]
 		delta_toten = [mev_per_atom_delta(result.toten_ev, reference.toten_ev, result.n_atoms) for result in ordered]
-		delta_internal = [
-			mev_per_atom_delta(result.internal_ev, reference.internal_ev, result.n_atoms) for result in ordered
-		]
 		toten_values.extend(delta_toten)
-		internal_values.extend(delta_internal)
 		label = ordered[0].case_label
-		toten_axis.plot(encut_values, delta_toten, marker="o", linewidth=1.8, markersize=6.5, label=label)
-		internal_axis.plot(encut_values, delta_internal, marker="s", linewidth=1.8, markersize=6.5, label=label)
+		toten_line = toten_axis.plot(encut_values, delta_toten, linewidth=1.8, label=label)[0]
+		toten_axis.scatter(
+			encut_values,
+			delta_toten,
+			marker="o",
+			s=90,
+			color=toten_line.get_color(),
+			edgecolor="black",
+			linewidth=0.8,
+			zorder=3,
+		)
 
 		positions = [mesh_positions[result.kpoint_mesh] for result in ordered]
 		line = kpoint_axis.plot(encut_values, positions, linewidth=1.3, alpha=0.55, label=label)[0]
@@ -815,14 +827,12 @@ def plot_encut(
 			)
 
 	toten_axis.set_title(r"$|\Delta$ TOTEN| vs highest valid ENCUT", fontsize=14)
-	internal_axis.set_title(r"$|\Delta$ internal energy| vs highest valid ENCUT", fontsize=14)
-	for axis, values in ((toten_axis, toten_values), (internal_axis, internal_values)):
-		axis.set_xlabel("ENCUT (eV)", fontsize=11)
-		axis.set_ylabel("meV/atom", fontsize=11)
-		configure_energy_scale(axis, values)
-		axis.grid(True, which="both", alpha=0.25)
-		axis.tick_params(axis="both", labelsize=10)
-		axis.legend(fontsize=8, loc="upper right")
+	toten_axis.set_xlabel("ENCUT (eV)", fontsize=11)
+	toten_axis.set_ylabel("meV/atom", fontsize=11)
+	configure_energy_scale(toten_axis, toten_values)
+	toten_axis.grid(True, which="both", alpha=0.25)
+	toten_axis.tick_params(axis="both", labelsize=10)
+	toten_axis.legend(fontsize=8, loc="upper right")
 
 	kpoint_axis.set_title("VASP-generated k-point mesh", fontsize=12)
 	kpoint_axis.set_xlabel("ENCUT (eV)", fontsize=11)
@@ -846,7 +856,7 @@ def plot_encut(
 	runtime_axis.tick_params(axis="both", labelsize=10)
 	runtime_axis.legend(fontsize=8, loc="upper left")
 
-	fig.suptitle(f"{system_label} static ENCUT convergence", fontsize=16)
+	fig.suptitle(f"{system_label} static ENCUT convergence (KSPACING = {encut_kspacing})", fontsize=16)
 	fig.savefig(output_png)
 	plt.close(fig)
 
@@ -995,8 +1005,9 @@ def copy_plots_to_source(output_dir: Path, source_dir: Path) -> None:
 		"encut_convergence_delta_mev_per_atom_static.png",
 	):
 		source_path = output_dir / filename
-		if source_path.is_file():
-			shutil.copy2(source_path, source_dir / filename)
+		destination_path = source_dir / filename
+		if source_path.is_file() and source_path.resolve() != destination_path.resolve():
+			shutil.copy2(source_path, destination_path)
 
 
 def main() -> None:
@@ -1025,8 +1036,8 @@ def main() -> None:
 
 	write_kspacing_csv(kspacing_grouped, kspacing_csv, system_label)
 	write_encut_csv(encut_grouped, encut_csv, system_label, args.encut_kspacing)
-	plot_kspacing(kspacing_grouped, kspacing_png, system_label)
-	plot_encut(encut_grouped, encut_png, system_label)
+	plot_kspacing(kspacing_grouped, kspacing_png, system_label, args.kspacing_encut)
+	plot_encut(encut_grouped, encut_png, system_label, args.encut_kspacing)
 	write_summary(
 		summary_md,
 		source_dir,
