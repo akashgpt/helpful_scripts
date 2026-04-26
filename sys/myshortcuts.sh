@@ -958,25 +958,101 @@ alias pin_py_ase='pin_python_env ase_env'
 # git aliases
 alias git_merge_main="git fetch origin; git switch main; git merge origin/main; git merge dev; git push origin main; git switch dev"
 
+# git_update_dev
+#
+# Auto-commits the current working tree on the dev branch, pulls origin/dev
+# (merge, no rebase) to absorb any commits made elsewhere — e.g. via the
+# same helper on a different cluster — and pushes. Designed to be safe to
+# re-run: if there is nothing staged, the commit step is skipped and the
+# function still pulls+pushes so a previously-failed push can recover.
+#
+# A merge (rather than rebase) is used so that parallel commits authored
+# on different machines remain visible in history with their original
+# author/host metadata; with `git_update_dev` running on multiple clusters,
+# this is genuinely parallel work and a merge represents that honestly.
+#
+# Args:
+#   message_commit: Optional commit message. Defaults to "update: <timestamp>".
+# Returns:
+#   0 on success; non-zero if switch/pull/push fails. Exits early before
+#   pushing if the pull produces a merge conflict, so the user can resolve
+#   it manually before any remote state is changed.
 git_update_dev() {
+  local date_time
+  local message_commit
   date_time=$(date +"%Y-%m-%d %T")
   # Default commit message with current date and time if no argument is provided
   message_commit=${1:-"update: $date_time"}
 
-  git switch dev
+  git switch dev || return $?
   git add .
-  git commit -m "$message_commit"
+
+  # Only commit if something is actually staged. Otherwise we are in the
+  # "recover from a prior failed push" path and just need to pull+push.
+  if ! git diff --cached --quiet; then
+    git commit -m "$message_commit" || return $?
+  else
+    echo "git_update_dev: no local changes to commit; pulling and pushing only."
+  fi
+
+  # Pull origin/dev with merge (not rebase) before pushing. If the merge
+  # leaves conflicts, stop here so the user can resolve them — pushing in
+  # a half-merged state would either fail noisily or, worse, succeed with
+  # a bad merge commit.
+  if ! git pull --no-rebase origin dev; then
+    echo "git_update_dev: pull failed (likely merge conflict). Resolve the conflict, commit, then run 'git push origin dev' manually." >&2
+    return 1
+  fi
+
   git push origin dev
 }
 
+# git_update_main
+#
+# Auto-commits the current working tree on the main branch, pulls origin/main
+# (merge, no rebase) to absorb any commits made elsewhere — e.g. via the
+# same helper on a different cluster — and pushes. Designed to be safe to
+# re-run: if there is nothing staged, the commit step is skipped and the
+# function still pulls+pushes so a previously-failed push can recover.
+#
+# A merge (rather than rebase) is used so that parallel commits authored
+# on different machines remain visible in history with their original
+# author/host metadata; with `git_update_main` running on multiple clusters,
+# this is genuinely parallel work and a merge represents that honestly.
+#
+# Args:
+#   message_commit: Optional commit message. Defaults to "update: <timestamp>".
+# Returns:
+#   0 on success; non-zero if switch/pull/push fails. Exits early before
+#   pushing if the pull produces a merge conflict, so the user can resolve
+#   it manually before any remote state is changed.
 git_update_main() {
+  local date_time
+  local message_commit
   date_time=$(date +"%Y-%m-%d %T")
   # Default commit message with current date and time if no argument is provided
   message_commit=${1:-"update: $date_time"}
 
-  git switch main
+  git switch main || return $?
   git add .
-  git commit -m "$message_commit"
+
+  # Only commit if something is actually staged. Otherwise we are in the
+  # "recover from a prior failed push" path and just need to pull+push.
+  if ! git diff --cached --quiet; then
+    git commit -m "$message_commit" || return $?
+  else
+    echo "git_update_main: no local changes to commit; pulling and pushing only."
+  fi
+
+  # Pull origin/main with merge (not rebase) before pushing. If the merge
+  # leaves conflicts, stop here so the user can resolve them — pushing in
+  # a half-merged state would either fail noisily or, worse, succeed with
+  # a bad merge commit.
+  if ! git pull --no-rebase origin main; then
+    echo "git_update_main: pull failed (likely merge conflict). Resolve the conflict, commit, then run 'git push origin main' manually." >&2
+    return 1
+  fi
+
   git push origin main
 }
 
