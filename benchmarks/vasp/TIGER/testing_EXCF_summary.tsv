@@ -1,0 +1,14 @@
+case	status	family	algo	nbands	prec	isearch	final_F_eV	final_E0_eV	last_scf_iter	elapsed_s	slurm_logs	notes
+1_PBEsol	completed	PS	VeryFast	1120	default	none	-861.11413	-841.69058	40	854.734	2	Portable PBEsol baseline with NCORE=8.
+1_PBEsol__ALGO_ALL	completed	PS	All	1120	default	none	-861.11413	-841.69054	45	1107.244	3	Only major change is ALGO=All; slower than baseline.
+1_PBEsol__low_NBANDS	completed	PS	VeryFast	560	default	none	-861.11410	-841.69077	40	417.614	3	Portable low-NBANDS variant; strong cost/performance tradeoff.
+1_PBEsol__OG	legacy_complete_no_done_flag	PS	VeryFast	1120	default	none	-861.11410	-841.69077	40	343.306	1	Looks numerically complete but lacks done_RUN_VASP and sub_vasp.sh.
+1_PBEsol__old_config	completed	PS	VeryFast	560	default	none	-861.11410	-841.69077	40	344.758	4	Old cluster-tuned config with NPAR=14, NPACO=104, APACO=10.4.
+1_R2SCAN__ALGO_All	completed	R2SCAN	ALL	1120	default	none	-899.39821	-881.19805	45	3669.914	2	ALGO=ALL test; slower than ALGO=Normal.
+1_R2SCAN__ALGO_All_w_ISEARCH	completed	R2SCAN	ALL	1120	default	1	-899.39821	-881.19805	45	3627.755	3	ALGO=ALL with ISEARCH=1; only marginally faster than plain ALL.
+1_R2SCAN__ALGO_F	completed	R2SCAN	Fast	1120	default	none	-899.39821	-881.19798	34	3192.729	4	ALGO=Fast test; slower than ALGO=Normal.
+1_R2SCAN__ALGO_N	completed	R2SCAN	Normal	1120	default	none	-899.39821	-881.19800	37	2499.252	3	Best portable 1120-band R2SCAN baseline.
+1_R2SCAN__ALGO_N__low_NBANDS	completed	R2SCAN	Normal	560	default	none	-899.39820	-881.19804	40	1277.602	4	Portable low-NBANDS R2SCAN variant; strong cost/performance tradeoff.
+1_R2SCAN__ALGO_N__low_NBANDS__old_config	completed	R2SCAN	Normal	560	default	none	-899.39820	-881.19804	40	979.174	5	Old cluster-tuned low-NBANDS config with NPAR=14.
+1_R2SCAN_ALGO_VF	completed	R2SCAN	VeryFast	1120	default	none	-899.39820	-881.19800	47	5003.640	3	ALGO=VeryFast is much slower here.
+1_R2SCAN__PREC	completed	R2SCAN	ALL	1120	Accurate	none	-899.40018	-881.19999	45	7312.245	3	PREC=Accurate lowers energy by about 2 meV but is much more expensive.

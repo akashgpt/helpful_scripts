@@ -538,12 +538,26 @@ hog_gpu() {
 }
 
 
+# hog_summary
+#
+# Prints cumulative Slurm resource usage for a user across a recent time
+# window: total CPU-hours, total node-hours, and total GPU-hours.
+#
+# GPU-hours are computed from sacct's AllocTRES field by parsing the
+# `gres/gpu=N` token (the same TRES name used by hog_gpu / sreport elsewhere
+# in this file) and multiplying by the job's ElapsedRAW seconds.
+#
+# Args:
+#   days: Number of days back from today to include. Defaults to 30.
+#   useraccount: Slurm user to query. Defaults to $USER.
+# Returns:
+#   0 on success; non-zero if the underlying sacct/awk pipeline fails.
 hog_summary() {
   # Default values
   local days=${1:-30}
   local useraccount=${2:-$USER}
   local start_date=""
-  
+
   # Calculate the start date based on the provided number of days
   start_date=$(date -d"${days} days ago" +%D)
 
@@ -556,7 +570,22 @@ hog_summary() {
   | awk 'NR>2 {sec += $2*$3} END { printf "\nTotal CPU-hours: %.2f\n\n", sec/3600 }'
 
   sacct -X --starttime=$start_date -u $USER -o NNodes,ElapsedRaw -P \
-  | awk -F'|' '{ sum += $1 * ($2/3600) } END { printf "Total node-hours: %.2f\n\n", sum }'
+  | awk -F'|' 'NR>1 { sum += $1 * ($2/3600) } END { printf "Total node-hours: %.2f\n\n", sum }'
+
+  # Cumulative GPU-hours: parse `gres/gpu=N` from AllocTRES per job and
+  # weight by ElapsedRAW. Anchoring on `(^|,)` avoids matching typed
+  # entries like `gres/gpu:a100=N` that would double-count alongside the
+  # bare `gres/gpu=N` total.
+  sacct -X -u $USER --starttime=$start_date --format=AllocTRES%80,ElapsedRAW -P \
+  | awk -F'|' 'NR>1 {
+      gpus = 0
+      if (match($1, /(^|,)gres\/gpu=[0-9]+/)) {
+        token = substr($1, RSTART, RLENGTH)
+        sub(/.*=/, "", token)
+        gpus = token + 0
+      }
+      sec += gpus * $2
+    } END { printf "Total GPU-hours: %.2f\n\n", sec/3600 }'
 }
 
 
