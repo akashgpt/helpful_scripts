@@ -508,7 +508,7 @@ find . -type f -name 'INCAR*' -exec sed -i 's/LWAVE = .TRUE./LWAVE = .FALSE./g' 
 find . -type f -name 'INCAR*' -exec sed -i 's/POTIM  =   0.5/POTIM  =   0.25/g' {} +
 find . -type f -name 'INCAR*' -exec sed -i 's/NPAR   =  12/NPAR   =  14/g' {} +
 find . -type f -name 'INCAR*' -exec sed -i 's/NBANDS =  2880/NBANDS =  3136/g' {} +
-find . -type f -name 'INCAR*' -exec sed -i 's/#SBATCH --time=2:00:00/#SBATCH --time=4:00:00/g' {} +
+find . -type f -name 'sub.lmp_plumed.gpu.2h.sh' -exec sed -i 's/#SBATCH --time=2:00:00/#SBATCH --time=4:00:00/g' {} +
 find . -type f -name 'INCAR' -exec sed -i 's/LANGEVIN_GAMMA = 1.0 1.0 5.0 10.0/LANGEVIN_GAMMA = 1.0 1.0 2.0 10.0/g' {} +
 find . -type f -name 'INCAR_relax' -exec sed -i 's/ALGO   = F/ALGO   = N/g' {} +
 find . -type f -name 'RUN_VASP*' -exec sed -i 's/#SBATCH --time=24:05:00/#SBATCH --time=24:00:00/g' {} +

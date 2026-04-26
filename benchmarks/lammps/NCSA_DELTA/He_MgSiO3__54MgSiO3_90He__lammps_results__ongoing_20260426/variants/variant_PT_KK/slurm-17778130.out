@@ -1,0 +1,51 @@
+=== [Tue Apr 21 14:40:03 CDT 2026] PT + KOKKOS (lmp_kk) benchmark ===
+MODEL=/work/nvme/bguf/akashgpt/softwares/installing_MLMD_related_stuff/deepmd-kit__w_plumed/testing__LAMMPS__kokkos_bench/He_MgSiO3__54MgSiO3_90He/shared/model_comp.pth
+LAMMPS (2 Aug 2023 - Update 3)
+KOKKOS mode with Kokkos version 3.7.2 is enabled (src/KOKKOS/kokkos.cpp:108)
+  will use up to 1 GPU(s) per node
+WARNING: When using a single thread, the Kokkos Serial backend (i.e. Makefile.kokkos_mpi_only) gives better performance than the OpenMP backend (src/KOKKOS/kokkos.cpp:238)
+Kokkos::OpenMP::initialize WARNING: OMP_PROC_BIND environment variable not set
+  In general, for best performance with OpenMP 4.0 or better set OMP_PROC_BIND=spread and OMP_PLACES=threads
+  For best performance with OpenMP 3.1 set OMP_PROC_BIND=true
+  For unit testing set OMP_PROC_BIND=false
+  using 1 OpenMP thread(s) per MPI task
+
+variable        T1                  equal 3200
+variable        T2                  equal 4800
+variable        P1                  equal 100E4
+variable        P2                  equal 10E4
+
+variable        TEMP                equal ((${T1}+${T2})/2)
+variable        TEMP                equal ((3200+${T2})/2)
+variable        TEMP                equal ((3200+4800)/2)
+variable        PRES                equal ((${P1}+${P2})/2)
+variable        PRES                equal ((1000000+${P2})/2)
+variable        PRES                equal ((1000000+100000)/2)
+
+variable        TIMESTEP            equal 0.5e-3
+variable        THERMO_FREQ         equal 100
+variable        DUMP_FREQ           equal 500
+variable        NSTEPS_relax        equal 200
+variable        NSTEPS_4training    equal 5000
+variable        TAU_T               equal 0.0100000
+variable        TAU_P               equal 0.100000
+
+variable        kBeV                equal 8.617333262e-5
+variable        TeV                 equal ${TEMP}*${kBeV}
+variable        TeV                 equal 4000*${kBeV}
+variable        TeV                 equal 4000*8.617333262e-05
+
+units           metal
+boundary        p p p
+atom_style      atomic
+neighbor        1.0 bin
+neigh_modify    every 1 delay 0 check no
+
+read_data       conf.lmp
+Reading data file ...
+  orthogonal box = (0 0 0) to (14.01 14.01 13.28)
+  1 by 1 by 1 MPI processor grid
+  reading atom labelmap ...
+ERROR: Label maps are currently not supported with Kokkos (src/atom.cpp:2205)
+Last command: read_data       conf.lmp
+srun: error: gpua077: task 0: Exited with exit code 1

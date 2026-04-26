@@ -1,0 +1,75 @@
+{
+  "_comment": "Benchmark-only PT training config for He_MgSiO3: 100 steps, 3 datasets. Architecture matches pv_comp.pb so LAMMPS inference timing is meaningful.",
+  "model": {
+    "type_map": ["Mg", "Si", "O", "H", "He"],
+    "descriptor": {
+      "type": "se_e2_a",
+      "sel": [50, 50, 140, 700, 500],
+      "rcut_smth": 5.8,
+      "rcut": 6.0,
+      "neuron": [25, 50, 100],
+      "resnet_dt": false,
+      "axis_neuron": 16,
+      "seed": 1,
+      "activation_function": "tanh",
+      "type_one_side": false,
+      "precision": "float64",
+      "trainable": true,
+      "exclude_types": [],
+      "set_davg_zero": false
+    },
+    "fitting_net": {
+      "neuron": [240, 240, 240],
+      "resnet_dt": true,
+      "numb_fparam": 1,
+      "seed": 1,
+      "type": "ener",
+      "numb_aparam": 0,
+      "activation_function": "tanh",
+      "precision": "float64",
+      "trainable": true,
+      "rcond": 0.001,
+      "atom_ener": []
+    },
+    "data_stat_nbatch": 2,
+    "data_stat_protect": 0.01
+  },
+  "learning_rate": {
+    "type": "exp",
+    "start_lr": 0.001,
+    "decay_steps": 50,
+    "scale_by_worker": "linear"
+  },
+  "loss": {
+    "start_pref_e": 0.04,
+    "limit_pref_e": 2,
+    "start_pref_f": 1000,
+    "limit_pref_f": 1.5,
+    "start_pref_v": 0.04,
+    "limit_pref_v": 2,
+    "type": "ener",
+    "start_pref_ae": 0.0,
+    "limit_pref_ae": 0.0,
+    "start_pref_pf": 0.0,
+    "limit_pref_pf": 0.0
+  },
+  "training": {
+    "seed": 1,
+    "disp_file": "lcurve.out",
+    "disp_freq": 10,
+    "save_freq": 100,
+    "save_ckpt": "model-compression/model.ckpt",
+    "disp_training": true,
+    "time_training": true,
+    "numb_steps": 100,
+    "training_data": {
+      "systems": [
+        "/work/nvme/bguf/akashgpt/qmd_data/MgSiOH__R2SCAN/deepmd_collection_TRAIN/u.h.j.j.pro-l.liquid_vapor.water1.0g.merge.recal/deepmd",
+        "/work/nvme/bguf/akashgpt/qmd_data/MgSiOH__R2SCAN/deepmd_collection_TRAIN/u.h.j.j.pro-l.liquid_vapor.water1.220g.merge.recal/deepmd",
+        "/work/nvme/bguf/akashgpt/qmd_data/MgSiOH__R2SCAN/deepmd_collection_TRAIN/u.h.j.j.pro-l.liquid_vapor.water1.80g.recal/deepmd"
+      ],
+      "batch_size": "auto",
+      "auto_prob": "prob_sys_size"
+    }
+  }
+}

@@ -1,0 +1,38 @@
+timestamp,2026-04-21T19:51:02-05:00
+0, NVIDIA A100-SXM4-40GB, 40960, 0, 40443, 0
+timestamp,2026-04-21T19:51:12-05:00
+0, NVIDIA A100-SXM4-40GB, 40960, 2545, 37899, 1
+1857272, /work/nvme/bguf/akashgpt/softwares/vasp/vasp.6.6.0.gpu/bin/vasp_std__NCSA_DELTA_GPU, GPU-41af1db9-70f1-c54c-2593-0c9b9c052787, 2534
+timestamp,2026-04-21T19:51:22-05:00
+0, NVIDIA A100-SXM4-40GB, 40960, 3353, 37091, 0
+1857272, /work/nvme/bguf/akashgpt/softwares/vasp/vasp.6.6.0.gpu/bin/vasp_std__NCSA_DELTA_GPU, GPU-41af1db9-70f1-c54c-2593-0c9b9c052787, 3342
+timestamp,2026-04-21T19:51:32-05:00
+0, NVIDIA A100-SXM4-40GB, 40960, 3353, 37091, 0
+1857272, /work/nvme/bguf/akashgpt/softwares/vasp/vasp.6.6.0.gpu/bin/vasp_std__NCSA_DELTA_GPU, GPU-41af1db9-70f1-c54c-2593-0c9b9c052787, 3342
+timestamp,2026-04-21T19:51:42-05:00
+0, NVIDIA A100-SXM4-40GB, 40960, 3353, 37091, 0
+1857272, /work/nvme/bguf/akashgpt/softwares/vasp/vasp.6.6.0.gpu/bin/vasp_std__NCSA_DELTA_GPU, GPU-41af1db9-70f1-c54c-2593-0c9b9c052787, 3342
+timestamp,2026-04-21T19:51:52-05:00
+0, NVIDIA A100-SXM4-40GB, 40960, 3353, 37091, 0
+1857272, /work/nvme/bguf/akashgpt/softwares/vasp/vasp.6.6.0.gpu/bin/vasp_std__NCSA_DELTA_GPU, GPU-41af1db9-70f1-c54c-2593-0c9b9c052787, 3342
+timestamp,2026-04-21T19:52:02-05:00
+0, NVIDIA A100-SXM4-40GB, 40960, 30171, 10273, 62
+1857272, /work/nvme/bguf/akashgpt/softwares/vasp/vasp.6.6.0.gpu/bin/vasp_std__NCSA_DELTA_GPU, GPU-41af1db9-70f1-c54c-2593-0c9b9c052787, 30160
+timestamp,2026-04-21T19:52:12-05:00
+0, NVIDIA A100-SXM4-40GB, 40960, 32917, 7527, 44
+1857272, /work/nvme/bguf/akashgpt/softwares/vasp/vasp.6.6.0.gpu/bin/vasp_std__NCSA_DELTA_GPU, GPU-41af1db9-70f1-c54c-2593-0c9b9c052787, 32906
+timestamp,2026-04-21T19:52:22-05:00
+0, NVIDIA A100-SXM4-40GB, 40960, 36369, 4075, 0
+1857272, /work/nvme/bguf/akashgpt/softwares/vasp/vasp.6.6.0.gpu/bin/vasp_std__NCSA_DELTA_GPU, GPU-41af1db9-70f1-c54c-2593-0c9b9c052787, 36358
+timestamp,2026-04-21T19:52:32-05:00
+0, NVIDIA A100-SXM4-40GB, 40960, 36369, 4075, 0
+1857272, /work/nvme/bguf/akashgpt/softwares/vasp/vasp.6.6.0.gpu/bin/vasp_std__NCSA_DELTA_GPU, GPU-41af1db9-70f1-c54c-2593-0c9b9c052787, 36358
+timestamp,2026-04-21T19:52:43-05:00
+0, NVIDIA A100-SXM4-40GB, 40960, 36369, 4075, 0
+1857272, /work/nvme/bguf/akashgpt/softwares/vasp/vasp.6.6.0.gpu/bin/vasp_std__NCSA_DELTA_GPU, GPU-41af1db9-70f1-c54c-2593-0c9b9c052787, 36358
+timestamp,2026-04-21T19:52:53-05:00
+0, NVIDIA A100-SXM4-40GB, 40960, 36369, 4075, 0
+1857272, /work/nvme/bguf/akashgpt/softwares/vasp/vasp.6.6.0.gpu/bin/vasp_std__NCSA_DELTA_GPU, GPU-41af1db9-70f1-c54c-2593-0c9b9c052787, 36358
+timestamp,2026-04-21T19:53:03-05:00
+0, NVIDIA A100-SXM4-40GB, 40960, 36369, 4075, 0
+1857272, /work/nvme/bguf/akashgpt/softwares/vasp/vasp.6.6.0.gpu/bin/vasp_std__NCSA_DELTA_GPU, GPU-41af1db9-70f1-c54c-2593-0c9b9c052787, 36358

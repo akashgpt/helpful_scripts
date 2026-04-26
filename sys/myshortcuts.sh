@@ -538,12 +538,26 @@ hog_gpu() {
 }
 
 
+# hog_summary
+#
+# Prints cumulative Slurm resource usage for a user across a recent time
+# window: total CPU-hours, total node-hours, and total GPU-hours.
+#
+# GPU-hours are computed from sacct's AllocTRES field by parsing the
+# `gres/gpu=N` token (the same TRES name used by hog_gpu / sreport elsewhere
+# in this file) and multiplying by the job's ElapsedRAW seconds.
+#
+# Args:
+#   days: Number of days back from today to include. Defaults to 30.
+#   useraccount: Slurm user to query. Defaults to $USER.
+# Returns:
+#   0 on success; non-zero if the underlying sacct/awk pipeline fails.
 hog_summary() {
   # Default values
   local days=${1:-30}
   local useraccount=${2:-$USER}
   local start_date=""
-  
+
   # Calculate the start date based on the provided number of days
   start_date=$(date -d"${days} days ago" +%D)
 
@@ -556,7 +570,22 @@ hog_summary() {
   | awk 'NR>2 {sec += $2*$3} END { printf "\nTotal CPU-hours: %.2f\n\n", sec/3600 }'
 
   sacct -X --starttime=$start_date -u $USER -o NNodes,ElapsedRaw -P \
-  | awk -F'|' '{ sum += $1 * ($2/3600) } END { printf "Total node-hours: %.2f\n\n", sum }'
+  | awk -F'|' 'NR>1 { sum += $1 * ($2/3600) } END { printf "Total node-hours: %.2f\n\n", sum }'
+
+  # Cumulative GPU-hours: parse `gres/gpu=N` from AllocTRES per job and
+  # weight by ElapsedRAW. Anchoring on `(^|,)` avoids matching typed
+  # entries like `gres/gpu:a100=N` that would double-count alongside the
+  # bare `gres/gpu=N` total.
+  sacct -X -u $USER --starttime=$start_date --format=AllocTRES%80,ElapsedRAW -P \
+  | awk -F'|' 'NR>1 {
+      gpus = 0
+      if (match($1, /(^|,)gres\/gpu=[0-9]+/)) {
+        token = substr($1, RSTART, RLENGTH)
+        sub(/.*=/, "", token)
+        gpus = token + 0
+      }
+      sec += gpus * $2
+    } END { printf "Total GPU-hours: %.2f\n\n", sec/3600 }'
 }
 
 
@@ -929,25 +958,101 @@ alias pin_py_ase='pin_python_env ase_env'
 # git aliases
 alias git_merge_main="git fetch origin; git switch main; git merge origin/main; git merge dev; git push origin main; git switch dev"
 
+# git_update_dev
+#
+# Auto-commits the current working tree on the dev branch, pulls origin/dev
+# (merge, no rebase) to absorb any commits made elsewhere — e.g. via the
+# same helper on a different cluster — and pushes. Designed to be safe to
+# re-run: if there is nothing staged, the commit step is skipped and the
+# function still pulls+pushes so a previously-failed push can recover.
+#
+# A merge (rather than rebase) is used so that parallel commits authored
+# on different machines remain visible in history with their original
+# author/host metadata; with `git_update_dev` running on multiple clusters,
+# this is genuinely parallel work and a merge represents that honestly.
+#
+# Args:
+#   message_commit: Optional commit message. Defaults to "update: <timestamp>".
+# Returns:
+#   0 on success; non-zero if switch/pull/push fails. Exits early before
+#   pushing if the pull produces a merge conflict, so the user can resolve
+#   it manually before any remote state is changed.
 git_update_dev() {
+  local date_time
+  local message_commit
   date_time=$(date +"%Y-%m-%d %T")
   # Default commit message with current date and time if no argument is provided
   message_commit=${1:-"update: $date_time"}
 
-  git switch dev
+  git switch dev || return $?
   git add .
-  git commit -m "$message_commit"
+
+  # Only commit if something is actually staged. Otherwise we are in the
+  # "recover from a prior failed push" path and just need to pull+push.
+  if ! git diff --cached --quiet; then
+    git commit -m "$message_commit" || return $?
+  else
+    echo "git_update_dev: no local changes to commit; pulling and pushing only."
+  fi
+
+  # Pull origin/dev with merge (not rebase) before pushing. If the merge
+  # leaves conflicts, stop here so the user can resolve them — pushing in
+  # a half-merged state would either fail noisily or, worse, succeed with
+  # a bad merge commit.
+  if ! git pull --no-rebase origin dev; then
+    echo "git_update_dev: pull failed (likely merge conflict). Resolve the conflict, commit, then run 'git push origin dev' manually." >&2
+    return 1
+  fi
+
   git push origin dev
 }
 
+# git_update_main
+#
+# Auto-commits the current working tree on the main branch, pulls origin/main
+# (merge, no rebase) to absorb any commits made elsewhere — e.g. via the
+# same helper on a different cluster — and pushes. Designed to be safe to
+# re-run: if there is nothing staged, the commit step is skipped and the
+# function still pulls+pushes so a previously-failed push can recover.
+#
+# A merge (rather than rebase) is used so that parallel commits authored
+# on different machines remain visible in history with their original
+# author/host metadata; with `git_update_main` running on multiple clusters,
+# this is genuinely parallel work and a merge represents that honestly.
+#
+# Args:
+#   message_commit: Optional commit message. Defaults to "update: <timestamp>".
+# Returns:
+#   0 on success; non-zero if switch/pull/push fails. Exits early before
+#   pushing if the pull produces a merge conflict, so the user can resolve
+#   it manually before any remote state is changed.
 git_update_main() {
+  local date_time
+  local message_commit
   date_time=$(date +"%Y-%m-%d %T")
   # Default commit message with current date and time if no argument is provided
   message_commit=${1:-"update: $date_time"}
 
-  git switch main
+  git switch main || return $?
   git add .
-  git commit -m "$message_commit"
+
+  # Only commit if something is actually staged. Otherwise we are in the
+  # "recover from a prior failed push" path and just need to pull+push.
+  if ! git diff --cached --quiet; then
+    git commit -m "$message_commit" || return $?
+  else
+    echo "git_update_main: no local changes to commit; pulling and pushing only."
+  fi
+
+  # Pull origin/main with merge (not rebase) before pushing. If the merge
+  # leaves conflicts, stop here so the user can resolve them — pushing in
+  # a half-merged state would either fail noisily or, worse, succeed with
+  # a bad merge commit.
+  if ! git pull --no-rebase origin main; then
+    echo "git_update_main: pull failed (likely merge conflict). Resolve the conflict, commit, then run 'git push origin main' manually." >&2
+    return 1
+  fi
+
   git push origin main
 }
 

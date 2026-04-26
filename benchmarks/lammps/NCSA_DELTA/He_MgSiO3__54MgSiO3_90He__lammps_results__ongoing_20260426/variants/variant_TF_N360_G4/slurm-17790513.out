@@ -1,0 +1,1111 @@
+=== [Tue Apr 21 20:39:14 CDT 2026] TF N=360 G=4 ===
+MODEL=/work/nvme/bguf/akashgpt/qmd_data/He_MgSiO3/sim_data_ML/v1_i1/train/model-compression/pv_comp.pb
+DeePMD-kit: Successfully load libcudart.so.12
+DeePMD-kit: Successfully load libcudart.so.12
+DeePMD-kit: Successfully load libcudart.so.12
+DeePMD-kit: Successfully load libcudart.so.12
+LAMMPS (2 Aug 2023 - Update 3)
+LAMMPS (2 Aug 2023 - Update 3)
+LAMMPS (2 Aug 2023 - Update 3)
+LAMMPS (2 Aug 2023 - Update 3)
+DeePMD-kit WARNING: Environmental variable DP_INTRA_OP_PARALLELISM_THREADS is not set. Tune DP_INTRA_OP_PARALLELISM_THREADS for the best performance. See https://deepmd.rtfd.io/parallelism/ for more information.
+DeePMD-kit WARNING: Environmental variable DP_INTER_OP_PARALLELISM_THREADS is not set. Tune DP_INTER_OP_PARALLELISM_THREADS for the best performance. See https://deepmd.rtfd.io/parallelism/ for more information.
+DeePMD-kit WARNING: Environmental variable DP_INTRA_OP_PARALLELISM_THREADS is not set. Tune DP_INTRA_OP_PARALLELISM_THREADS for the best performance. See https://deepmd.rtfd.io/parallelism/ for more information.
+DeePMD-kit WARNING: Environmental variable DP_INTER_OP_PARALLELISM_THREADS is not set. Tune DP_INTER_OP_PARALLELISM_THREADS for the best performance. See https://deepmd.rtfd.io/parallelism/ for more information.
+DeePMD-kit WARNING: Environmental variable DP_INTRA_OP_PARALLELISM_THREADS is not set. Tune DP_INTRA_OP_PARALLELISM_THREADS for the best performance. See https://deepmd.rtfd.io/parallelism/ for more information.
+DeePMD-kit WARNING: Environmental variable DP_INTER_OP_PARALLELISM_THREADS is not set. Tune DP_INTER_OP_PARALLELISM_THREADS for the best performance. See https://deepmd.rtfd.io/parallelism/ for more information.
+DeePMD-kit WARNING: Environmental variable DP_INTRA_OP_PARALLELISM_THREADS is not set. Tune DP_INTRA_OP_PARALLELISM_THREADS for the best performance. See https://deepmd.rtfd.io/parallelism/ for more information.
+DeePMD-kit WARNING: Environmental variable DP_INTER_OP_PARALLELISM_THREADS is not set. Tune DP_INTER_OP_PARALLELISM_THREADS for the best performance. See https://deepmd.rtfd.io/parallelism/ for more information.
+  using 1 OpenMP thread(s) per MPI task
+
+variable        T1                  equal 3200
+variable        T2                  equal 4800
+variable        P1                  equal 100E4
+variable        P2                  equal 10E4
+
+variable        TEMP                equal ((${T1}+${T2})/2)
+variable        TEMP                equal ((3200+${T2})/2)
+variable        TEMP                equal ((3200+4800)/2)
+variable        PRES                equal ((${P1}+${P2})/2)
+variable        PRES                equal ((1000000+${P2})/2)
+variable        PRES                equal ((1000000+100000)/2)
+
+variable        TIMESTEP            equal 0.5e-3
+variable        THERMO_FREQ         equal 100
+variable        DUMP_FREQ           equal 500
+variable        NSTEPS_relax        index 200
+variable        NSTEPS_4training    index 5000
+variable        TAU_T               equal 0.0100000
+variable        TAU_P               equal 0.100000
+
+variable        kBeV                equal 8.617333262e-5
+variable        TeV                 equal ${TEMP}*${kBeV}
+variable        TeV                 equal 4000*${kBeV}
+variable        TeV                 equal 4000*8.617333262e-05
+
+units           metal
+boundary        p p p
+atom_style      atomic
+neighbor        1.0 bin
+neigh_modify    every 1 delay 0 check no
+
+read_data       conf.lmp
+Reading data file ...
+  orthogonal box = (0 0 0) to (14.01 14.01 13.28)
+  1 by 1 by 1 MPI processor grid
+  reading atoms ...
+  360 atoms
+  read_data CPU = 0.006 seconds
+
+# ${MODEL} is injected via `lmp -var MODEL <path>` from the sub script.
+pair_style      deepmd ${MODEL} fparam ${TeV}
+pair_style      deepmd /work/nvme/bguf/akashgpt/qmd_data/He_MgSiO3/sim_data_ML/v1_i1/train/model-compression/pv_comp.pb fparam ${TeV}
+pair_style      deepmd /work/nvme/bguf/akashgpt/qmd_data/He_MgSiO3/sim_data_ML/v1_i1/train/model-compression/pv_comp.pb fparam 0.34469333048
+Summary of lammps deepmd module ...
+  >>> Info of deepmd-kit:
+  installed to:       /work/nvme/bguf/agupta46/softwares/conda_envs_dir_secondary/envs/ALCHEMY_env
+  source:             v3.1.3-29-gefc27cf7
+  source branch:      master
+  source commit:      efc27cf7
+  source commit at:   2026-04-05 14:42:09 +0000
+  support model ver.: 1.1 
+  build variant:      cuda
+  build with tf inc:  /work/nvme/bguf/agupta46/softwares/conda_envs_dir_secondary/envs/ALCHEMY_env/lib/python3.11/site-packages/tensorflow/include;/work/nvme/bguf/agupta46/softwares/conda_envs_dir_secondary/envs/ALCHEMY_env/lib/python3.11/site-packages/tensorflow/include
+  build with tf lib:  /work/nvme/bguf/agupta46/softwares/conda_envs_dir_secondary/envs/ALCHEMY_env/lib/python3.11/site-packages/tensorflow/libtensorflow_cc.so.2
+  set tf intra_op_parallelism_threads: 0
+  set tf inter_op_parallelism_threads: 0
+  >>> Info of lammps module:
+  use deepmd-kit at:  /work/nvme/bguf/agupta46/softwares/conda_envs_dir_secondary/envs/ALCHEMY_env
+  source:             
+  source branch:      
+  source commit:      
+  source commit at:   
+  build with inc:     
+  build with lib:     
+DeePMD-kit WARNING: Environmental variable DP_INTRA_OP_PARALLELISM_THREADS is not set. Tune DP_INTRA_OP_PARALLELISM_THREADS for the best performance. See https://deepmd.rtfd.io/parallelism/ for more information.
+DeePMD-kit WARNING: Environmental variable DP_INTER_OP_PARALLELISM_THREADS is not set. Tune DP_INTER_OP_PARALLELISM_THREADS for the best performance. See https://deepmd.rtfd.io/parallelism/ for more information.
+  using 1 OpenMP thread(s) per MPI task
+
+variable        T1                  equal 3200
+variable        T2                  equal 4800
+variable        P1                  equal 100E4
+variable        P2                  equal 10E4
+
+variable        TEMP                equal ((${T1}+${T2})/2)
+variable        TEMP                equal ((3200+${T2})/2)
+variable        TEMP                equal ((3200+4800)/2)
+variable        PRES                equal ((${P1}+${P2})/2)
+variable        PRES                equal ((1000000+${P2})/2)
+variable        PRES                equal ((1000000+100000)/2)
+
+variable        TIMESTEP            equal 0.5e-3
+variable        THERMO_FREQ         equal 100
+variable        DUMP_FREQ           equal 500
+variable        NSTEPS_relax        index 200
+variable        NSTEPS_4training    index 5000
+variable        TAU_T               equal 0.0100000
+variable        TAU_P               equal 0.100000
+
+variable        kBeV                equal 8.617333262e-5
+variable        TeV                 equal ${TEMP}*${kBeV}
+variable        TeV                 equal 4000*${kBeV}
+variable        TeV                 equal 4000*8.617333262e-05
+
+units           metal
+boundary        p p p
+atom_style      atomic
+neighbor        1.0 bin
+neigh_modify    every 1 delay 0 check no
+
+read_data       conf.lmp
+Reading data file ...
+  orthogonal box = (0 0 0) to (14.01 14.01 13.28)
+  1 by 1 by 1 MPI processor grid
+  reading atoms ...
+  360 atoms
+  read_data CPU = 0.006 seconds
+
+# ${MODEL} is injected via `lmp -var MODEL <path>` from the sub script.
+pair_style      deepmd ${MODEL} fparam ${TeV}
+pair_style      deepmd /work/nvme/bguf/akashgpt/qmd_data/He_MgSiO3/sim_data_ML/v1_i1/train/model-compression/pv_comp.pb fparam ${TeV}
+pair_style      deepmd /work/nvme/bguf/akashgpt/qmd_data/He_MgSiO3/sim_data_ML/v1_i1/train/model-compression/pv_comp.pb fparam 0.34469333048
+Summary of lammps deepmd module ...
+  >>> Info of deepmd-kit:
+  installed to:       /work/nvme/bguf/agupta46/softwares/conda_envs_dir_secondary/envs/ALCHEMY_env
+  source:             v3.1.3-29-gefc27cf7
+  source branch:      master
+  source commit:      efc27cf7
+  source commit at:   2026-04-05 14:42:09 +0000
+  support model ver.: 1.1 
+  build variant:      cuda
+  build with tf inc:  /work/nvme/bguf/agupta46/softwares/conda_envs_dir_secondary/envs/ALCHEMY_env/lib/python3.11/site-packages/tensorflow/include;/work/nvme/bguf/agupta46/softwares/conda_envs_dir_secondary/envs/ALCHEMY_env/lib/python3.11/site-packages/tensorflow/include
+  build with tf lib:  /work/nvme/bguf/agupta46/softwares/conda_envs_dir_secondary/envs/ALCHEMY_env/lib/python3.11/site-packages/tensorflow/libtensorflow_cc.so.2
+  set tf intra_op_parallelism_threads: 0
+  set tf inter_op_parallelism_threads: 0
+  >>> Info of lammps module:
+  use deepmd-kit at:  /work/nvme/bguf/agupta46/softwares/conda_envs_dir_secondary/envs/ALCHEMY_env
+  source:             
+  source branch:      
+  source commit:      
+  source commit at:   
+  build with inc:     
+  build with lib:     
+DeePMD-kit WARNING: Environmental variable DP_INTRA_OP_PARALLELISM_THREADS is not set. Tune DP_INTRA_OP_PARALLELISM_THREADS for the best performance. See https://deepmd.rtfd.io/parallelism/ for more information.
+DeePMD-kit WARNING: Environmental variable DP_INTER_OP_PARALLELISM_THREADS is not set. Tune DP_INTER_OP_PARALLELISM_THREADS for the best performance. See https://deepmd.rtfd.io/parallelism/ for more information.
+  using 1 OpenMP thread(s) per MPI task
+
+variable        T1                  equal 3200
+variable        T2                  equal 4800
+variable        P1                  equal 100E4
+variable        P2                  equal 10E4
+
+variable        TEMP                equal ((${T1}+${T2})/2)
+variable        TEMP                equal ((3200+${T2})/2)
+variable        TEMP                equal ((3200+4800)/2)
+variable        PRES                equal ((${P1}+${P2})/2)
+variable        PRES                equal ((1000000+${P2})/2)
+variable        PRES                equal ((1000000+100000)/2)
+
+variable        TIMESTEP            equal 0.5e-3
+variable        THERMO_FREQ         equal 100
+variable        DUMP_FREQ           equal 500
+variable        NSTEPS_relax        index 200
+variable        NSTEPS_4training    index 5000
+variable        TAU_T               equal 0.0100000
+variable        TAU_P               equal 0.100000
+
+variable        kBeV                equal 8.617333262e-5
+variable        TeV                 equal ${TEMP}*${kBeV}
+variable        TeV                 equal 4000*${kBeV}
+variable        TeV                 equal 4000*8.617333262e-05
+
+units           metal
+boundary        p p p
+atom_style      atomic
+neighbor        1.0 bin
+neigh_modify    every 1 delay 0 check no
+
+read_data       conf.lmp
+Reading data file ...
+  orthogonal box = (0 0 0) to (14.01 14.01 13.28)
+  1 by 1 by 1 MPI processor grid
+  reading atoms ...
+  360 atoms
+  read_data CPU = 0.006 seconds
+
+# ${MODEL} is injected via `lmp -var MODEL <path>` from the sub script.
+pair_style      deepmd ${MODEL} fparam ${TeV}
+pair_style      deepmd /work/nvme/bguf/akashgpt/qmd_data/He_MgSiO3/sim_data_ML/v1_i1/train/model-compression/pv_comp.pb fparam ${TeV}
+pair_style      deepmd /work/nvme/bguf/akashgpt/qmd_data/He_MgSiO3/sim_data_ML/v1_i1/train/model-compression/pv_comp.pb fparam 0.34469333048
+Summary of lammps deepmd module ...
+  >>> Info of deepmd-kit:
+  installed to:       /work/nvme/bguf/agupta46/softwares/conda_envs_dir_secondary/envs/ALCHEMY_env
+  source:             v3.1.3-29-gefc27cf7
+  source branch:      master
+  source commit:      efc27cf7
+  source commit at:   2026-04-05 14:42:09 +0000
+  support model ver.: 1.1 
+  build variant:      cuda
+  build with tf inc:  /work/nvme/bguf/agupta46/softwares/conda_envs_dir_secondary/envs/ALCHEMY_env/lib/python3.11/site-packages/tensorflow/include;/work/nvme/bguf/agupta46/softwares/conda_envs_dir_secondary/envs/ALCHEMY_env/lib/python3.11/site-packages/tensorflow/include
+  build with tf lib:  /work/nvme/bguf/agupta46/softwares/conda_envs_dir_secondary/envs/ALCHEMY_env/lib/python3.11/site-packages/tensorflow/libtensorflow_cc.so.2
+  set tf intra_op_parallelism_threads: 0
+  set tf inter_op_parallelism_threads: 0
+  >>> Info of lammps module:
+  use deepmd-kit at:  /work/nvme/bguf/agupta46/softwares/conda_envs_dir_secondary/envs/ALCHEMY_env
+  source:             
+  source branch:      
+  source commit:      
+  source commit at:   
+  build with inc:     
+  build with lib:     
+DeePMD-kit WARNING: Environmental variable DP_INTRA_OP_PARALLELISM_THREADS is not set. Tune DP_INTRA_OP_PARALLELISM_THREADS for the best performance. See https://deepmd.rtfd.io/parallelism/ for more information.
+DeePMD-kit WARNING: Environmental variable DP_INTER_OP_PARALLELISM_THREADS is not set. Tune DP_INTER_OP_PARALLELISM_THREADS for the best performance. See https://deepmd.rtfd.io/parallelism/ for more information.
+  using 1 OpenMP thread(s) per MPI task
+
+variable        T1                  equal 3200
+variable        T2                  equal 4800
+variable        P1                  equal 100E4
+variable        P2                  equal 10E4
+
+variable        TEMP                equal ((${T1}+${T2})/2)
+variable        TEMP                equal ((3200+${T2})/2)
+variable        TEMP                equal ((3200+4800)/2)
+variable        PRES                equal ((${P1}+${P2})/2)
+variable        PRES                equal ((1000000+${P2})/2)
+variable        PRES                equal ((1000000+100000)/2)
+
+variable        TIMESTEP            equal 0.5e-3
+variable        THERMO_FREQ         equal 100
+variable        DUMP_FREQ           equal 500
+variable        NSTEPS_relax        index 200
+variable        NSTEPS_4training    index 5000
+variable        TAU_T               equal 0.0100000
+variable        TAU_P               equal 0.100000
+
+variable        kBeV                equal 8.617333262e-5
+variable        TeV                 equal ${TEMP}*${kBeV}
+variable        TeV                 equal 4000*${kBeV}
+variable        TeV                 equal 4000*8.617333262e-05
+
+units           metal
+boundary        p p p
+atom_style      atomic
+neighbor        1.0 bin
+neigh_modify    every 1 delay 0 check no
+
+read_data       conf.lmp
+Reading data file ...
+  orthogonal box = (0 0 0) to (14.01 14.01 13.28)
+  1 by 1 by 1 MPI processor grid
+  reading atoms ...
+  360 atoms
+  read_data CPU = 0.006 seconds
+
+# ${MODEL} is injected via `lmp -var MODEL <path>` from the sub script.
+pair_style      deepmd ${MODEL} fparam ${TeV}
+pair_style      deepmd /work/nvme/bguf/akashgpt/qmd_data/He_MgSiO3/sim_data_ML/v1_i1/train/model-compression/pv_comp.pb fparam ${TeV}
+pair_style      deepmd /work/nvme/bguf/akashgpt/qmd_data/He_MgSiO3/sim_data_ML/v1_i1/train/model-compression/pv_comp.pb fparam 0.34469333048
+Summary of lammps deepmd module ...
+  >>> Info of deepmd-kit:
+  installed to:       /work/nvme/bguf/agupta46/softwares/conda_envs_dir_secondary/envs/ALCHEMY_env
+  source:             v3.1.3-29-gefc27cf7
+  source branch:      master
+  source commit:      efc27cf7
+  source commit at:   2026-04-05 14:42:09 +0000
+  support model ver.: 1.1 
+  build variant:      cuda
+  build with tf inc:  /work/nvme/bguf/agupta46/softwares/conda_envs_dir_secondary/envs/ALCHEMY_env/lib/python3.11/site-packages/tensorflow/include;/work/nvme/bguf/agupta46/softwares/conda_envs_dir_secondary/envs/ALCHEMY_env/lib/python3.11/site-packages/tensorflow/include
+  build with tf lib:  /work/nvme/bguf/agupta46/softwares/conda_envs_dir_secondary/envs/ALCHEMY_env/lib/python3.11/site-packages/tensorflow/libtensorflow_cc.so.2
+  set tf intra_op_parallelism_threads: 0
+  set tf inter_op_parallelism_threads: 0
+  >>> Info of lammps module:
+  use deepmd-kit at:  /work/nvme/bguf/agupta46/softwares/conda_envs_dir_secondary/envs/ALCHEMY_env
+  source:             
+  source branch:      
+  source commit:      
+  source commit at:   
+  build with inc:     
+  build with lib:     
+DeePMD-kit WARNING: Environmental variable DP_INTRA_OP_PARALLELISM_THREADS is not set. Tune DP_INTRA_OP_PARALLELISM_THREADS for the best performance. See https://deepmd.rtfd.io/parallelism/ for more information.
+DeePMD-kit WARNING: Environmental variable DP_INTER_OP_PARALLELISM_THREADS is not set. Tune DP_INTER_OP_PARALLELISM_THREADS for the best performance. See https://deepmd.rtfd.io/parallelism/ for more information.
+WARNING: All log messages before absl::InitializeLog() is called are written to STDERR
+I0000 00:00:1776821971.608826 3263737 cpu_feature_guard.cc:227] This TensorFlow binary is optimized to use available CPU instructions in performance-critical operations.
+To enable the following instructions: AVX2 FMA, in other operations, rebuild TensorFlow with the appropriate compiler flags.
+WARNING: All log messages before absl::InitializeLog() is called are written to STDERR
+I0000 00:00:1776821971.608836 3263736 cpu_feature_guard.cc:227] This TensorFlow binary is optimized to use available CPU instructions in performance-critical operations.
+To enable the following instructions: AVX2 FMA, in other operations, rebuild TensorFlow with the appropriate compiler flags.
+WARNING: All log messages before absl::InitializeLog() is called are written to STDERR
+I0000 00:00:1776821971.610007 3263739 cpu_feature_guard.cc:227] This TensorFlow binary is optimized to use available CPU instructions in performance-critical operations.
+To enable the following instructions: AVX2 FMA, in other operations, rebuild TensorFlow with the appropriate compiler flags.
+WARNING: All log messages before absl::InitializeLog() is called are written to STDERR
+I0000 00:00:1776821971.610554 3263738 cpu_feature_guard.cc:227] This TensorFlow binary is optimized to use available CPU instructions in performance-critical operations.
+To enable the following instructions: AVX2 FMA, in other operations, rebuild TensorFlow with the appropriate compiler flags.
+I0000 00:00:1776821971.784155 3263736 gpu_device.cc:2043] Created device /job:localhost/replica:0/task:0/device:GPU:0 with 36398 MB memory:  -> device: 0, name: NVIDIA A100-SXM4-40GB, pci bus id: 0000:c7:00.0, compute capability: 8.0
+I0000 00:00:1776821971.784242 3263739 gpu_device.cc:2043] Created device /job:localhost/replica:0/task:0/device:GPU:0 with 36398 MB memory:  -> device: 0, name: NVIDIA A100-SXM4-40GB, pci bus id: 0000:07:00.0, compute capability: 8.0
+I0000 00:00:1776821971.784356 3263737 gpu_device.cc:2043] Created device /job:localhost/replica:0/task:0/device:GPU:0 with 36398 MB memory:  -> device: 0, name: NVIDIA A100-SXM4-40GB, pci bus id: 0000:85:00.0, compute capability: 8.0
+I0000 00:00:1776821971.785435 3263738 gpu_device.cc:2043] Created device /job:localhost/replica:0/task:0/device:GPU:0 with 36398 MB memory:  -> device: 0, name: NVIDIA A100-SXM4-40GB, pci bus id: 0000:46:00.0, compute capability: 8.0
+I0000 00:00:1776821972.136138 3263738 mlir_graph_optimization_pass.cc:437] MLIR V1 optimization pass is not enabled
+I0000 00:00:1776821972.137905 3263737 mlir_graph_optimization_pass.cc:437] MLIR V1 optimization pass is not enabled
+I0000 00:00:1776821972.140417 3263736 mlir_graph_optimization_pass.cc:437] MLIR V1 optimization pass is not enabled
+I0000 00:00:1776821972.141229 3263739 mlir_graph_optimization_pass.cc:437] MLIR V1 optimization pass is not enabled
+  >>> Info of model(s):
+  using   1 model(s): /work/nvme/bguf/akashgpt/qmd_data/He_MgSiO3/sim_data_ML/v1_i1/train/model-compression/pv_comp.pb 
+  rcut in model:      6
+  ntypes in model:    5
+  using fparam(s):    0.344693  
+  >>> Info of model(s):
+  using   1 model(s): /work/nvme/bguf/akashgpt/qmd_data/He_MgSiO3/sim_data_ML/v1_i1/train/model-compression/pv_comp.pb 
+  rcut in model:      6
+  ntypes in model:    5
+  using fparam(s):    0.344693  
+  >>> Info of model(s):
+  using   1 model(s): /work/nvme/bguf/akashgpt/qmd_data/He_MgSiO3/sim_data_ML/v1_i1/train/model-compression/pv_comp.pb 
+  rcut in model:      6
+  ntypes in model:    5
+  using fparam(s):    0.344693  
+  >>> Info of model(s):
+  using   1 model(s): /work/nvme/bguf/akashgpt/qmd_data/He_MgSiO3/sim_data_ML/v1_i1/train/model-compression/pv_comp.pb 
+  rcut in model:      6
+  ntypes in model:    5
+  using fparam(s):    0.344693  
+pair_coeff      * *
+
+# Equilibration
+reset_timestep  0
+velocity        all create ${T1} 6149
+velocity        all create 3200 6149
+fix             NPTSTATE all npt temp ${T1} ${T1} ${TAU_T} iso ${P1} ${P1} ${TAU_P}
+fix             NPTSTATE all npt temp 3200 ${T1} ${TAU_T} iso ${P1} ${P1} ${TAU_P}
+fix             NPTSTATE all npt temp 3200 3200 ${TAU_T} iso ${P1} ${P1} ${TAU_P}
+fix             NPTSTATE all npt temp 3200 3200 0.01 iso ${P1} ${P1} ${TAU_P}
+fix             NPTSTATE all npt temp 3200 3200 0.01 iso 1000000 ${P1} ${TAU_P}
+fix             NPTSTATE all npt temp 3200 3200 0.01 iso 1000000 1000000 ${TAU_P}
+fix             NPTSTATE all npt temp 3200 3200 0.01 iso 1000000 1000000 0.1
+timestep        ${TIMESTEP}
+timestep        0.0005
+thermo          ${THERMO_FREQ}
+thermo          100
+thermo_style    custom step temp press vol etotal ke pe enthalpy
+run             ${NSTEPS_relax}
+run             200
+
+CITE-CITE-CITE-CITE-CITE-CITE-CITE-CITE-CITE-CITE-CITE-CITE-CITE
+
+Your simulation uses code contributions which should be cited:
+- USER-DEEPMD package:
+The log file lists these citations in BibTeX format.
+
+CITE-CITE-CITE-CITE-CITE-CITE-CITE-CITE-CITE-CITE-CITE-CITE-CITE
+
+Generated 0 of 6 mixed pair_coeff terms from geometric mixing rule
+Neighbor list info ...
+  update: every = 1 steps, delay = 0 steps, check = no
+  max neighbors/atom: 2000, page size: 100000
+  master list distance cutoff = 7
+  ghost atom cutoff = 7
+  binsize = 3.5, bins = 5 5 4
+  1 neighbor lists, perpetual/occasional/extra = 1 0 0
+  (1) pair deepmd, perpetual
+      attributes: full, newton on
+      pair build: full/bin/atomonly
+      stencil: full/bin/3d
+      bin: standard
+Setting up Verlet run ...
+  Unit style    : metal
+  Current step  : 0
+  Time step     : 0.0005
+Per MPI rank memory allocation (min/avg/max) = 2.681 | 2.681 | 2.681 Mbytes
+   Step          Temp          Press          Volume         TotEng         KinEng         PotEng        Enthalpy   
+         0   3200           436165.25      2606.5997     -2145.6464      148.49405     -2294.1404     -1436.044     
+       100   3382.1346      1006479.9      2160.0824     -2199.0974      156.9459      -2356.0433     -842.14364    
+       200   3474.8884      1007361.4      2136.052      -2180.7807      161.25008     -2342.0308     -837.74749    
+Loop time of 1.72953 on 1 procs for 200 steps with 360 atoms
+
+Performance: 4.996 ns/day, 4.804 hours/ns, 115.639 timesteps/s, 41.630 katom-step/s
+97.2% CPU use with 1 MPI tasks x 1 OpenMP threads
+
+MPI task timing breakdown:
+Section |  min time  |  avg time  |  max time  |%varavg| %total
+---------------------------------------------------------------
+Pair    | 1.2476     | 1.2476     | 1.2476     |   0.0 | 72.13
+Neigh   | 0.4692     | 0.4692     | 0.4692     |   0.0 | 27.13
+Comm    | 0.0077481  | 0.0077481  | 0.0077481  |   0.0 |  0.45
+Output  | 3.172e-05  | 3.172e-05  | 3.172e-05  |   0.0 |  0.00
+Modify  | 0.0036819  | 0.0036819  | 0.0036819  |   0.0 |  0.21
+Other   |            | 0.001275   |            |       |  0.07
+
+Nlocal:            360 ave         360 max         360 min
+Histogram: 1 0 0 0 0 0 0 0 0 0
+Nghost:           2988 ave        2988 max        2988 min
+Histogram: 1 0 0 0 0 0 0 0 0 0
+Neighs:              0 ave           0 max           0 min
+Histogram: 1 0 0 0 0 0 0 0 0 0
+FullNghs:        87182 ave       87182 max       87182 min
+Histogram: 1 0 0 0 0 0 0 0 0 0
+
+Total # of neighbors = 87182
+Ave neighs/atom = 242.17222
+Neighbor list builds = 200
+Dangerous builds not checked
+unfix           NPTSTATE
+
+# Main timed loop — this is the number used for the ms/step metric.
+velocity        all create ${T1} 6149
+velocity        all create 3200 6149
+fix             4TRAINING all npt temp ${T1} ${T2} ${TAU_T} iso ${P1} ${P2} ${TAU_P}
+fix             4TRAINING all npt temp 3200 ${T2} ${TAU_T} iso ${P1} ${P2} ${TAU_P}
+fix             4TRAINING all npt temp 3200 4800 ${TAU_T} iso ${P1} ${P2} ${TAU_P}
+fix             4TRAINING all npt temp 3200 4800 0.01 iso ${P1} ${P2} ${TAU_P}
+fix             4TRAINING all npt temp 3200 4800 0.01 iso 1000000 ${P2} ${TAU_P}
+pair_coeff      * *
+
+# Equilibration
+reset_timestep  0
+velocity        all create ${T1} 6149
+velocity        all create 3200 6149
+fix             NPTSTATE all npt temp ${T1} ${T1} ${TAU_T} iso ${P1} ${P1} ${TAU_P}
+fix             NPTSTATE all npt temp 3200 ${T1} ${TAU_T} iso ${P1} ${P1} ${TAU_P}
+fix             NPTSTATE all npt temp 3200 3200 ${TAU_T} iso ${P1} ${P1} ${TAU_P}
+fix             NPTSTATE all npt temp 3200 3200 0.01 iso ${P1} ${P1} ${TAU_P}
+fix             NPTSTATE all npt temp 3200 3200 0.01 iso 1000000 ${P1} ${TAU_P}
+fix             NPTSTATE all npt temp 3200 3200 0.01 iso 1000000 1000000 ${TAU_P}
+fix             NPTSTATE all npt temp 3200 3200 0.01 iso 1000000 1000000 0.1
+timestep        ${TIMESTEP}
+timestep        0.0005
+thermo          ${THERMO_FREQ}
+thermo          100
+thermo_style    custom step temp press vol etotal ke pe enthalpy
+run             ${NSTEPS_relax}
+run             200
+
+CITE-CITE-CITE-CITE-CITE-CITE-CITE-CITE-CITE-CITE-CITE-CITE-CITE
+
+Your simulation uses code contributions which should be cited:
+- USER-DEEPMD package:
+The log file lists these citations in BibTeX format.
+
+CITE-CITE-CITE-CITE-CITE-CITE-CITE-CITE-CITE-CITE-CITE-CITE-CITE
+
+Generated 0 of 6 mixed pair_coeff terms from geometric mixing rule
+Neighbor list info ...
+  update: every = 1 steps, delay = 0 steps, check = no
+  max neighbors/atom: 2000, page size: 100000
+  master list distance cutoff = 7
+  ghost atom cutoff = 7
+  binsize = 3.5, bins = 5 5 4
+  1 neighbor lists, perpetual/occasional/extra = 1 0 0
+  (1) pair deepmd, perpetual
+      attributes: full, newton on
+      pair build: full/bin/atomonly
+      stencil: full/bin/3d
+      bin: standard
+Setting up Verlet run ...
+  Unit style    : metal
+  Current step  : 0
+  Time step     : 0.0005
+Per MPI rank memory allocation (min/avg/max) = 2.681 | 2.681 | 2.681 Mbytes
+   Step          Temp          Press          Volume         TotEng         KinEng         PotEng        Enthalpy   
+         0   3200           436165.25      2606.5997     -2145.6464      148.49405     -2294.1404     -1436.044     
+       100   3382.1346      1006479.9      2160.0824     -2199.0974      156.9459      -2356.0433     -842.14364    
+       200   3474.8884      1007361.4      2136.052      -2180.7807      161.25008     -2342.0308     -837.74749    
+Loop time of 1.73798 on 1 procs for 200 steps with 360 atoms
+
+Performance: 4.971 ns/day, 4.828 hours/ns, 115.076 timesteps/s, 41.427 katom-step/s
+96.9% CPU use with 1 MPI tasks x 1 OpenMP threads
+
+MPI task timing breakdown:
+Section |  min time  |  avg time  |  max time  |%varavg| %total
+---------------------------------------------------------------
+Pair    | 1.2584     | 1.2584     | 1.2584     |   0.0 | 72.41
+Neigh   | 0.46681    | 0.46681    | 0.46681    |   0.0 | 26.86
+Comm    | 0.0077739  | 0.0077739  | 0.0077739  |   0.0 |  0.45
+Output  | 3.6068e-05 | 3.6068e-05 | 3.6068e-05 |   0.0 |  0.00
+Modify  | 0.0036779  | 0.0036779  | 0.0036779  |   0.0 |  0.21
+Other   |            | 0.001268   |            |       |  0.07
+
+Nlocal:            360 ave         360 max         360 min
+Histogram: 1 0 0 0 0 0 0 0 0 0
+Nghost:           2988 ave        2988 max        2988 min
+Histogram: 1 0 0 0 0 0 0 0 0 0
+Neighs:              0 ave           0 max           0 min
+Histogram: 1 0 0 0 0 0 0 0 0 0
+FullNghs:        87182 ave       87182 max       87182 min
+Histogram: 1 0 0 0 0 0 0 0 0 0
+
+Total # of neighbors = 87182
+Ave neighs/atom = 242.17222
+Neighbor list builds = 200
+Dangerous builds not checked
+unfix           NPTSTATE
+
+# Main timed loop — this is the number used for the ms/step metric.
+velocity        all create ${T1} 6149
+velocity        all create 3200 6149
+fix             4TRAINING all npt temp ${T1} ${T2} ${TAU_T} iso ${P1} ${P2} ${TAU_P}
+fix             4TRAINING all npt temp 3200 ${T2} ${TAU_T} iso ${P1} ${P2} ${TAU_P}
+fix             4TRAINING all npt temp 3200 4800 ${TAU_T} iso ${P1} ${P2} ${TAU_P}
+fix             4TRAINING all npt temp 3200 4800 0.01 iso ${P1} ${P2} ${TAU_P}
+fix             4TRAINING all npt temp 3200 4800 0.01 iso 1000000 ${P2} ${TAU_P}
+pair_coeff      * *
+
+# Equilibration
+reset_timestep  0
+velocity        all create ${T1} 6149
+velocity        all create 3200 6149
+fix             NPTSTATE all npt temp ${T1} ${T1} ${TAU_T} iso ${P1} ${P1} ${TAU_P}
+fix             NPTSTATE all npt temp 3200 ${T1} ${TAU_T} iso ${P1} ${P1} ${TAU_P}
+fix             NPTSTATE all npt temp 3200 3200 ${TAU_T} iso ${P1} ${P1} ${TAU_P}
+fix             NPTSTATE all npt temp 3200 3200 0.01 iso ${P1} ${P1} ${TAU_P}
+fix             NPTSTATE all npt temp 3200 3200 0.01 iso 1000000 ${P1} ${TAU_P}
+fix             NPTSTATE all npt temp 3200 3200 0.01 iso 1000000 1000000 ${TAU_P}
+fix             NPTSTATE all npt temp 3200 3200 0.01 iso 1000000 1000000 0.1
+timestep        ${TIMESTEP}
+timestep        0.0005
+thermo          ${THERMO_FREQ}
+thermo          100
+thermo_style    custom step temp press vol etotal ke pe enthalpy
+run             ${NSTEPS_relax}
+run             200
+
+CITE-CITE-CITE-CITE-CITE-CITE-CITE-CITE-CITE-CITE-CITE-CITE-CITE
+
+Your simulation uses code contributions which should be cited:
+- USER-DEEPMD package:
+The log file lists these citations in BibTeX format.
+
+CITE-CITE-CITE-CITE-CITE-CITE-CITE-CITE-CITE-CITE-CITE-CITE-CITE
+
+Generated 0 of 6 mixed pair_coeff terms from geometric mixing rule
+Neighbor list info ...
+  update: every = 1 steps, delay = 0 steps, check = no
+  max neighbors/atom: 2000, page size: 100000
+  master list distance cutoff = 7
+  ghost atom cutoff = 7
+  binsize = 3.5, bins = 5 5 4
+  1 neighbor lists, perpetual/occasional/extra = 1 0 0
+  (1) pair deepmd, perpetual
+      attributes: full, newton on
+      pair build: full/bin/atomonly
+      stencil: full/bin/3d
+      bin: standard
+Setting up Verlet run ...
+  Unit style    : metal
+  Current step  : 0
+  Time step     : 0.0005
+Per MPI rank memory allocation (min/avg/max) = 2.681 | 2.681 | 2.681 Mbytes
+   Step          Temp          Press          Volume         TotEng         KinEng         PotEng        Enthalpy   
+         0   3200           436165.25      2606.5997     -2145.6464      148.49405     -2294.1404     -1436.044     
+       100   3382.1346      1006479.9      2160.0824     -2199.0974      156.9459      -2356.0433     -842.14364    
+       200   3474.8884      1007361.4      2136.052      -2180.7807      161.25008     -2342.0308     -837.74749    
+Loop time of 1.75401 on 1 procs for 200 steps with 360 atoms
+
+Performance: 4.926 ns/day, 4.872 hours/ns, 114.025 timesteps/s, 41.049 katom-step/s
+96.7% CPU use with 1 MPI tasks x 1 OpenMP threads
+
+MPI task timing breakdown:
+Section |  min time  |  avg time  |  max time  |%varavg| %total
+---------------------------------------------------------------
+Pair    | 1.2733     | 1.2733     | 1.2733     |   0.0 | 72.59
+Neigh   | 0.46797    | 0.46797    | 0.46797    |   0.0 | 26.68
+Comm    | 0.0077463  | 0.0077463  | 0.0077463  |   0.0 |  0.44
+Output  | 2.8614e-05 | 2.8614e-05 | 2.8614e-05 |   0.0 |  0.00
+Modify  | 0.0037295  | 0.0037295  | 0.0037295  |   0.0 |  0.21
+Other   |            | 0.001257   |            |       |  0.07
+
+Nlocal:            360 ave         360 max         360 min
+Histogram: 1 0 0 0 0 0 0 0 0 0
+Nghost:           2988 ave        2988 max        2988 min
+Histogram: 1 0 0 0 0 0 0 0 0 0
+Neighs:              0 ave           0 max           0 min
+Histogram: 1 0 0 0 0 0 0 0 0 0
+FullNghs:        87182 ave       87182 max       87182 min
+Histogram: 1 0 0 0 0 0 0 0 0 0
+
+Total # of neighbors = 87182
+Ave neighs/atom = 242.17222
+Neighbor list builds = 200
+Dangerous builds not checked
+unfix           NPTSTATE
+
+# Main timed loop — this is the number used for the ms/step metric.
+velocity        all create ${T1} 6149
+velocity        all create 3200 6149
+fix             4TRAINING all npt temp ${T1} ${T2} ${TAU_T} iso ${P1} ${P2} ${TAU_P}
+fix             4TRAINING all npt temp 3200 ${T2} ${TAU_T} iso ${P1} ${P2} ${TAU_P}
+fix             4TRAINING all npt temp 3200 4800 ${TAU_T} iso ${P1} ${P2} ${TAU_P}
+fix             4TRAINING all npt temp 3200 4800 0.01 iso ${P1} ${P2} ${TAU_P}
+fix             4TRAINING all npt temp 3200 4800 0.01 iso 1000000 ${P2} ${TAU_P}
+pair_coeff      * *
+
+# Equilibration
+reset_timestep  0
+velocity        all create ${T1} 6149
+velocity        all create 3200 6149
+fix             NPTSTATE all npt temp ${T1} ${T1} ${TAU_T} iso ${P1} ${P1} ${TAU_P}
+fix             NPTSTATE all npt temp 3200 ${T1} ${TAU_T} iso ${P1} ${P1} ${TAU_P}
+fix             NPTSTATE all npt temp 3200 3200 ${TAU_T} iso ${P1} ${P1} ${TAU_P}
+fix             NPTSTATE all npt temp 3200 3200 0.01 iso ${P1} ${P1} ${TAU_P}
+fix             NPTSTATE all npt temp 3200 3200 0.01 iso 1000000 ${P1} ${TAU_P}
+fix             NPTSTATE all npt temp 3200 3200 0.01 iso 1000000 1000000 ${TAU_P}
+fix             NPTSTATE all npt temp 3200 3200 0.01 iso 1000000 1000000 0.1
+timestep        ${TIMESTEP}
+timestep        0.0005
+thermo          ${THERMO_FREQ}
+thermo          100
+thermo_style    custom step temp press vol etotal ke pe enthalpy
+run             ${NSTEPS_relax}
+run             200
+
+CITE-CITE-CITE-CITE-CITE-CITE-CITE-CITE-CITE-CITE-CITE-CITE-CITE
+
+Your simulation uses code contributions which should be cited:
+- USER-DEEPMD package:
+The log file lists these citations in BibTeX format.
+
+CITE-CITE-CITE-CITE-CITE-CITE-CITE-CITE-CITE-CITE-CITE-CITE-CITE
+
+Generated 0 of 6 mixed pair_coeff terms from geometric mixing rule
+Neighbor list info ...
+  update: every = 1 steps, delay = 0 steps, check = no
+  max neighbors/atom: 2000, page size: 100000
+  master list distance cutoff = 7
+  ghost atom cutoff = 7
+  binsize = 3.5, bins = 5 5 4
+  1 neighbor lists, perpetual/occasional/extra = 1 0 0
+  (1) pair deepmd, perpetual
+      attributes: full, newton on
+      pair build: full/bin/atomonly
+      stencil: full/bin/3d
+      bin: standard
+Setting up Verlet run ...
+  Unit style    : metal
+  Current step  : 0
+  Time step     : 0.0005
+Per MPI rank memory allocation (min/avg/max) = 2.681 | 2.681 | 2.681 Mbytes
+   Step          Temp          Press          Volume         TotEng         KinEng         PotEng        Enthalpy   
+         0   3200           436165.25      2606.5997     -2145.6464      148.49405     -2294.1404     -1436.044     
+       100   3382.1346      1006479.9      2160.0824     -2199.0974      156.9459      -2356.0433     -842.14364    
+       200   3474.8884      1007361.4      2136.052      -2180.7807      161.25008     -2342.0308     -837.74749    
+Loop time of 1.77272 on 1 procs for 200 steps with 360 atoms
+
+Performance: 4.874 ns/day, 4.924 hours/ns, 112.821 timesteps/s, 40.615 katom-step/s
+96.6% CPU use with 1 MPI tasks x 1 OpenMP threads
+
+MPI task timing breakdown:
+Section |  min time  |  avg time  |  max time  |%varavg| %total
+---------------------------------------------------------------
+Pair    | 1.2763     | 1.2763     | 1.2763     |   0.0 | 72.00
+Neigh   | 0.4835     | 0.4835     | 0.4835     |   0.0 | 27.27
+Comm    | 0.007803   | 0.007803   | 0.007803   |   0.0 |  0.44
+Output  | 3.19e-05   | 3.19e-05   | 3.19e-05   |   0.0 |  0.00
+Modify  | 0.003769   | 0.003769   | 0.003769   |   0.0 |  0.21
+Other   |            | 0.001312   |            |       |  0.07
+
+Nlocal:            360 ave         360 max         360 min
+Histogram: 1 0 0 0 0 0 0 0 0 0
+Nghost:           2988 ave        2988 max        2988 min
+Histogram: 1 0 0 0 0 0 0 0 0 0
+Neighs:              0 ave           0 max           0 min
+Histogram: 1 0 0 0 0 0 0 0 0 0
+FullNghs:        87182 ave       87182 max       87182 min
+Histogram: 1 0 0 0 0 0 0 0 0 0
+
+Total # of neighbors = 87182
+Ave neighs/atom = 242.17222
+Neighbor list builds = 200
+Dangerous builds not checked
+unfix           NPTSTATE
+
+# Main timed loop — this is the number used for the ms/step metric.
+velocity        all create ${T1} 6149
+velocity        all create 3200 6149
+fix             4TRAINING all npt temp ${T1} ${T2} ${TAU_T} iso ${P1} ${P2} ${TAU_P}
+fix             4TRAINING all npt temp 3200 ${T2} ${TAU_T} iso ${P1} ${P2} ${TAU_P}
+fix             4TRAINING all npt temp 3200 4800 ${TAU_T} iso ${P1} ${P2} ${TAU_P}
+fix             4TRAINING all npt temp 3200 4800 0.01 iso ${P1} ${P2} ${TAU_P}
+fix             4TRAINING all npt temp 3200 4800 0.01 iso 1000000 ${P2} ${TAU_P}
+fix             4TRAINING all npt temp 3200 4800 0.01 iso 1000000 100000 ${TAU_P}
+fix             4TRAINING all npt temp 3200 4800 0.01 iso 1000000 100000 0.1
+timestep        ${TIMESTEP}
+timestep        0.0005
+thermo          ${THERMO_FREQ}
+thermo          100
+thermo_style    custom step temp press vol etotal ke pe enthalpy
+dump            myDUMP all custom ${DUMP_FREQ} npt.dump id type element x y z
+dump            myDUMP all custom 500 npt.dump id type element x y z
+dump_modify     myDUMP sort id
+dump_modify     myDUMP element Mg Si O He
+run             ${NSTEPS_4training}
+run             5000
+Generated 0 of 6 mixed pair_coeff terms from geometric mixing rule
+Setting up Verlet run ...
+  Unit style    : metal
+  Current step  : 200
+  Time step     : 0.0005
+Per MPI rank memory allocation (min/avg/max) = 2.683 | 2.683 | 2.683 Mbytes
+   Step          Temp          Press          Volume         TotEng         KinEng         PotEng        Enthalpy   
+       200   3200           1000982.8      2136.052      -2193.5367      148.49405     -2342.0308     -859.00754    
+       300   3116.9583      976273.51      2134.9223     -2197.2966      144.64056     -2341.9372     -896.39871    
+       400   3342.4341      989343.25      2142.4107     -2186.0697      155.10362     -2341.1733     -863.13209    
+       500   3245.0254      1001005.3      2128.4182     -2202.4984      150.58343     -2353.0818     -872.70865    
+       600   3465.1556      910143.62      2172.7975     -2194.5397      160.79844     -2355.3381     -960.24509    
+       700   3382.2293      883634.77      2194.7529     -2222.004       156.95029     -2378.9543     -1011.5506    
+       800   3315.0225      875816.86      2208.5133     -2232.0349      153.8316      -2385.8665     -1024.7689    
+       900   3248.1879      829092.13      2205.1254     -2241.8807      150.73019     -2392.6109     -1100.7754    
+      1000   3196.0574      821272.02      2219.1489     -2252.1241      148.3111      -2400.4352     -1114.5934    
+      1100   3545.9255      834643.92      2243.5079     -2237.4437      164.54651     -2401.9902     -1068.7022    
+      1200   3462.2465      835185.43      2256.5495     -2242.5009      160.66344     -2403.1644     -1066.2028    
+      1300   3303.7341      803009.71      2243.8695     -2243.0973      153.30777     -2396.4051     -1118.4716    
+      1400   4135.5829      825544.68      2246.2214     -2212.0521      191.90921     -2403.9613     -1054.6539    
+      1500   3338.372       743986.99      2255.9521     -2240.5342      154.91512     -2395.4493     -1192.9598    
+      1600   3604.0119      709432.29      2304.296      -2238.4407      167.24198     -2405.6827     -1218.1149    
+      1700   3518.5803      741666.26      2278.3256     -2244.497       163.27758     -2407.7746     -1189.8335    
+      1800   3697.5819      743138.9       2305.579      -2238.8161      171.58404     -2410.4002     -1169.4175    
+      1900   3624.5481      671674.32      2340.5439     -2252.4967      168.19495     -2420.6917     -1271.2794    
+      2000   3752.3381      700732.44      2308.695      -2237.7028      174.12497     -2411.8278     -1227.9655    
+      2100   4041.8588      673104.19      2347.8602     -2242.4799      187.56        -2430.0399     -1256.1001    
+      2200   3841.0308      645930.99      2379.2554     -2247.6246      178.2407      -2425.8653     -1288.4077    
+      2300   3876.4193      492622.26      2417.9194     -2252.6502      179.88288     -2432.533      -1509.2109    
+      2400   4171.1253      623977.69      2403.6735     -2251.1253      193.55854     -2444.6838     -1314.9996    
+      2500   3695.0422      562901.9       2430.8785     -2265.5263      171.46619     -2436.9925     -1411.4717    
+      2600   3776.1972      548683.38      2443.1229     -2267.4086      175.23213     -2442.6408     -1430.7337    
+      2700   4109.8711      482804.55      2493.032      -2257.7087      190.71607     -2448.4247     -1506.4511    
+fix             4TRAINING all npt temp 3200 4800 0.01 iso 1000000 100000 ${TAU_P}
+fix             4TRAINING all npt temp 3200 4800 0.01 iso 1000000 100000 0.1
+timestep        ${TIMESTEP}
+timestep        0.0005
+thermo          ${THERMO_FREQ}
+thermo          100
+thermo_style    custom step temp press vol etotal ke pe enthalpy
+dump            myDUMP all custom ${DUMP_FREQ} npt.dump id type element x y z
+dump            myDUMP all custom 500 npt.dump id type element x y z
+dump_modify     myDUMP sort id
+dump_modify     myDUMP element Mg Si O He
+run             ${NSTEPS_4training}
+run             5000
+Generated 0 of 6 mixed pair_coeff terms from geometric mixing rule
+Setting up Verlet run ...
+  Unit style    : metal
+  Current step  : 200
+  Time step     : 0.0005
+Per MPI rank memory allocation (min/avg/max) = 2.683 | 2.683 | 2.683 Mbytes
+   Step          Temp          Press          Volume         TotEng         KinEng         PotEng        Enthalpy   
+       200   3200           1000982.8      2136.052      -2193.5367      148.49405     -2342.0308     -859.00754    
+       300   3116.9583      976273.51      2134.9223     -2197.2966      144.64056     -2341.9372     -896.39871    
+       400   3342.4341      989343.25      2142.4107     -2186.0697      155.10362     -2341.1733     -863.13209    
+       500   3245.0255      1001005.3      2128.4182     -2202.4983      150.58344     -2353.0818     -872.70863    
+       600   3465.1524      910142.03      2172.7975     -2194.5397      160.79829     -2355.338      -960.24728    
+       700   3382.32        883530.65      2194.7461     -2221.9986      156.9545      -2378.9531     -1011.6915    
+       800   3321.7386      879097.34      2207.4846     -2231.2168      154.14326     -2385.3601     -1019.9933    
+       900   3413.8618      811725.91      2202.9152     -2238.0458      158.41818     -2396.464      -1121.9619    
+      1000   3430.783       937282.2       2172.8433     -2221.0736      159.2034      -2380.277      -949.94815    
+      1100   3642.5344      860878.21      2216.5676     -2217.603       169.02959     -2386.6326     -1026.6014    
+      1200   3611.2843      847058.04      2233.4676     -2217.0261      167.57945     -2384.6055     -1036.2095    
+      1300   3634.548       779202.47      2247.4078     -2226.996       168.65899     -2395.655      -1133.9918    
+      1400   3550.3916      837799.51      2241.5187     -2223.1049      164.75377     -2387.8587     -1050.9848    
+      1500   3462.1714      748388.51      2274.6395     -2239.0777      160.65996     -2399.7377     -1176.5767    
+      1600   4112.8249      803732.81      2250.3607     -2208.2354      190.85314     -2399.0886     -1079.3406    
+      1700   3911.198       669679.72      2304.7297     -2237.8633      181.49677     -2419.3601     -1274.5296    
+      1800   3610.8916      702855.64      2292.0086     -2247.1256      167.56123     -2414.6868     -1241.6489    
+      1900   3740.7256      636430.9       2353.3511     -2260.1533      173.5861      -2433.7394     -1325.3341    
+      2000   3904.6472      701656.59      2321.7183     -2242.7687      181.19278     -2423.9615     -1225.9962    
+      2100   3919.7645      718931.17      2293.5973     -2237.1472      181.89429     -2419.0415     -1207.9606    
+      2200   3732.9375      592228.64      2375.928      -2254.0171      173.2247      -2427.2418     -1375.7789    
+      2300   3734.4951      609412.6       2354.8073     -2233.0115      173.29697     -2406.3085     -1337.3241    
+      2400   3877.2793      633176.7       2345.8248     -2231.0319      179.92279     -2410.9547     -1303.967     
+      2500   3912.1365      652520.86      2389.2727     -2237.3274      181.54032     -2418.8677     -1264.2446    
+      2600   4338.0223      595338.41      2403.1427     -2227.7725      201.30329     -2429.0758     -1334.8102    
+      2700   3901.4767      492817.7       2495.1842     -2252.8326      181.04565     -2433.8782     -1485.3323    
+fix             4TRAINING all npt temp 3200 4800 0.01 iso 1000000 100000 ${TAU_P}
+fix             4TRAINING all npt temp 3200 4800 0.01 iso 1000000 100000 0.1
+timestep        ${TIMESTEP}
+timestep        0.0005
+thermo          ${THERMO_FREQ}
+thermo          100
+thermo_style    custom step temp press vol etotal ke pe enthalpy
+dump            myDUMP all custom ${DUMP_FREQ} npt.dump id type element x y z
+dump            myDUMP all custom 500 npt.dump id type element x y z
+dump_modify     myDUMP sort id
+dump_modify     myDUMP element Mg Si O He
+run             ${NSTEPS_4training}
+run             5000
+Generated 0 of 6 mixed pair_coeff terms from geometric mixing rule
+Setting up Verlet run ...
+  Unit style    : metal
+  Current step  : 200
+  Time step     : 0.0005
+Per MPI rank memory allocation (min/avg/max) = 2.683 | 2.683 | 2.683 Mbytes
+   Step          Temp          Press          Volume         TotEng         KinEng         PotEng        Enthalpy   
+       200   3200           1000982.8      2136.052      -2193.5367      148.49405     -2342.0308     -859.00754    
+       300   3116.9583      976273.51      2134.9223     -2197.2966      144.64056     -2341.9372     -896.39871    
+       400   3342.4341      989343.25      2142.4107     -2186.0697      155.10362     -2341.1733     -863.13209    
+       500   3245.0255      1001005.3      2128.4182     -2202.4984      150.58343     -2353.0818     -872.70865    
+       600   3465.1541      910142.88      2172.7975     -2194.5397      160.79837     -2355.3381     -960.24612    
+       700   3382.2713      883584.4       2194.7497     -2222.0015      156.95224     -2378.9537     -1011.6189    
+       800   3317.836       877794.41      2208.1149     -2231.718       153.96216     -2385.6802     -1021.9443    
+       900   3282.4226      814248.75      2203.5152     -2241.3686      152.31883     -2393.6874     -1121.511     
+      1000   3446.6269      870310.86      2201.9577     -2231.8417      159.93862     -2391.7804     -1035.7265    
+      1100   3380.9453      874796.49      2216.1748     -2232.6373      156.89071     -2389.528      -1022.5947    
+      1200   3562.1134      796771.35      2249.0059     -2231.9         165.29771     -2397.1977     -1113.4568    
+      1300   3772.5282      792270.52      2265.6337     -2240.4608      175.06188     -2415.5227     -1120.113     
+      1400   3514.6365      770460.92      2281.2124     -2259.6361      163.09457     -2422.7306     -1162.6377    
+      1500   3596.4264      738869.91      2287.3693     -2256.5503      166.88998     -2423.4402     -1201.6925    
+      1600   3544           731958.57      2291.3655     -2246.659       164.45716     -2411.1162     -1199.8426    
+      1700   3530.7459      712373.2       2318.1258     -2253.6418      163.84212     -2417.4839     -1222.9371    
+      1800   3662.5635      706787.72      2325.5064     -2258.0761      169.95903     -2428.0351     -1232.197     
+      1900   3854.6956      675130.61      2324.7992     -2242.4118      178.87481     -2421.2866     -1262.78      
+      2000   3801.6526      686968.13      2350.5732     -2249.7603      176.41338     -2426.1737     -1241.9008    
+      2100   3721.9056      654161.45      2339.0041     -2247.0417      172.71277     -2419.7545     -1292.0369    
+      2200   3523.9671      563173.82      2384.3224     -2281.5645      163.52755     -2445.092      -1443.4621    
+      2300   4179.2203      651570.95      2387.8588     -2224.3148      193.93418     -2418.2489     -1253.2236    
+      2400   3872.0009      594743.33      2417.4384     -2253.3273      179.67785     -2433.0051     -1355.9509    
+      2500   3825.7257      624626.07      2383.9352     -2260.8719      177.53047     -2438.4023     -1331.4686    
+      2600   4235.3477      584682.38      2422.7859     -2228.9801      196.53874     -2425.5189     -1344.8327    
+      2700   4080.6704      569933.57      2421.0202     -2240.9029      189.36103     -2430.2639     -1379.6865    
+fix             4TRAINING all npt temp 3200 4800 0.01 iso 1000000 100000 ${TAU_P}
+fix             4TRAINING all npt temp 3200 4800 0.01 iso 1000000 100000 0.1
+timestep        ${TIMESTEP}
+timestep        0.0005
+thermo          ${THERMO_FREQ}
+thermo          100
+thermo_style    custom step temp press vol etotal ke pe enthalpy
+dump            myDUMP all custom ${DUMP_FREQ} npt.dump id type element x y z
+dump            myDUMP all custom 500 npt.dump id type element x y z
+dump_modify     myDUMP sort id
+dump_modify     myDUMP element Mg Si O He
+run             ${NSTEPS_4training}
+run             5000
+Generated 0 of 6 mixed pair_coeff terms from geometric mixing rule
+Setting up Verlet run ...
+  Unit style    : metal
+  Current step  : 200
+  Time step     : 0.0005
+Per MPI rank memory allocation (min/avg/max) = 2.683 | 2.683 | 2.683 Mbytes
+   Step          Temp          Press          Volume         TotEng         KinEng         PotEng        Enthalpy   
+       200   3200           1000982.8      2136.052      -2193.5367      148.49405     -2342.0308     -859.00754    
+       300   3116.9583      976273.51      2134.9223     -2197.2966      144.64056     -2341.9372     -896.39871    
+       400   3342.4341      989343.25      2142.4107     -2186.0697      155.10362     -2341.1733     -863.13208    
+       500   3245.0253      1001005.3      2128.4182     -2202.4984      150.58343     -2353.0818     -872.70868    
+       600   3465.1586      910145.09      2172.7974     -2194.5396      160.79858     -2355.3382     -960.24307    
+       700   3382.1437      883731.14      2194.7594     -2222.0092      156.94632     -2378.9555     -1011.4202    
+       800   3310.2867      872197.46      2209.0959     -2232.4894      153.61184     -2386.1013     -1029.8954    
+       900   3264.3352      879379.32      2198.3766     -2239.5733      151.47949     -2391.0528     -1032.9603    
+      1000   3346.5866      860594.13      2215.2669     -2241.613       155.29632     -2396.9093     -1051.7031    
+      1100   3531.9656      837965.17      2237.5705     -2229.9427      163.89872     -2393.8414     -1059.6558    
+      1200   3659.569       833457.81      2244.3961     -2220.2533      169.82007     -2390.0733     -1052.7106    
+      1300   3603.3247      805171.56      2249.2575     -2234.8349      167.21009     -2402.045      -1104.4737    
+      1400   3966.0327      858401.98      2223.5837     -2222.1753      184.04134     -2406.2166     -1030.8405    
+      1500   3579.3329      811899.65      2254.4849     -2229.0627      166.09677     -2395.1595     -1086.6071    
+      1600   3659.6546      755636.1       2264.6865     -2244.6177      169.82405     -2414.4418     -1176.5214    
+      1700   3828.4106      704146.09      2286.7937     -2243.5859      177.65507     -2421.241      -1238.555     
+      1800   3437.0688      706671.36      2294.7725     -2245.4583      159.49509     -2404.9534     -1233.3039    
+      1900   3525.4962      704931.43      2315.9763     -2260.4647      163.59851     -2424.0632     -1241.473     
+      2000   3756.9338      719835.58      2312.7993     -2239.4017      174.33823     -2413.74       -1200.2932    
+      2100   3722.7856      675772.33      2320.5736     -2243.3451      172.7536      -2416.0987     -1264.5643    
+      2200   3883.7985      692123         2375.2792     -2252.4982      180.22531     -2432.7235     -1226.4031    
+      2300   3760.1146      589017.6       2395.8599     -2258.3415      174.48583     -2432.8273     -1377.5374    
+      2400   4109.8352      581004         2432.032      -2233.9404      190.7144      -2424.6548     -1352.0024    
+      2500   3821.2322      511615.07      2446.6271     -2265.2251      177.32196     -2442.547      -1483.9558    
+      2600   3875.9316      528313.37      2465.5337     -2260.8779      179.86025     -2440.7381     -1447.8748    
+      2700   3851.4962      633174.55      2417.6872     -2245.2812      178.72634     -2424.0075     -1289.8197    
+      2800   4245.8469      528024.59      2451.3711     -2228.3469      197.02594     -2425.3728     -1420.4557    
+      2900   4056.9056      488281.65      2469.7528     -2253.1684      188.25824     -2441.4266     -1500.4829    
+      3000   3993.3893      459613.4       2517.5264     -2256.4908      185.3108      -2441.8016     -1534.2927    
+      3100   4196.2163      493198.2       2511.0602     -2248.0321      194.72287     -2442.7549     -1475.0521    
+      3200   4433.7895      511775.4       2546.8815     -2225.2673      205.74731     -2431.0146     -1411.7294    
+      3300   4481.5374      429019.48      2576.6046     -2226.6435      207.96302     -2434.6065     -1536.6985    
+      3400   4261.9647      381008.52      2629.9104     -2240.8035      197.77388     -2438.5774     -1615.3929    
+      3500   4259.9471      398019.63      2652.137      -2246.4563      197.68026     -2444.1365     -1587.6009    
+      3600   4135.7519      370388.02      2695.084      -2250.0977      191.91705     -2442.0147     -1627.0534    
+      3700   3905.7154      349599.57      2697.4653     -2257.6401      181.24235     -2438.8825     -1669.0453    
+      3800   4588.3425      386987.88      2743.6805     -2225.524       212.91925     -2438.4433     -1562.8186    
+      3900   4259.4811      348454.32      2784.8183     -2244.1347      197.65863     -2441.7933     -1638.4699    
+      4000   4327.5493      252685.23      2869.3413     -2254.1034      200.8173      -2454.9207     -1801.5689    
+      4100   4374.5809      334051.36      2810.5814     -2250.404       202.99977     -2453.4037     -1664.402     
+      4200   4577.633       272944.14      2899.8766     -2237.2698      212.42228     -2449.692      -1743.2516    
+      4300   4247.4727      247492.44      2960.1933     -2244.6505      197.10139     -2441.7519     -1787.3816    
+      4400   4418.8339      220356.14      3075.3222     -2242.7569      205.0533      -2447.8102     -1819.7909    
+      4500   4426.0124      188732.7       3140.3334     -2243.5482      205.38642     -2448.9346     -1873.6242    
+      4600   4782.7257      152166.05      3206.6226     -2227.7356      221.93948     -2449.6751     -1923.1879    
+      4700   4547.4323      177022.83      3250.3868     -2256.0487      211.02083     -2467.0696     -1896.9168    
+      4800   4955.138       206447.8       3239.5928     -2212.5515      229.94017     -2442.4917     -1795.1151    
+      4900   4896.3855      198398.59      3247.2529     -2221.212       227.21379     -2448.4257     -1819.1025    
+      5000   4984.1436      121055.01      3457.3005     -2211.4369      231.28615     -2442.723      -1950.215     
+      5100   4426.8445      129350         3488.2633     -2242.7201      205.42503     -2448.1451     -1961.0989    
+      5200   4979.2703      86102.773      3634.4741     -2221.4735      231.06001     -2452.5335     -2026.1528    
+Loop time of 40.6984 on 1 procs for 5000 steps with 360 atoms
+
+Performance: 5.307 ns/day, 4.522 hours/ns, 122.855 timesteps/s, 44.228 katom-step/s
+97.0% CPU use with 1 MPI tasks x 1 OpenMP threads
+
+MPI task timing breakdown:
+Section |  min time  |  avg time  |  max time  |%varavg| %total
+---------------------------------------------------------------
+Pair    | 30.156     | 30.156     | 30.156     |   0.0 | 74.10
+Neigh   | 10.227     | 10.227     | 10.227     |   0.0 | 25.13
+Comm    | 0.18728    | 0.18728    | 0.18728    |   0.0 |  0.46
+Output  | 0.0070681  | 0.0070681  | 0.0070681  |   0.0 |  0.02
+Modify  | 0.090717   | 0.090717   | 0.090717   |   0.0 |  0.22
+Other   |            | 0.03045    |            |       |  0.07
+
+Nlocal:            360 ave         360 max         360 min
+Histogram: 1 0 0 0 0 0 0 0 0 0
+Nghost:           2100 ave        2100 max        2100 min
+Histogram: 1 0 0 0 0 0 0 0 0 0
+Neighs:              0 ave           0 max           0 min
+Histogram: 1 0 0 0 0 0 0 0 0 0
+FullNghs:        51100 ave       51100 max       51100 min
+Histogram: 1 0 0 0 0 0 0 0 0 0
+
+Total # of neighbors = 51100
+Ave neighs/atom = 141.94444
+Neighbor list builds = 5000
+Dangerous builds not checked
+unfix           4TRAINING
+undump          myDUMP
+
+write_data      conf.lmp.end
+System init for write_data ...
+Generated 0 of 6 mixed pair_coeff terms from geometric mixing rule
+Total wall time: 0:00:56
+      2800   4162.8539      561815.64      2435.4278     -2233.189       193.1747      -2426.3638     -1379.1873    
+      2900   4119.883       571467.47      2482.0841     -2241.1563      191.18067     -2432.337      -1355.8417    
+      3000   4059.7696      524795.83      2505.8363     -2247.3126      188.39114     -2435.7038     -1426.5214    
+      3100   4230.5381      450379.69      2508.1664     -2244.8976      196.31555     -2441.2132     -1539.8397    
+      3200   4095.0966      469921.93      2538.9496     -2256.7025      190.03047     -2446.7329     -1512.0229    
+      3300   4296.6164      478499.66      2551.1472     -2238.5778      199.38187     -2437.9597     -1476.6623    
+      3400   4213.9417      427030.41      2596.7874     -2259.9104      195.5454      -2455.4558     -1567.7849    
+      3500   4171.1545      419533.49      2599.6671     -2253.2943      193.55989     -2446.8541     -1572.5657    
+      3600   4436.3884      396069.32      2654.6446     -2256.8245      205.86791     -2462.6924     -1600.5776    
+      3700   4459.0608      363524.62      2705.4833     -2226.1035      206.92001     -2433.0235     -1612.2449    
+      3800   4406.8192      334074.03      2769.7633     -2257.877       204.49577     -2462.3728     -1680.3464    
+      3900   4423.8144      345792.09      2766.186      -2240.7047      205.28442     -2445.9891     -1643.6886    
+      4000   4144.9796      306279.34      2772.4474     -2255.1116      192.34526     -2447.4569     -1725.118     
+      4100   4222.409       344939.82      2806.7303     -2245.7732      195.93832     -2441.7116     -1641.4996    
+      4200   4422.1363      252545.02      2932.3563     -2246.9168      205.20655     -2452.1233     -1784.7006    
+      4300   4573.9031      216066.43      3018.8243     -2236.34        212.24919     -2448.5892     -1829.2271    
+      4400   4335.1035      262678.05      2989.5763     -2249.1648      201.16784     -2450.3326     -1759.0215    
+      4500   4034.3193      224013.72      3034.8763     -2255.1472      187.21013     -2442.3574     -1830.8157    
+      4600   5257.1609      173448.51      3137.8177     -2204.4739      243.95536     -2448.4292     -1864.7799    
+      4700   4845.9941      192821.27      3183.796      -2219.8709      224.87541     -2444.7463     -1836.7024    
+      4800   4198.1689      131597.28      3213.5921     -2245.424       194.81347     -2440.2375     -1981.4706    
+      4900   4843.8918      185616.14      3274.8896     -2219.5963      224.77786     -2444.3741     -1840.1921    
+      5000   4515.1606      156651.1       3433.6401     -2228.0822      209.52328     -2437.6055     -1892.3617    
+      5100   4514.698       76954.548      3589.953      -2247.2967      209.50182     -2456.7985     -2074.8667    
+      5200   4716.2696      119259.85      3689.4207     -2212.8861      218.85562     -2431.7417     -1938.2598    
+Loop time of 41.1122 on 1 procs for 5000 steps with 360 atoms
+
+Performance: 5.254 ns/day, 4.568 hours/ns, 121.619 timesteps/s, 43.783 katom-step/s
+96.7% CPU use with 1 MPI tasks x 1 OpenMP threads
+
+MPI task timing breakdown:
+Section |  min time  |  avg time  |  max time  |%varavg| %total
+---------------------------------------------------------------
+Pair    | 30.513     | 30.513     | 30.513     |   0.0 | 74.22
+Neigh   | 10.282     | 10.282     | 10.282     |   0.0 | 25.01
+Comm    | 0.18843    | 0.18843    | 0.18843    |   0.0 |  0.46
+Output  | 0.0056445  | 0.0056445  | 0.0056445  |   0.0 |  0.01
+Modify  | 0.091792   | 0.091792   | 0.091792   |   0.0 |  0.22
+Other   |            | 0.03071    |            |       |  0.07
+
+Nlocal:            360 ave         360 max         360 min
+Histogram: 1 0 0 0 0 0 0 0 0 0
+Nghost:           2090 ave        2090 max        2090 min
+Histogram: 1 0 0 0 0 0 0 0 0 0
+Neighs:              0 ave           0 max           0 min
+Histogram: 1 0 0 0 0 0 0 0 0 0
+FullNghs:        50296 ave       50296 max       50296 min
+Histogram: 1 0 0 0 0 0 0 0 0 0
+
+Total # of neighbors = 50296
+Ave neighs/atom = 139.71111
+Neighbor list builds = 5000
+Dangerous builds not checked
+unfix           4TRAINING
+undump          myDUMP
+
+write_data      conf.lmp.end
+System init for write_data ...
+Generated 0 of 6 mixed pair_coeff terms from geometric mixing rule
+Total wall time: 0:00:57
+      2800   3975.3156      532412.92      2478.7265     -2248.3596      184.4721      -2432.8317     -1424.6638    
+      2900   4355.2149      555144.72      2478.8169     -2231.2233      202.1011      -2433.3244     -1372.3279    
+      3000   4300.4916      547994.69      2497.4887     -2234.8325      199.5617      -2434.3942     -1380.6129    
+      3100   3924.8685      465941.14      2540.3281     -2270.1386      182.13114     -2452.2698     -1531.3665    
+      3200   4465.1272      443272.02      2577.3309     -2227.0404      207.20151     -2434.2419     -1513.9737    
+      3300   4246.8151      452199.94      2599.6998     -2245.1081      197.07087     -2442.179      -1511.3661    
+      3400   4077.1661      390152.9       2608.5303     -2267.5473      189.19842     -2456.7457     -1632.3329    
+      3500   4615.0988      365480.24      2699.0648     -2235.1712      214.16085     -2449.3321     -1619.4745    
+      3600   4399.7918      377124.99      2706.3646     -2266.3556      204.16966     -2470.5253     -1629.3236    
+      3700   4018.1299      404073.72      2686.4657     -2250.9577      186.45888     -2437.4166     -1573.423     
+      3800   4295.3087      341879.28      2727.3585     -2253.7385      199.32119     -2453.0597     -1671.7631    
+      3900   4548.9773      344842.07      2785.6035     -2237.4776      211.09253     -2448.5701     -1637.9224    
+      4000   4237.5361      311076.29      2808.3838     -2232.7354      196.64028     -2429.3757     -1687.4637    
+      4100   4486.9248      283916.93      2849.6616     -2247.5624      208.21302     -2455.7754     -1742.5824    
+      4200   4491.4194      289346.1       2888.8418     -2221.0673      208.42159     -2429.4889     -1699.3551    
+      4300   4537.8509      303850.69      2892.9571     -2230.6         210.57621     -2441.1762     -1681.9544    
+      4400   4440.8566      225028.49      2991.0426     -2249.894       206.07525     -2455.9692     -1829.7968    
+      4500   4757.7892      204516.77      3063.6765     -2227.9552      220.78231     -2448.7375     -1836.8789    
+      4600   4579.3935      267473.5       3073.1099     -2235.7307      212.50397     -2448.2347     -1722.6939    
+      4700   4509.2266      156533.61      3190.176      -2239.0517      209.24792     -2448.2996     -1927.3696    
+      4800   5041.5826      173061.94      3249.1678     -2202.2411      233.95158     -2436.1927     -1851.2765    
+      4900   4930.6699      196101.71      3322.4971     -2218.0108      228.80474     -2446.8156     -1811.3469    
+      5000   4787.018       143695.08      3294.3881     -2210.8437      222.13866     -2432.9824     -1915.3786    
+      5100   5062.8979      124861.64      3451.2294     -2207.5923      234.9407      -2442.533      -1938.6293    
+      5200   4790.1308      135997.52      3565.8369     -2187.7029      222.28311     -2409.986      -1885.024     
+Loop time of 41.3645 on 1 procs for 5000 steps with 360 atoms
+
+Performance: 5.222 ns/day, 4.596 hours/ns, 120.877 timesteps/s, 43.516 katom-step/s
+96.8% CPU use with 1 MPI tasks x 1 OpenMP threads
+
+MPI task timing breakdown:
+Section |  min time  |  avg time  |  max time  |%varavg| %total
+---------------------------------------------------------------
+Pair    | 30.696     | 30.696     | 30.696     |   0.0 | 74.21
+Neigh   | 10.351     | 10.351     | 10.351     |   0.0 | 25.02
+Comm    | 0.18905    | 0.18905    | 0.18905    |   0.0 |  0.46
+Output  | 0.0056145  | 0.0056145  | 0.0056145  |   0.0 |  0.01
+Modify  | 0.091618   | 0.091618   | 0.091618   |   0.0 |  0.22
+Other   |            | 0.03037    |            |       |  0.07
+
+Nlocal:            360 ave         360 max         360 min
+Histogram: 1 0 0 0 0 0 0 0 0 0
+Nghost:           2192 ave        2192 max        2192 min
+Histogram: 1 0 0 0 0 0 0 0 0 0
+Neighs:              0 ave           0 max           0 min
+Histogram: 1 0 0 0 0 0 0 0 0 0
+FullNghs:        52200 ave       52200 max       52200 min
+Histogram: 1 0 0 0 0 0 0 0 0 0
+
+Total # of neighbors = 52200
+Ave neighs/atom = 145
+Neighbor list builds = 5000
+Dangerous builds not checked
+unfix           4TRAINING
+undump          myDUMP
+
+write_data      conf.lmp.end
+System init for write_data ...
+Generated 0 of 6 mixed pair_coeff terms from geometric mixing rule
+Total wall time: 0:00:57
+      2800   4127.0189      504492.2       2465.9001     -2231.5431      191.5118      -2423.0549     -1455.0823    
+      2900   4051.6934      506522.25      2481.7545     -2246.5421      188.01637     -2434.5584     -1461.9444    
+      3000   3758.3101      461521.55      2522.8111     -2263.3581      174.40209     -2437.7602     -1536.6394    
+      3100   4321.3173      481446.94      2526.4128     -2239.5366      200.5281      -2440.0647     -1480.3607    
+      3200   4435.9512      491155.56      2534.178      -2228.2479      205.84762     -2434.0955     -1451.3824    
+      3300   4237.3241      484085.29      2575.3918     -2233.2325      196.63045     -2429.8629     -1455.0977    
+      3400   4346.1412      452780.66      2580.6528     -2244.1912      201.68004     -2445.8713     -1514.8897    
+      3500   4285.5821      416056.17      2659.2091     -2252.4902      198.86983     -2451.36       -1561.9418    
+      3600   4424.2002      347377.25      2728.8505     -2233.5913      205.30232     -2438.8936     -1641.9333    
+      3700   4113.4282      357991.98      2749.9726     -2251.9499      190.88113     -2442.8311     -1637.4932    
+      3800   4235.9166      296448.72      2743.1048     -2263.3691      196.56513     -2459.9342     -1755.8158    
+      3900   4066.0024      272001.06      2804.8899     -2265.2254      188.68037     -2453.9058     -1789.04      
+      4000   4551.0365      296747.68      2828.5199     -2230.9952      211.18808     -2442.1833     -1707.1099    
+      4100   4028.0437      369323.75      2811.0524     -2257.1155      186.91892     -2444.0344     -1609.1292    
+      4200   4476.8013      306692.81      2876.1924     -2228.9222      207.74324     -2436.6655     -1678.354     
+      4300   4645.6812      258369.46      2924.2275     -2225.3457      215.58001     -2440.9257     -1753.7803    
+      4400   4757.0482      234806.44      2976.6804     -2245.2301      220.74793     -2465.978      -1808.9837    
+      4500   4680.6825      200944.22      2990.2434     -2221.6177      217.20423     -2438.8219     -1846.5828    
+      4600   4507.934       199680.26      3087.4355     -2239.3922      209.18794     -2448.5801     -1854.6032    
+      4700   4846.0054      193478.27      3235.7647     -2219.071       224.87593     -2443.9469     -1828.3212    
+      4800   4260.286       165803.75      3325.339      -2247.9152      197.69598     -2445.6112     -1903.7873    
+      4900   4519.3963      154481.44      3422.2642     -2221.3751      209.71984     -2431.095      -1891.4013    
+      5000   4499.3258      170062.45      3452.1659     -2216.0616      208.78848     -2424.8501     -1849.6327    
+      5100   4728.1042      131943.53      3622.1737     -2228.4024      219.4048      -2447.8072     -1930.1067    
+      5200   4629.7175      96817.884      3738.9759     -2202.825       214.83923     -2417.6642     -1976.8825    
+Loop time of 41.9745 on 1 procs for 5000 steps with 360 atoms
+
+Performance: 5.146 ns/day, 4.664 hours/ns, 119.120 timesteps/s, 42.883 katom-step/s
+96.4% CPU use with 1 MPI tasks x 1 OpenMP threads
+
+MPI task timing breakdown:
+Section |  min time  |  avg time  |  max time  |%varavg| %total
+---------------------------------------------------------------
+Pair    | 31.01      | 31.01      | 31.01      |   0.0 | 73.88
+Neigh   | 10.645     | 10.645     | 10.645     |   0.0 | 25.36
+Comm    | 0.18911    | 0.18911    | 0.18911    |   0.0 |  0.45
+Output  | 0.0056764  | 0.0056764  | 0.0056764  |   0.0 |  0.01
+Modify  | 0.092428   | 0.092428   | 0.092428   |   0.0 |  0.22
+Other   |            | 0.0317     |            |       |  0.08
+
+Nlocal:            360 ave         360 max         360 min
+Histogram: 1 0 0 0 0 0 0 0 0 0
+Nghost:           2086 ave        2086 max        2086 min
+Histogram: 1 0 0 0 0 0 0 0 0 0
+Neighs:              0 ave           0 max           0 min
+Histogram: 1 0 0 0 0 0 0 0 0 0
+FullNghs:        49526 ave       49526 max       49526 min
+Histogram: 1 0 0 0 0 0 0 0 0 0
+
+Total # of neighbors = 49526
+Ave neighs/atom = 137.57222
+Neighbor list builds = 5000
+Dangerous builds not checked
+unfix           4TRAINING
+undump          myDUMP
+
+write_data      conf.lmp.end
+System init for write_data ...
+Generated 0 of 6 mixed pair_coeff terms from geometric mixing rule
+Total wall time: 0:00:57
+=== [Tue Apr 21 20:40:26 CDT 2026] Done ===

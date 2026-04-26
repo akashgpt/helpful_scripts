@@ -1,0 +1,264 @@
+=== [Tue Apr 21 18:40:55 CDT 2026] PT_KK N=2880 G=2 ===
+MODEL=/work/nvme/bguf/akashgpt/softwares/installing_MLMD_related_stuff/deepmd-kit__w_plumed/testing__LAMMPS__kokkos_bench/He_MgSiO3__54MgSiO3_90He/shared/model_comp.pth
+LAMMPS (2 Aug 2023 - Update 3)
+LAMMPS (2 Aug 2023 - Update 3)
+KOKKOS mode with Kokkos version 3.7.2 is enabled (src/KOKKOS/kokkos.cpp:108)
+  will use up to 2 GPU(s) per node
+WARNING: When using a single thread, the Kokkos Serial backend (i.e. Makefile.kokkos_mpi_only) gives better performance than the OpenMP backend (src/KOKKOS/kokkos.cpp:238)
+Kokkos::OpenMP::initialize WARNING: OMP_PROC_BIND environment variable not set
+  In general, for best performance with OpenMP 4.0 or better set OMP_PROC_BIND=spread and OMP_PLACES=threads
+  For best performance with OpenMP 3.1 set OMP_PROC_BIND=true
+  For unit testing set OMP_PROC_BIND=false
+Error: Requested GPU with id '1' but only 1GPU(s) available! Raised by Kokkos::initialize().
+
+Backtrace:
+                                                                Kokkos::Impl::save_stacktrace()      [0x5208546]
+                                               Kokkos::Impl::traceback_callstack(std::ostream&)      [0x51fc85f]
+                                                          Kokkos::Impl::host_abort(char const*)      [0x51fc8fc]
+                                          Kokkos::Impl::is_integral_power_of_two(unsigned long)      [0x252f436]
+                                   Kokkos::Impl::get_gpu(Kokkos::InitializationSettings const&)      [0x51cab45]
+                           Kokkos::Cuda::impl_initialize(Kokkos::InitializationSettings const&)      [0x52113d7]
+Kokkos::Impl::ExecSpaceDerived<Kokkos::Cuda>::initialize(Kokkos::InitializationSettings const&)      [0x52162e4]
+       Kokkos::Impl::ExecSpaceManager::initialize_spaces(Kokkos::InitializationSettings const&)      [0x51c96a2]
+                                                                                                     [0x51cb182]
+                                                                                                     [0x51cd9be]
+                                      Kokkos::initialize(Kokkos::InitializationSettings const&)      [0x51d075f]
+     LAMMPS_NS::KokkosLMP::initialize(Kokkos::InitializationSettings const&, LAMMPS_NS::Error*)      [0x27759c6]
+                               LAMMPS_NS::KokkosLMP::KokkosLMP(LAMMPS_NS::LAMMPS*, int, char**)      [0x2774dbd]
+                                                    LAMMPS_NS::LAMMPS::LAMMPS(int, char**, int)      [0x239504b]
+                                                                                           main      [0x233dd62]
+                                                                                                [0x7ffbab717590]
+                                                                              __libc_start_main [0x7ffbab717640]
+                                                                                         _start      [0x233dbf5]
+srun: error: gpua087: task 1: Aborted
+DeePMD-kit WARNING: Environmental variable DP_INTRA_OP_PARALLELISM_THREADS is not set. Tune DP_INTRA_OP_PARALLELISM_THREADS for the best performance. See https://deepmd.rtfd.io/parallelism/ for more information.
+DeePMD-kit WARNING: Environmental variable DP_INTER_OP_PARALLELISM_THREADS is not set. Tune DP_INTER_OP_PARALLELISM_THREADS for the best performance. See https://deepmd.rtfd.io/parallelism/ for more information.
+KOKKOS mode with Kokkos version 3.7.2 is enabled (src/KOKKOS/kokkos.cpp:108)
+  will use up to 2 GPU(s) per node
+WARNING: When using a single thread, the Kokkos Serial backend (i.e. Makefile.kokkos_mpi_only) gives better performance than the OpenMP backend (src/KOKKOS/kokkos.cpp:238)
+Kokkos::OpenMP::initialize WARNING: OMP_PROC_BIND environment variable not set
+  In general, for best performance with OpenMP 4.0 or better set OMP_PROC_BIND=spread and OMP_PLACES=threads
+  For best performance with OpenMP 3.1 set OMP_PROC_BIND=true
+  For unit testing set OMP_PROC_BIND=false
+  using 1 OpenMP thread(s) per MPI task
+
+variable        T1                  equal 3200
+variable        T2                  equal 4800
+variable        P1                  equal 100E4
+variable        P2                  equal 10E4
+
+variable        TEMP                equal ((${T1}+${T2})/2)
+variable        TEMP                equal ((3200+${T2})/2)
+variable        TEMP                equal ((3200+4800)/2)
+variable        PRES                equal ((${P1}+${P2})/2)
+variable        PRES                equal ((1000000+${P2})/2)
+variable        PRES                equal ((1000000+100000)/2)
+
+variable        TIMESTEP            equal 0.5e-3
+variable        THERMO_FREQ         equal 100
+variable        DUMP_FREQ           equal 500
+variable        NSTEPS_relax        index 200
+variable        NSTEPS_4training    index 5000
+variable        TAU_T               equal 0.0100000
+variable        TAU_P               equal 0.100000
+
+variable        kBeV                equal 8.617333262e-5
+variable        TeV                 equal ${TEMP}*${kBeV}
+variable        TeV                 equal 4000*${kBeV}
+variable        TeV                 equal 4000*8.617333262e-05
+
+units           metal
+boundary        p p p
+atom_style      atomic
+neighbor        1.0 bin
+neigh_modify    every 1 delay 0 check no
+
+read_data       conf.lmp
+Reading data file ...
+  orthogonal box = (0 0 0) to (28.02 28.02 26.56)
+  1 by 1 by 1 MPI processor grid
+  reading atoms ...
+  2880 atoms
+  read_data CPU = 0.018 seconds
+
+# ${MODEL} is injected via `lmp -var MODEL <path>` from the sub script.
+pair_style      deepmd ${MODEL} fparam ${TeV}
+pair_style      deepmd /work/nvme/bguf/akashgpt/softwares/installing_MLMD_related_stuff/deepmd-kit__w_plumed/testing__LAMMPS__kokkos_bench/He_MgSiO3__54MgSiO3_90He/shared/model_comp.pth fparam ${TeV}
+pair_style      deepmd /work/nvme/bguf/akashgpt/softwares/installing_MLMD_related_stuff/deepmd-kit__w_plumed/testing__LAMMPS__kokkos_bench/He_MgSiO3__54MgSiO3_90He/shared/model_comp.pth fparam 0.34469333048
+Summary of lammps deepmd module ...
+  >>> Info of deepmd-kit:
+  installed to:       /work/nvme/bguf/agupta46/softwares/conda_envs_dir_secondary/envs/ALCHEMY_env__PT
+  source:             v3.1.3
+  source branch:      HEAD
+  source commit:      b2c8511e
+  source commit at:   2026-03-18 14:20:41 +0000
+  support model ver.: 1.1 
+  build variant:      cuda
+  build with pt lib:  torch;torch_library;/work/nvme/bguf/agupta46/softwares/conda_envs_dir_secondary/envs/ALCHEMY_env__PT/lib/libc10.so;CUDA::nvrtc;/work/nvme/bguf/agupta46/softwares/conda_envs_dir_secondary/envs/ALCHEMY_env__PT/lib/libc10_cuda.so
+  set tf intra_op_parallelism_threads: 0
+  set tf inter_op_parallelism_threads: 0
+  >>> Info of lammps module:
+  use deepmd-kit at:  /u/agupta46/.local
+  source:             
+  source branch:      
+  source commit:      
+  source commit at:   
+  build with inc:     
+  build with lib:     
+load model from: /work/nvme/bguf/akashgpt/softwares/installing_MLMD_related_stuff/deepmd-kit__w_plumed/testing__LAMMPS__kokkos_bench/He_MgSiO3__54MgSiO3_90He/shared/model_comp.pth to gpu 0
+DeePMD-kit WARNING: Environmental variable DP_INTRA_OP_PARALLELISM_THREADS is not set. Tune DP_INTRA_OP_PARALLELISM_THREADS for the best performance. See https://deepmd.rtfd.io/parallelism/ for more information.
+DeePMD-kit WARNING: Environmental variable DP_INTER_OP_PARALLELISM_THREADS is not set. Tune DP_INTER_OP_PARALLELISM_THREADS for the best performance. See https://deepmd.rtfd.io/parallelism/ for more information.
+  >>> Info of model(s):
+  using   1 model(s): /work/nvme/bguf/akashgpt/softwares/installing_MLMD_related_stuff/deepmd-kit__w_plumed/testing__LAMMPS__kokkos_bench/He_MgSiO3__54MgSiO3_90He/shared/model_comp.pth 
+  rcut in model:      6
+  ntypes in model:    5
+  using fparam(s):    0.344693  
+pair_coeff      * *
+
+# Equilibration
+reset_timestep  0
+velocity        all create ${T1} 6149
+velocity        all create 3200 6149
+fix             NPTSTATE all npt temp ${T1} ${T1} ${TAU_T} iso ${P1} ${P1} ${TAU_P}
+fix             NPTSTATE all npt temp 3200 ${T1} ${TAU_T} iso ${P1} ${P1} ${TAU_P}
+fix             NPTSTATE all npt temp 3200 3200 ${TAU_T} iso ${P1} ${P1} ${TAU_P}
+fix             NPTSTATE all npt temp 3200 3200 0.01 iso ${P1} ${P1} ${TAU_P}
+fix             NPTSTATE all npt temp 3200 3200 0.01 iso 1000000 ${P1} ${TAU_P}
+fix             NPTSTATE all npt temp 3200 3200 0.01 iso 1000000 1000000 ${TAU_P}
+fix             NPTSTATE all npt temp 3200 3200 0.01 iso 1000000 1000000 0.1
+timestep        ${TIMESTEP}
+timestep        0.0005
+thermo          ${THERMO_FREQ}
+thermo          100
+thermo_style    custom step temp press vol etotal ke pe enthalpy
+run             ${NSTEPS_relax}
+run             100
+
+CITE-CITE-CITE-CITE-CITE-CITE-CITE-CITE-CITE-CITE-CITE-CITE-CITE
+
+Your simulation uses code contributions which should be cited:
+- USER-DEEPMD package:
+The log file lists these citations in BibTeX format.
+
+CITE-CITE-CITE-CITE-CITE-CITE-CITE-CITE-CITE-CITE-CITE-CITE-CITE
+
+Generated 0 of 6 mixed pair_coeff terms from geometric mixing rule
+Neighbor list info ...
+  update: every = 1 steps, delay = 0 steps, check = no
+  max neighbors/atom: 2000, page size: 100000
+  master list distance cutoff = 7
+  ghost atom cutoff = 7
+  binsize = 7, bins = 5 5 4
+  1 neighbor lists, perpetual/occasional/extra = 1 0 0
+  (1) pair deepmd, perpetual
+      attributes: full, newton on
+      pair build: full/bin/atomonly
+      stencil: full/bin/3d
+      bin: standard
+Setting up Verlet run ...
+  Unit style    : metal
+  Current step  : 0
+  Time step     : 0.0005
+Per MPI rank memory allocation (min/avg/max) = 4.859 | 4.859 | 4.859 Mbytes
+   Step          Temp          Press          Volume         TotEng         KinEng         PotEng        Enthalpy   
+         0   3200           109107.31      20852.798     -21789.644      1190.8479     -22980.492     -20369.581    
+       100   3668.3444      593948.42      13744.38      -19005.729      1365.1375     -20370.866     -13910.502    
+Loop time of 15.1158 on 1 procs for 100 steps with 2880 atoms
+
+Performance: 0.286 ns/day, 83.977 hours/ns, 6.616 timesteps/s, 19.053 katom-step/s
+97.9% CPU use with 1 MPI tasks x 1 OpenMP threads
+
+MPI task timing breakdown:
+Section |  min time  |  avg time  |  max time  |%varavg| %total
+---------------------------------------------------------------
+Pair    | 8.0883     | 8.0883     | 8.0883     |   0.0 | 53.51
+Neigh   | 6.8102     | 6.8102     | 6.8102     |   0.0 | 45.05
+Comm    | 0.16607    | 0.16607    | 0.16607    |   0.0 |  1.10
+Output  | 8.4748e-05 | 8.4748e-05 | 8.4748e-05 |   0.0 |  0.00
+Modify  | 0.045144   | 0.045144   | 0.045144   |   0.0 |  0.30
+Other   |            | 0.006012   |            |       |  0.04
+
+Nlocal:           2880 ave        2880 max        2880 min
+Histogram: 1 0 0 0 0 0 0 0 0 0
+Nghost:           8693 ave        8693 max        8693 min
+Histogram: 1 0 0 0 0 0 0 0 0 0
+Neighs:              0 ave           0 max           0 min
+Histogram: 1 0 0 0 0 0 0 0 0 0
+FullNghs:       864508 ave      864508 max      864508 min
+Histogram: 1 0 0 0 0 0 0 0 0 0
+
+Total # of neighbors = 864508
+Ave neighs/atom = 300.17639
+Neighbor list builds = 100
+Dangerous builds not checked
+unfix           NPTSTATE
+
+# Main timed loop — this is the number used for the ms/step metric.
+velocity        all create ${T1} 6149
+velocity        all create 3200 6149
+fix             4TRAINING all npt temp ${T1} ${T2} ${TAU_T} iso ${P1} ${P2} ${TAU_P}
+fix             4TRAINING all npt temp 3200 ${T2} ${TAU_T} iso ${P1} ${P2} ${TAU_P}
+fix             4TRAINING all npt temp 3200 4800 ${TAU_T} iso ${P1} ${P2} ${TAU_P}
+fix             4TRAINING all npt temp 3200 4800 0.01 iso ${P1} ${P2} ${TAU_P}
+fix             4TRAINING all npt temp 3200 4800 0.01 iso 1000000 ${P2} ${TAU_P}
+fix             4TRAINING all npt temp 3200 4800 0.01 iso 1000000 100000 ${TAU_P}
+fix             4TRAINING all npt temp 3200 4800 0.01 iso 1000000 100000 0.1
+timestep        ${TIMESTEP}
+timestep        0.0005
+thermo          ${THERMO_FREQ}
+thermo          100
+thermo_style    custom step temp press vol etotal ke pe enthalpy
+dump            myDUMP all custom ${DUMP_FREQ} npt.dump id type element x y z
+dump            myDUMP all custom 500 npt.dump id type element x y z
+dump_modify     myDUMP sort id
+dump_modify     myDUMP element Mg Si O He
+run             ${NSTEPS_4training}
+run             500
+Generated 0 of 6 mixed pair_coeff terms from geometric mixing rule
+Setting up Verlet run ...
+  Unit style    : metal
+  Current step  : 100
+  Time step     : 0.0005
+Per MPI rank memory allocation (min/avg/max) = 6.016 | 6.016 | 6.016 Mbytes
+   Step          Temp          Press          Volume         TotEng         KinEng         PotEng        Enthalpy   
+       100   3200           580155.35      13744.38      -19226.746      1190.8479     -20417.594     -14249.844    
+       200   4206.4702      781963.67      13150.78      -18774.698      1565.3956     -20340.094     -12356.285    
+       300   3968.9986      635267.89      13224.565     -19756.166      1477.023      -21233.189     -14512.585    
+       400   4190.8428      449114.94      13591.093     -20359.478      1559.5801     -21919.058     -16549.683    
+       500   4223.6782      271731.17      14104.868     -20934.222      1571.7994     -22506.021     -18542.018    
+       600   4710.1974      147213.93      15214.008     -21129.262      1752.8527     -22882.115     -19731.343    
+Loop time of 69.3484 on 1 procs for 500 steps with 2880 atoms
+
+Performance: 0.311 ns/day, 77.054 hours/ns, 7.210 timesteps/s, 20.765 katom-step/s
+99.4% CPU use with 1 MPI tasks x 1 OpenMP threads
+
+MPI task timing breakdown:
+Section |  min time  |  avg time  |  max time  |%varavg| %total
+---------------------------------------------------------------
+Pair    | 31.402     | 31.402     | 31.402     |   0.0 | 45.28
+Neigh   | 36.911     | 36.911     | 36.911     |   0.0 | 53.23
+Comm    | 0.79848    | 0.79848    | 0.79848    |   0.0 |  1.15
+Output  | 0.0048475  | 0.0048475  | 0.0048475  |   0.0 |  0.01
+Modify  | 0.20378    | 0.20378    | 0.20378    |   0.0 |  0.29
+Other   |            | 0.02796    |            |       |  0.04
+
+Nlocal:           2880 ave        2880 max        2880 min
+Histogram: 1 0 0 0 0 0 0 0 0 0
+Nghost:           8335 ave        8335 max        8335 min
+Histogram: 1 0 0 0 0 0 0 0 0 0
+Neighs:              0 ave           0 max           0 min
+Histogram: 1 0 0 0 0 0 0 0 0 0
+FullNghs:       779356 ave      779356 max      779356 min
+Histogram: 1 0 0 0 0 0 0 0 0 0
+
+Total # of neighbors = 779356
+Ave neighs/atom = 270.60972
+Neighbor list builds = 500
+Dangerous builds not checked
+unfix           4TRAINING
+undump          myDUMP
+
+write_data      conf.lmp.end
+System init for write_data ...
+Generated 0 of 6 mixed pair_coeff terms from geometric mixing rule
+Total wall time: 0:01:30

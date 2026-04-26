@@ -1,0 +1,99 @@
+Job ID: 17793047
+Started at Tue Apr 21 19:51:02 CDT 2026
+Node: gpua087.delta.ncsa.illinois.edu
+SLURM_NTASKS=2
+SLURM_NTASKS_PER_NODE=2
+SLURM_CPUS_PER_TASK=1
+SLURM_GPUS_ON_NODE=2
+CUDA_VISIBLE_DEVICES=0,1
+OMP_NUM_THREADS=1
+# =========================================
+[nvidia-smi before]
+index, name, memory.total [MiB], memory.used [MiB], memory.free [MiB], utilization.gpu [%]
+0, NVIDIA A100-SXM4-40GB, 40960 MiB, 0 MiB, 40443 MiB, 0 %
+1, NVIDIA A100-SXM4-40GB, 40960 MiB, 0 MiB, 40443 MiB, 0 %
+# =========================================
+
+[LOG_CAT_ML] You must specify a valid HCA device by setting:
+-x HCOLL_MAIN_IB=<dev_name:port> or -x UCX_NET_DEVICES=<dev_name:port>.
+If no device was specified for HCOLL (or the calling library), automatic device detection will be run.
+In case of unfounded HCA device please contact your system administrator.
+[LOG_CAT_ML] You must specify a valid HCA device by setting:
+-x HCOLL_MAIN_IB=<dev_name:port> or -x UCX_NET_DEVICES=<dev_name:port>.
+If no device was specified for HCOLL (or the calling library), automatic device detection will be run.
+In case of unfounded HCA device please contact your system administrator.
+[gpua087.delta.ncsa.illinois.edu:210918] Error: ../../../../../ompi/mca/coll/hcoll/coll_hcoll_module.c:310 - mca_coll_hcoll_comm_query() Hcol library init failed
+[gpua087.delta.ncsa.illinois.edu:210917] Error: ../../../../../ompi/mca/coll/hcoll/coll_hcoll_module.c:310 - mca_coll_hcoll_comm_query() Hcol library init failed
+ running    2 mpi-ranks, with    1 threads/rank, on    1 nodes
+ distrk:  each k-point on    1 cores,    2 groups
+ distr:  one band on    1 cores,    1 groups
+ Offloading initialized ...    2 GPUs detected
+ vasp.6.6.0 06Mar2026 (build Apr  4 2026 18:29:51) complex                       
+ POSCAR found type information on POSCAR MgSiO He
+ POSCAR found :  4 types and     360 ions
+ scaLAPACK will be used selectively (only on CPU)
+ -----------------------------------------------------------------------------
+|                                                                             |
+|               ----> ADVICE to this user running VASP <----                  |
+|                                                                             |
+|     You enforced a specific xc type in the INCAR file but a different       |
+|     type was found in the POTCAR file.                                      |
+|     I HOPE YOU KNOW WHAT YOU ARE DOING!                                     |
+|                                                                             |
+ -----------------------------------------------------------------------------
+
+ LDA part: xc-table for (None), standard interpolation
+ POSCAR, INCAR and KPOINTS ok, starting setup
+ FFT: planning ... GRIDC
+ FFT: planning ... GRID_SOFT
+ FFT: planning ... GRID
+ WAVECAR not read
+ entering main loop
+       N       E                     dE             d eps       ncg     rms          rms(c)
+ -----------------------------------------------------------------------------
+|                                                                             |
+|     EEEEEEE  RRRRRR   RRRRRR   OOOOOOO  RRRRRR      ###     ###     ###     |
+|     E        R     R  R     R  O     O  R     R     ###     ###     ###     |
+|     E        R     R  R     R  O     O  R     R     ###     ###     ###     |
+|     EEEEE    RRRRRR   RRRRRR   O     O  RRRRRR       #       #       #      |
+|     E        R   R    R   R    O     O  R   R                               |
+|     E        R    R   R    R   O     O  R    R      ###     ###     ###     |
+|     EEEEEEE  R     R  R     R  OOOOOOO  R     R     ###     ###     ###     |
+|                                                                             |
+|     Could not allocate wavefunction on mpi rank 0 of size: 4993793 MB.      |
+|     Reducing ENCUT and/or using more computing nodes might solve this       |
+|     problem.                                                                |
+|                                                                             |
+|       ---->  I REFUSE TO CONTINUE WITH THIS SICK JOB ... BYE!!! <----       |
+|                                                                             |
+ -----------------------------------------------------------------------------
+
+Warning: ieee_invalid is signaling
+Warning: ieee_divide_by_zero is signaling
+Warning: ieee_underflow is signaling
+Warning: ieee_inexact is signaling
+    1
+Warning: ieee_invalid is signaling
+Warning: ieee_divide_by_zero is signaling
+Warning: ieee_underflow is signaling
+Warning: ieee_inexact is signaling
+    1
+--------------------------------------------------------------------------
+Primary job  terminated normally, but 1 process returned
+a non-zero exit code. Per user-direction, the job has been aborted.
+--------------------------------------------------------------------------
+--------------------------------------------------------------------------
+mpirun detected that one or more processes exited with non-zero status, thus causing
+the job to be terminated. The first process to do so was:
+
+  Process name: [[53271,1],1]
+  Exit code:    1
+--------------------------------------------------------------------------
+
+# =========================================
+[nvidia-smi after]
+index, name, memory.total [MiB], memory.used [MiB], memory.free [MiB], utilization.gpu [%]
+0, NVIDIA A100-SXM4-40GB, 40960 MiB, 0 MiB, 40443 MiB, 100 %
+1, NVIDIA A100-SXM4-40GB, 40960 MiB, 0 MiB, 40443 MiB, 0 %
+# =========================================
+Failed with exit status 1 at Tue Apr 21 19:53:41 CDT 2026
