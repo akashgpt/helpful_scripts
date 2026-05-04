@@ -34,6 +34,11 @@ from typing import (Dict, Iterator, List, NamedTuple, Optional, Sequence,
                     Tuple, Union)
 
 ELAPSED_PATTERN = re.compile(r"Elapsed time \(sec\):\s*([0-9]+(?:\.[0-9]+)?)")
+CPU_LAYOUT_PATTERN = re.compile(
+    r"running\s+([0-9]+)\s+mpi-ranks,\s+with\s+([0-9]+)\s+threads/rank,",
+    re.IGNORECASE,
+)
+HEADER_LINES_TO_SCAN = 10
 USAGE_EXAMPLES = """Examples:
   python3 $HELP_SCRIPTS_vasp/outcar_elapsed_stats.py DIR_X --last-per-file
 
@@ -49,10 +54,12 @@ class ElapsedRecord(NamedTuple):
     Attributes:
         path: Path to the OUTCAR file that contained the elapsed line.
         seconds: Parsed elapsed time in seconds.
+        cpu_count: Total CPU count inferred from the OUTCAR header.
     """
 
     path: Path
     seconds: float
+    cpu_count: Optional[int]
 
 
 class SummaryStats(NamedTuple):
@@ -192,6 +199,50 @@ def read_tail_lines(path: Path, tail_lines: int) -> List[str]:
     return data.splitlines()[-tail_lines:]
 
 
+def read_head_lines(path: Path, head_lines: int) -> List[str]:
+    """Read only the leading lines from a text file.
+
+    Args:
+        path: File path to read.
+        head_lines: Number of leading lines to keep.
+
+    Returns:
+        The leading lines with newlines stripped.
+    """
+
+    lines = []  # type: List[str]
+    with open(path, "r", encoding="utf-8", errors="ignore") as handle:
+        for _ in range(head_lines):
+            line = handle.readline()
+            if not line:
+                break
+            lines.append(line.rstrip("\n"))
+    return lines
+
+
+def extract_cpu_count(header_lines: Sequence[str]) -> Optional[int]:
+    """Extract the total CPU count from the OUTCAR header.
+
+    Args:
+        header_lines: Leading OUTCAR lines to inspect.
+
+    Returns:
+        Total CPU count as ``mpi_ranks * threads_per_rank`` when found,
+        otherwise ``None``.
+    """
+
+    for line in header_lines:
+        match = CPU_LAYOUT_PATTERN.search(line)
+        if match is None:
+            continue
+
+        mpi_ranks = int(match.group(1))
+        threads_per_rank = int(match.group(2))
+        return mpi_ranks * threads_per_rank
+
+    return None
+
+
 def collect_records_from_file(
     path: Path,
     tail_lines: int,
@@ -208,7 +259,9 @@ def collect_records_from_file(
         Parsed elapsed-time records from the file.
     """
 
+    header_lines = read_head_lines(path, HEADER_LINES_TO_SCAN)
     trailing_lines = read_tail_lines(path, tail_lines)
+    cpu_count = extract_cpu_count(header_lines)
     matched_values = []  # type: List[float]
 
     for line in trailing_lines:
@@ -220,9 +273,18 @@ def collect_records_from_file(
         return []
 
     if last_per_file:
-        return [ElapsedRecord(path=path, seconds=matched_values[-1])]
+        return [
+            ElapsedRecord(
+                path=path,
+                seconds=matched_values[-1],
+                cpu_count=cpu_count,
+            )
+        ]
 
-    return [ElapsedRecord(path=path, seconds=value) for value in matched_values]
+    return [
+        ElapsedRecord(path=path, seconds=value, cpu_count=cpu_count)
+        for value in matched_values
+    ]
 
 
 def collect_records(
@@ -380,6 +442,28 @@ def format_seconds(seconds: float) -> str:
     return "{0:.2f} h".format(seconds / 3600.0)
 
 
+def compute_total_cpu_hours(records: Sequence[ElapsedRecord]) -> Optional[float]:
+    """Compute the cumulative CPU-hours across parsed records.
+
+    Args:
+        records: Parsed elapsed-time records.
+
+    Returns:
+        Total CPU-hours when every record has a parsed CPU count, otherwise
+        ``None``.
+    """
+
+    if not records:
+        return 0.0
+
+    total_cpu_hours = 0.0
+    for record in records:
+        if record.cpu_count is None:
+            return None
+        total_cpu_hours += (record.seconds * float(record.cpu_count)) / 3600.0
+    return total_cpu_hours
+
+
 def print_summary(label: str, summary: SummaryStats) -> None:
     """Print one summary block.
 
@@ -505,6 +589,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     summary = compute_summary(values)
     unique_files = len(set(record.path for record in records))
 
+    print("")
     print("OUTCAR Elapsed-Time Statistics")
     print("  BASE_DIR     : {0}".format(BASE_DIR))
     print("  include      : {0}".format(args.include))
@@ -524,6 +609,17 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     print_summary("Global summary:", summary)
     print_grouped_summaries(records, BASE_DIR, args.group_by_parent_depth)
     print_slowest_records(records, args.show_slowest)
+    print("")
+
+    total_cpu_hours = compute_total_cpu_hours(records)
+    if total_cpu_hours is None:
+        print(
+            "Cumulative CPU-hours: unavailable "
+            "(missing mpi-ranks/threads-rank header in at least one OUTCAR)"
+        )
+    else:
+        print("Cumulative CPU-hours: {0:.6f} CPU-h".format(total_cpu_hours))
+        print("")
 
     return 0
 
