@@ -1296,6 +1296,8 @@ start_block9=$(date +%s)
 
 warn_rsync_seconds=10
 MYSHORTCUTS_SYNC_LOCK_DIR="${MYSHORTCUTS_SYNC_LOCK_DIR:-$SCRATCH/.myshortcuts_sync.lock}"
+MYSHORTCUTS_SYNC_INTERVAL_DAYS="${MYSHORTCUTS_SYNC_INTERVAL_DAYS:-7}"
+MYSHORTCUTS_SYNC_STAMP_FILE="${MYSHORTCUTS_SYNC_STAMP_FILE:-$HOME/.myshortcuts_sync.last_success}"
 MYSHORTCUTS_RSYNC_EXCLUDES=(
 	--exclude='.git/'
 	--exclude='.claude/'
@@ -1388,9 +1390,85 @@ myshortcuts_sync() {
 		run_rsync_timed_if_source_exists "${CLUSTER}${FILE3}" "$HOME/$FILE3" rsync -av --update --progress --delete "$HOME/$FILE3" "$HELP_SCRIPTS/sys/collections__condarc/${CLUSTER}${FILE3}" || sync_status=1
 	fi
 
+	if [ "$sync_status" -eq 0 ]; then
+		if ! touch "$MYSHORTCUTS_SYNC_STAMP_FILE" >/dev/null 2>&1; then
+			echo "WARNING: myshortcuts_sync completed, but could not update timestamp at $MYSHORTCUTS_SYNC_STAMP_FILE"
+			sync_status=1
+		fi
+	fi
+
 	rmdir "$MYSHORTCUTS_SYNC_LOCK_DIR" >/dev/null 2>&1 || true
 	return "$sync_status"
 }
+
+# myshortcuts_sync_is_stale
+#
+# Checks whether the last successful myshortcuts_sync timestamp is old enough
+# to justify running another automatic sync.
+#
+# Args:
+#   stamp_file: Timestamp file updated after successful syncs.
+#   interval_days: Maximum allowed marker age in days.
+# Returns:
+#   0 when the sync marker is missing or stale; 1 when sync should be skipped.
+myshortcuts_sync_is_stale() {
+	local stamp_file="$1"
+	local interval_days="$2"
+	local current_time stamp_time interval_seconds age_seconds
+
+	if [[ ! "$interval_days" =~ ^[0-9]+$ ]] || [ "$interval_days" -lt 1 ]; then
+		echo "WARNING: MYSHORTCUTS_SYNC_INTERVAL_DAYS must be a positive integer; skipping automatic myshortcuts_sync."
+		return 1
+	fi
+
+	if [ ! -e "$stamp_file" ]; then
+		return 0
+	fi
+
+	current_time=$(date +%s)
+	stamp_time=$(stat -c %Y "$stamp_file" 2>/dev/null)
+
+	if [ -z "$stamp_time" ]; then
+		return 0
+	fi
+
+	interval_seconds=$(( interval_days * 86400 ))
+	age_seconds=$(( current_time - stamp_time ))
+
+	[ "$age_seconds" -ge "$interval_seconds" ]
+}
+
+# myshortcuts_sync_if_stale
+#
+# Runs myshortcuts_sync automatically when the last successful sync happened
+# more than MYSHORTCUTS_SYNC_INTERVAL_DAYS days ago.
+#
+# Args:
+#   None.
+# Returns:
+#   0 when no sync is needed or automatic sync succeeds; 1 when sync fails.
+myshortcuts_sync_if_stale() {
+	if [ -z "$SCRATCH" ]; then
+		if [ "$verbose" -eq 1 ]; then
+			echo "Skipping automatic myshortcuts_sync: SCRATCH is not set."
+		fi
+		return 0
+	fi
+
+	if ! myshortcuts_sync_is_stale "$MYSHORTCUTS_SYNC_STAMP_FILE" "$MYSHORTCUTS_SYNC_INTERVAL_DAYS"; then
+		return 0
+	fi
+
+	if [ "$verbose" -eq 1 ]; then
+		echo "Running automatic myshortcuts_sync; last successful sync is older than $MYSHORTCUTS_SYNC_INTERVAL_DAYS days."
+	fi
+
+	myshortcuts_sync
+}
+
+if ! myshortcuts_sync_if_stale; then
+	echo "WARNING: automatic myshortcuts_sync failed."
+fi
 
 end_block9=$(date +%s)
 elapsed_block9=$(( end_block9 - start_block9 ))
