@@ -59,16 +59,22 @@ elif [[ $(hostname) == *"stellar"* ]]; then
 elif [[ $(hostname) == *"delta"* ]]; then
   export CLUSTER="NCSA_DELTA" # NCSA (via ACCESS)
   echo "CLUSTER set to NCSA_DELTA based on hostname $(hostname)"
+elif [[ $(hostname) == *"polaris"* ]]; then
+  export CLUSTER="POLARIS" # ALCF
+  echo "CLUSTER set to POLARIS based on hostname $(hostname)"
 else
   export CLUSTER="UNKNOWN"
   echo "WARNING: Cluster name detection failed for hostname $(hostname). CLUSTER set to UNKNOWN."
 fi
+
 
 if [ "$CLUSTER" == "DELLA" ] || [ "$CLUSTER" == "TIGER" ] || [ "$CLUSTER" == "STELLAR" ]; then
   export SCRATCH="/scratch/gpfs/BURROWS/akashgpt"
 elif [ "$CLUSTER" == "NCSA_DELTA" ]; then
   export SCRATCH="/work/nvme/bguf/akashgpt"
   export SCRATCH_2="/work/hdd/bguf/akashgpt"
+elif [ "$CLUSTER" == "POLARIS" ]; then
+  export SCRATCH="/grand/CoreCollapseModel/akashgpt"
 else
   echo "WARNING: Cluster name detection failed. CLUSTER variable not set. SCRATCH variable not set."
 fi
@@ -1134,6 +1140,9 @@ export LOCAL_AG_BURROWS="$SCRATCH/local_copy__projects/BURROWS/akashgpt"
 export AG_JIEDENG="/projects/JIEDENG/akashgpt"
 export AG_bguf="/projects/bguf/akashgpt"
 export LOCAL_AG_bguf="$SCRATCH/local_copy__projects/bguf/akashgpt"
+export POLARIS_PROJECT="CoreCollapseModel"
+export AG_POLARIS="/grand/${POLARIS_PROJECT}/akashgpt"
+export LOCAL_AG_POLARIS="$AG_POLARIS"
 export AG_TIGERDATA="/tigerdata/burrows/planet_evo/akashgpt"
 export AG_TIGERDATA_2="/tigerdata/jiedeng/exoplanet/akashgpt"
 
@@ -1143,6 +1152,9 @@ if [ "$CLUSTER" == "DELLA" ] || [ "$CLUSTER" == "TIGER" ] || [ "$CLUSTER" == "ST
 elif [ "$CLUSTER" == "NCSA_DELTA" ]; then
   export PRIMARY_PROJECTS_FOLDER=$AG_bguf
   export LOCAL_PRIMARY_PROJECTS_FOLDER=$LOCAL_AG_bguf
+elif [ "$CLUSTER" == "POLARIS" ]; then
+  export PRIMARY_PROJECTS_FOLDER=$AG_POLARIS
+  export LOCAL_PRIMARY_PROJECTS_FOLDER=$LOCAL_AG_POLARIS
 fi
 
 export BACKUP_DIR="$SCRATCH/akashgpt_ucla_desktop_backup_20231231"
@@ -1268,13 +1280,15 @@ FILE1="myshortcuts.sh"
 FILE2=".bashrc"
 FILE3=".condarc"
 
-ensure_local_copy_dir "$PRIMARY_PROJECTS_FOLDER/$DIR1" "$LOCAL_PRIMARY_PROJECTS_FOLDER/$DIR1" "$DIR1"
-ensure_local_copy_dir "$PRIMARY_PROJECTS_FOLDER/$DIR2" "$LOCAL_PRIMARY_PROJECTS_FOLDER/$DIR2" "$DIR2"
-ensure_local_copy_dir "$PRIMARY_PROJECTS_FOLDER/$DIR3" "$LOCAL_PRIMARY_PROJECTS_FOLDER/$DIR3" "$DIR3"
-ensure_local_copy_dir "$PRIMARY_PROJECTS_FOLDER/$DIR4" "$LOCAL_PRIMARY_PROJECTS_FOLDER/$DIR4" "$DIR4"
-# mkdir -p $LOCAL_PRIMARY_PROJECTS_FOLDER/$DIR5
-ensure_local_copy_dir "$PRIMARY_PROJECTS_FOLDER/$DIR6" "$LOCAL_PRIMARY_PROJECTS_FOLDER/$DIR6" "$DIR6"
-ensure_local_copy_dir "$PRIMARY_PROJECTS_FOLDER/$DIR7" "$LOCAL_PRIMARY_PROJECTS_FOLDER/$DIR7" "$DIR7"
+if [ "$PRIMARY_PROJECTS_FOLDER" != "$LOCAL_PRIMARY_PROJECTS_FOLDER" ]; then
+	ensure_local_copy_dir "$PRIMARY_PROJECTS_FOLDER/$DIR1" "$LOCAL_PRIMARY_PROJECTS_FOLDER/$DIR1" "$DIR1"
+	ensure_local_copy_dir "$PRIMARY_PROJECTS_FOLDER/$DIR2" "$LOCAL_PRIMARY_PROJECTS_FOLDER/$DIR2" "$DIR2"
+	ensure_local_copy_dir "$PRIMARY_PROJECTS_FOLDER/$DIR3" "$LOCAL_PRIMARY_PROJECTS_FOLDER/$DIR3" "$DIR3"
+	ensure_local_copy_dir "$PRIMARY_PROJECTS_FOLDER/$DIR4" "$LOCAL_PRIMARY_PROJECTS_FOLDER/$DIR4" "$DIR4"
+	# mkdir -p $LOCAL_PRIMARY_PROJECTS_FOLDER/$DIR5
+	ensure_local_copy_dir "$PRIMARY_PROJECTS_FOLDER/$DIR6" "$LOCAL_PRIMARY_PROJECTS_FOLDER/$DIR6" "$DIR6"
+	ensure_local_copy_dir "$PRIMARY_PROJECTS_FOLDER/$DIR7" "$LOCAL_PRIMARY_PROJECTS_FOLDER/$DIR7" "$DIR7"
+fi
 
 # Refresh local project paths after creating any missing local-copy directories.
 append_to_env_var_if_dir "PATH" "$LOCAL_PRIMARY_PROJECTS_FOLDER/misc_libraries"
@@ -1369,19 +1383,21 @@ myshortcuts_sync() {
 		return 0
 	fi
 
-	ensure_local_copy_dir "$PRIMARY_PROJECTS_FOLDER/$DIR1" "$LOCAL_PRIMARY_PROJECTS_FOLDER/$DIR1" "$DIR1"
-	ensure_local_copy_dir "$PRIMARY_PROJECTS_FOLDER/$DIR2" "$LOCAL_PRIMARY_PROJECTS_FOLDER/$DIR2" "$DIR2"
-	ensure_local_copy_dir "$PRIMARY_PROJECTS_FOLDER/$DIR3" "$LOCAL_PRIMARY_PROJECTS_FOLDER/$DIR3" "$DIR3"
-	ensure_local_copy_dir "$PRIMARY_PROJECTS_FOLDER/$DIR4" "$LOCAL_PRIMARY_PROJECTS_FOLDER/$DIR4" "$DIR4"
-	ensure_local_copy_dir "$PRIMARY_PROJECTS_FOLDER/$DIR6" "$LOCAL_PRIMARY_PROJECTS_FOLDER/$DIR6" "$DIR6"
-	ensure_local_copy_dir "$PRIMARY_PROJECTS_FOLDER/$DIR7" "$LOCAL_PRIMARY_PROJECTS_FOLDER/$DIR7" "$DIR7"
+	if [ "$PRIMARY_PROJECTS_FOLDER" != "$LOCAL_PRIMARY_PROJECTS_FOLDER" ]; then
+		ensure_local_copy_dir "$PRIMARY_PROJECTS_FOLDER/$DIR1" "$LOCAL_PRIMARY_PROJECTS_FOLDER/$DIR1" "$DIR1"
+		ensure_local_copy_dir "$PRIMARY_PROJECTS_FOLDER/$DIR2" "$LOCAL_PRIMARY_PROJECTS_FOLDER/$DIR2" "$DIR2"
+		ensure_local_copy_dir "$PRIMARY_PROJECTS_FOLDER/$DIR3" "$LOCAL_PRIMARY_PROJECTS_FOLDER/$DIR3" "$DIR3"
+		ensure_local_copy_dir "$PRIMARY_PROJECTS_FOLDER/$DIR4" "$LOCAL_PRIMARY_PROJECTS_FOLDER/$DIR4" "$DIR4"
+		ensure_local_copy_dir "$PRIMARY_PROJECTS_FOLDER/$DIR6" "$LOCAL_PRIMARY_PROJECTS_FOLDER/$DIR6" "$DIR6"
+		ensure_local_copy_dir "$PRIMARY_PROJECTS_FOLDER/$DIR7" "$LOCAL_PRIMARY_PROJECTS_FOLDER/$DIR7" "$DIR7"
 
-	run_rsync_timed_if_source_exists "$DIR1" "$PRIMARY_PROJECTS_FOLDER/$DIR1" rsync -av --update --progress --delete "${MYSHORTCUTS_RSYNC_EXCLUDES[@]}" "$PRIMARY_PROJECTS_FOLDER/$DIR1/" "$LOCAL_PRIMARY_PROJECTS_FOLDER/$DIR1/" || sync_status=1
-	run_rsync_timed_if_source_exists "$DIR2" "$PRIMARY_PROJECTS_FOLDER/$DIR2" rsync -av --update --progress --delete "${MYSHORTCUTS_RSYNC_EXCLUDES[@]}" "$PRIMARY_PROJECTS_FOLDER/$DIR2/" "$LOCAL_PRIMARY_PROJECTS_FOLDER/$DIR2/" || sync_status=1
-	run_rsync_timed_if_source_exists "$DIR3" "$PRIMARY_PROJECTS_FOLDER/$DIR3" rsync -av --update --progress --delete "${MYSHORTCUTS_RSYNC_EXCLUDES[@]}" "$PRIMARY_PROJECTS_FOLDER/$DIR3/" "$LOCAL_PRIMARY_PROJECTS_FOLDER/$DIR3/" || sync_status=1
-	run_rsync_timed_if_source_exists "$DIR4" "$PRIMARY_PROJECTS_FOLDER/$DIR4" rsync -av --update --progress --delete "${MYSHORTCUTS_RSYNC_EXCLUDES[@]}" "$PRIMARY_PROJECTS_FOLDER/$DIR4/" "$LOCAL_PRIMARY_PROJECTS_FOLDER/$DIR4/" || sync_status=1
-	run_rsync_timed_if_source_exists "$DIR6" "$PRIMARY_PROJECTS_FOLDER/$DIR6" rsync -av --update --progress --delete "${MYSHORTCUTS_RSYNC_EXCLUDES[@]}" "$PRIMARY_PROJECTS_FOLDER/$DIR6/" "$LOCAL_PRIMARY_PROJECTS_FOLDER/$DIR6/" || sync_status=1
-	run_rsync_timed_if_source_exists "$DIR7" "$PRIMARY_PROJECTS_FOLDER/$DIR7" rsync -av --update --progress --delete "${MYSHORTCUTS_RSYNC_EXCLUDES[@]}" --exclude='iteration_CROSS_CLUSTER' "$PRIMARY_PROJECTS_FOLDER/$DIR7/" "$LOCAL_PRIMARY_PROJECTS_FOLDER/$DIR7/" || sync_status=1
+		run_rsync_timed_if_source_exists "$DIR1" "$PRIMARY_PROJECTS_FOLDER/$DIR1" rsync -av --update --progress --delete "${MYSHORTCUTS_RSYNC_EXCLUDES[@]}" "$PRIMARY_PROJECTS_FOLDER/$DIR1/" "$LOCAL_PRIMARY_PROJECTS_FOLDER/$DIR1/" || sync_status=1
+		run_rsync_timed_if_source_exists "$DIR2" "$PRIMARY_PROJECTS_FOLDER/$DIR2" rsync -av --update --progress --delete "${MYSHORTCUTS_RSYNC_EXCLUDES[@]}" "$PRIMARY_PROJECTS_FOLDER/$DIR2/" "$LOCAL_PRIMARY_PROJECTS_FOLDER/$DIR2/" || sync_status=1
+		run_rsync_timed_if_source_exists "$DIR3" "$PRIMARY_PROJECTS_FOLDER/$DIR3" rsync -av --update --progress --delete "${MYSHORTCUTS_RSYNC_EXCLUDES[@]}" "$PRIMARY_PROJECTS_FOLDER/$DIR3/" "$LOCAL_PRIMARY_PROJECTS_FOLDER/$DIR3/" || sync_status=1
+		run_rsync_timed_if_source_exists "$DIR4" "$PRIMARY_PROJECTS_FOLDER/$DIR4" rsync -av --update --progress --delete "${MYSHORTCUTS_RSYNC_EXCLUDES[@]}" "$PRIMARY_PROJECTS_FOLDER/$DIR4/" "$LOCAL_PRIMARY_PROJECTS_FOLDER/$DIR4/" || sync_status=1
+		run_rsync_timed_if_source_exists "$DIR6" "$PRIMARY_PROJECTS_FOLDER/$DIR6" rsync -av --update --progress --delete "${MYSHORTCUTS_RSYNC_EXCLUDES[@]}" "$PRIMARY_PROJECTS_FOLDER/$DIR6/" "$LOCAL_PRIMARY_PROJECTS_FOLDER/$DIR6/" || sync_status=1
+		run_rsync_timed_if_source_exists "$DIR7" "$PRIMARY_PROJECTS_FOLDER/$DIR7" rsync -av --update --progress --delete "${MYSHORTCUTS_RSYNC_EXCLUDES[@]}" --exclude='iteration_CROSS_CLUSTER' "$PRIMARY_PROJECTS_FOLDER/$DIR7/" "$LOCAL_PRIMARY_PROJECTS_FOLDER/$DIR7/" || sync_status=1
+	fi
 
 	run_rsync_timed_if_source_exists "${CLUSTER}${FILE2}" "$HOME/$FILE2" rsync -av --update --progress --delete "$HOME/$FILE2" "$HELP_SCRIPTS/sys/collections__bashrc/${CLUSTER}${FILE2}" || sync_status=1
 	if [ "$CLUSTER" == "NCSA_DELTA" ]; then
