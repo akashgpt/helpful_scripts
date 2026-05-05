@@ -1382,7 +1382,11 @@ myshortcuts_sync() {
 	run_rsync_timed_if_source_exists "$DIR7" "$PRIMARY_PROJECTS_FOLDER/$DIR7" rsync -av --update --progress --delete "${MYSHORTCUTS_RSYNC_EXCLUDES[@]}" --exclude='iteration_CROSS_CLUSTER' "$PRIMARY_PROJECTS_FOLDER/$DIR7/" "$LOCAL_PRIMARY_PROJECTS_FOLDER/$DIR7/" || sync_status=1
 
 	run_rsync_timed_if_source_exists "${CLUSTER}${FILE2}" "$HOME/$FILE2" rsync -av --update --progress --delete "$HOME/$FILE2" "$HELP_SCRIPTS/sys/collections__bashrc/${CLUSTER}${FILE2}" || sync_status=1
-	run_rsync_timed_if_source_exists "${CLUSTER}${FILE3}" "$HOME/$FILE3" rsync -av --update --progress --delete "$HOME/$FILE3" "$HELP_SCRIPTS/sys/collections__condarc/${CLUSTER}${FILE3}" || sync_status=1
+	if [ "$CLUSTER" == "NCSA_DELTA" ]; then
+		run_rsync_timed_if_source_exists "${CLUSTER}${FILE3}" "$HELP_SCRIPTS/sys/collections__condarc/${CLUSTER}${FILE3}" rsync -av --progress "$HELP_SCRIPTS/sys/collections__condarc/${CLUSTER}${FILE3}" "$HOME/$FILE3" || sync_status=1
+	else
+		run_rsync_timed_if_source_exists "${CLUSTER}${FILE3}" "$HOME/$FILE3" rsync -av --update --progress --delete "$HOME/$FILE3" "$HELP_SCRIPTS/sys/collections__condarc/${CLUSTER}${FILE3}" || sync_status=1
+	fi
 
 	rmdir "$MYSHORTCUTS_SYNC_LOCK_DIR" >/dev/null 2>&1 || true
 	return "$sync_status"
