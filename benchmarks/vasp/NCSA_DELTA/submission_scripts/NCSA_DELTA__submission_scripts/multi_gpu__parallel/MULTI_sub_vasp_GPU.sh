@@ -127,7 +127,7 @@ run_one_vasp_gpu() {
 				"$VASP_BIN" >> log.run_sim 2>&1
 		elif [[ $(hostname) == *"delta"* ]]; then
 			mpirun --bind-to none -np 1 \
-				--host "$target_node" \
+				--host "${target_node}:1" \
 				-x CUDA_VISIBLE_DEVICES \
 				-x OMP_NUM_THREADS \
 				"$VASP_BIN" >> log.run_sim 2>&1
@@ -156,9 +156,17 @@ export VASP_BIN SLURM_CPUS_PER_TASK SLURM_JOB_ID
 # Export SLOTS array as a string (bash can't export arrays to subshells via GNU parallel)
 export SLOTS_STR="${SLOTS[*]}"
 
+set +e
 parallel -j "$TOTAL_GPUS" --lb --tag \
 	run_one_vasp_gpu {} {%} ::: "${RUN_DIRS[@]}"
+parallel_status=$?
+set -e
 
 #########################################################################
-echo "All VASP GPU runs finished at $(date)"
+if [[ "$parallel_status" -eq 0 ]]; then
+	echo "All VASP GPU runs finished successfully at $(date)"
+else
+	echo "One or more VASP GPU runs failed with GNU parallel exit status $parallel_status at $(date)"
+fi
 echo "=========================================="
+exit "$parallel_status"

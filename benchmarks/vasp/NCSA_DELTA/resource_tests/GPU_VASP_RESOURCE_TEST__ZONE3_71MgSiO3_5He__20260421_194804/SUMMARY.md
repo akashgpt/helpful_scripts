@@ -112,6 +112,10 @@ For this exact `ZONE_3/71MgSiO3_5He` frame on the observed DELTA A100-40GB nodes
 - Prefer `KPAR = 1`
 - Use at least `2 GPUs`
 - Prefer `4 GPUs` when available, since the smoke-test runtime drops from `609.1 s` to `319.8 s`
+- In batched production wrappers, make the OpenMPI host slot count match the per-frame
+  rank/GPU count. For the `2 GPU, 2 rank` case, use a host form like
+  `--host "${target_node}:2"` rather than `--host "$target_node"`, because OpenMPI may
+  otherwise assume only one slot is available on that host.
 
 If future work targets a different GPU memory class, especially 80 GB devices, the
 single-GPU and `KPAR > 1` cases should be re-benchmarked rather than assumed.
