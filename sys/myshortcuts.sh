@@ -494,6 +494,25 @@ fi
 
 mk() { mkdir -p "$1" && cd "$1"; }
 cl() { cd "$1" && ll; } # uses alias defined above
+locn() {
+	local path resolved status
+
+	if [ $# -eq 0 ]; then
+		pwd -P
+		return 0
+	fi
+
+	status=0
+	for path in "$@"; do
+		if resolved=$(realpath "$path" 2>/dev/null); then
+			printf '%s\n' "$resolved"
+		else
+			printf 'locn: path not found: %s\n' "$path" >&2
+			status=1
+		fi
+	done
+	return "$status"
+}
 alias ..='cd .. && ll'
 alias ...='cd ../.. && ll'
 alias pwd='pwd -P'
