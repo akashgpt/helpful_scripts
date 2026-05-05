@@ -126,7 +126,11 @@ Each run: 1 MPI rank, 1 OMP thread, 1 GPU, KPAR=1.
 Key observations:
 - **No contention** between concurrent GPU runs on the same node (~1410 s each,
   matching the single-GPU baseline of ~1405 s).
-- **Multi-node distribution works correctly** via `mpirun --host $target_node`.
+- **Multi-node distribution works correctly** via `mpirun --host $target_node`
+  for the single-rank-per-VASP-run benchmark. For production templates that use
+  multiple ranks/GPUs per independent VASP run, advertise the rank slots explicitly,
+  e.g. `mpirun -np 2 --host "${target_node}:2"`, otherwise OpenMPI may treat the host
+  as having only one slot and reject the launch.
 - **1 CPU per GPU is sufficient** -- total node usage is just 4 CPUs + 4 GPUs.
 - Memory usage: ~13 GB per run (~52 GB total for 4 concurrent runs on 1 node).
 - GNU parallel correctly queues overflow runs (test 1: runs 5-8 waited for GPUs 0-3
@@ -538,3 +542,6 @@ That benchmark is complementary to the scaling study in this document:
 - this file explains why DELTA multi-GPU launch behavior can fail in general
 - the `resource_tests` benchmark shows which layouts are actually usable for one large
   `360`-atom, `1536`-band R2SCAN frame under the tested DELTA setup
+- when translating those layouts into batched production wrappers, keep the OpenMPI host
+  slot count synchronized with the per-run rank count, e.g. `--host node:2` for
+  `2` ranks / `2` GPUs per VASP frame.
