@@ -32,7 +32,8 @@ HE_STEP: int = 5               # He atoms added per substitution step
 DECIMAL_PLACES: int = 4        # precision for float columns
 
 # selected_IDs: list[int] = [19, 37, 55, 66, 72, 2, 6, 13]  # IDs of rows to print to screen (1-based)
-selected_IDs: list[int] = [9, 17, 25, 32, 2, 7, 3]  # IDs of rows to print to screen (1-based)
+# selected_IDs: list[int] = [9, 17, 25, 32, 2, 7, 3]  # IDs of rows to print to screen (1-based)
+selected_IDs: list[int] = []  # IDs of rows to print to screen (1-based)
 
 
 # ===================================================================
