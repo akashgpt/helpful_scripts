@@ -615,3 +615,24 @@ sacctmgr show qos format=Name,GrpTRES%40,MaxTRES%40,MaxTRESPU%40
 # Just one QOS (replace <qos_name>):
 sacctmgr show qos <qos_name> format=Name,GrpTRES%50
 ###########################
+
+
+
+how to scp to polaris?
+
+scp  akashgpt@polaris.alcf.anl.gov:/lus/grand/projects/CoreCollapseModel/akashgpt
+
+envs_dirs:
+  - /grand/projects/CoreCollapseModel/akashgpt/softwares/conda_envs_dir_secondary/envs
+  # - /home/ag5805/.conda/envs
+
+pkgs_dirs:
+  - /grand/projects/CoreCollapseModel/akashgpt/softwares/conda_envs_dir_secondary/pkgs
+  # - /home/ag5805/.conda/pkgs
+
+# Customize the environment prompt
+env_prompt: '({name}) '
+channels:
+  - conda-forge
+
+solver: libmamba
