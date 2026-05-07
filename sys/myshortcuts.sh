@@ -913,6 +913,28 @@ elif [ "$CLUSTER" == "NCSA_DELTA" ]; then
     fi
     return "$return_code"
   }
+elif [ "$CLUSTER" == "POLARIS" ]; then
+  # l_base
+  #
+  # Loads and activates the ALCF-supported Polaris conda base environment.
+  #
+  # Args:
+  #   None.
+  # Returns:
+  #   Exit status from conda activate.
+  l_base() {
+    local return_code=0
+
+    module use /soft/modulefiles
+    module load conda
+    conda activate base
+
+    return_code=$?
+    if [ "$return_code" -eq 0 ]; then
+      pin_helper_python >/dev/null 2>&1 || true
+    fi
+    return "$return_code"
+  }
 fi
 
 # configure_python_runtime
