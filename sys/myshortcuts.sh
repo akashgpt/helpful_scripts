@@ -3,11 +3,11 @@
 ####################################################################################################
 # Summary:
 #   This script is meant to be sourced in the .bashrc file to set up useful aliases and environment variables.
-#   It is meant to be used in the Princeton clusters (DELLA, TIGER, STELLAR)
-#   and on NCSA_DELTA at NCSA.
+#   It is meant to be used in the Princeton clusters (DELLA, TIGER, STELLAR),
+#   on NCSA_DELTA at NCSA, and on POLARIS at ALCF.
 #   The script sets up the following:
 #   1. Detects the cluster name and sets the SCRATCH directory accordingly.
-#   2. Sets up aliases for squeue commands.
+#   2. Sets up scheduler aliases for Slurm or PBS Pro commands.
 #   3. Enables color support for ls and sets up useful ls/grep aliases.
 #   4. Defines myfind function to find files within the current directory.
 #   5. Defines hog and hog_gpu functions to check the top CPU/GPU users.
@@ -213,6 +213,11 @@ run_hog_report() {
 
   start_date=$(date -d"${days} days ago" +%D)
 
+  if [ "$CLUSTER" == "POLARIS" ]; then
+    echo "hog/hog_gpu are Slurm-only helpers; POLARIS uses PBS Pro accounting."
+    return 1
+  fi
+
   if [ "$CLUSTER" == "DELLA" ] || [ "$CLUSTER" == "TIGER" ] || [ "$CLUSTER" == "STELLAR" ]; then
     account="${requested_account:-astro}"
   elif [ "$CLUSTER" == "NCSA_DELTA" ]; then
@@ -335,7 +340,7 @@ pin_helper_python() {
 configure_clean_python_environment
 
 ##########################################
-# BLOCK 2: squeue aliases
+# BLOCK 2: scheduler aliases
 #
 # List: sqp, sqpmy, sqpmy_eta, sq
 #     jobpath (jobpath <jobid1> [jobid2 ...])
@@ -357,96 +362,155 @@ shopt -s autocd      # change directory w/o cd if entry is invalid
 shopt -s extglob     # enable extended glob patterns
 shopt -s checkwinsize # check window size after each command 
 
-alias cpu10='salloc --nodes=1 --ntasks=1 --mem=4G --time=00:10:00'
-alias gpu10='salloc --nodes=1 --ntasks=1 --mem=4G --time=00:10:00 --gres=gpu:1'
-alias fair='echo "Fairshare: " && sshare | cut -c 84- | sort -g | uniq | tail -1'
-alias node_health='sinfo --long --Node'
+if [ "$CLUSTER" == "POLARIS" ]; then
+  alias q='qstat -u $USER'
+  alias qf='qstat -f'
+  alias qd='qdel'
+  alias sb='qsub'
+  alias sq='qstat -u $USER'
+  alias sqp='qstat -u $USER'
+  alias fair='echo "Fairshare helper is Slurm-only; POLARIS uses PBS Pro."'
+  alias node_health='pbsnodes -a'
 
+  sqpmy() {
+    qstat -u "$USER"
+  }
 
-# squeue
-alias sqp='squeue -o "%.18i %Q %.9P %.9q %.8j %.8u %.10a %.2t %.10M %.10L %.6C %.12b %R"' #priority rating
-# alias sqpmy='squeue -o "%.18i %Q %.9q %.8j %.8u %.10a %.2t %.10M %.10L %.6C %R" | grep $USER' #priority rating
-function sqpmy {
-  printf "%12s %9s %9s %20s %8s %8s %2s %10s %10s %6s %6s %12s %s\n" \
-    "JOBID" "PRIORITY" "QOS" "NAME" "USER" "ACCOUNT" "ST" "TIME" "TIME_LIMIT" "NODES" "CPUS" "GRES/GPUS" "NODES|REASON"
-  # Running/suspended jobs: %S is the actual job start time
-  # squeue -u "$USER" -h -t R,S -o "%.12i %.8Q %.9q %.20j %.8u %.8a %.2t %.10M %.10L %.6D %.6C %.25S %R" 2>/dev/null
-  squeue -u "$USER" -h -t R,S -o "%.12i %.9Q %.9q %.20j %.8u %.8a %.2t %.10M %.10L %.6D %.6C %.12b %R" 2>/dev/null
-  # Pending jobs: --start asks the scheduler for a backfill estimate of START_TIME
-  # squeue --start -u "$USER" -h -o "%.12i %.8Q %.9q %.20j %.8u %.8a %.2t %.10M %.10L %.6D %.6C %.25S %R" 2>/dev/null
-  squeue -u "$USER" -h -t PD   -o "%.12i %.9Q %.9q %.20j %.8u %.8a %.2t %.10M %.10L %.6D %.6C %.12b %R" 2>/dev/null
-}
+  sqpmy_eta() {
+    qstat -u "$USER"
+  }
 
-# Show the current user's jobs with expected start time and pending reason.
-# Includes all sqpmy columns (PRIORITY, QOS, ACCOUNT) plus NODES, START_TIME.
-function sqpmy_eta {
-  printf "%12s %9s %9s %20s %8s %8s %2s %10s %10s %6s %6s %12s %20s %s\n" \
-    "JOBID" "PRIORITY" "QOS" "NAME" "USER" "ACCOUNT" "ST" "TIME" "TIME_LIMIT" "NODES" "CPUS" "GRES/GPUS" "START_TIME" "NODES|REASON"
-  # Running/suspended jobs: %S is the actual job start time
-  squeue -u "$USER" -h -t R,S -o "%.12i %.9Q %.9q %.20j %.8u %.8a %.2t %.10M %.10L %.6D %.6C %.12b %.20S %R" 2>/dev/null
-  # Pending jobs: %S shows backfill-estimated start time (N/A if not yet computed by scheduler)
-  squeue -u "$USER" -h -t PD   -o "%.12i %.9Q %.9q %.20j %.8u %.8a %.2t %.10M %.10L %.6D %.6C %.12b %.20S %R" 2>/dev/null
-}
+  busyness() {
+    local qstat_output
+    local jobs_running
+    local jobs_pending
 
-alias sq='squeue -u $USER -o "%.18i %.9Q %.6P %.6q %.12j %.2t %.9M %.5D %.4C %.10b %.10l"'
-# alias sq='squeue -u $USER -o "%.18i %.9P %.12j %.8u %.2t %.10M %.6D %.8C %.10l"'
+    qstat_output=$(qstat -u "$USER" 2>/dev/null)
+    jobs_running=$(echo "$qstat_output" | awk '$0 ~ /^[0-9]/ && $10 == "R" {count++} END {print count+0}')
+    jobs_pending=$(echo "$qstat_output" | awk '$0 ~ /^[0-9]/ && ($10 == "Q" || $10 == "H" || $10 == "W") {count++} END {print count+0}')
 
-# assesses cluster "busyness" by comparing running vs pending jobs for CPU and GPU partitions
-# Uses partition column to identify GPU jobs (partition name contains "gpu" on both DELTA and Stellar).
-# Computes CPU jobs as total minus GPU jobs, so no cluster-specific special cases needed.
-function busyness() {
-  local sqp_output
-  sqp_output=$(sqp 2>/dev/null)
+    echo ""
+    echo "PBS Pro jobs for $USER"
+    echo ""
+    echo "Running jobs: $jobs_running"
+    echo "Pending/held/waiting jobs: $jobs_pending"
+    echo ""
+  }
 
-  local total_running total_pending gpu_running gpu_pending
-  total_running=$(echo "$sqp_output" | grep " R " | wc -l)
-  total_pending=$(echo "$sqp_output" | grep " PD " | wc -l)
-  gpu_running=$(echo "$sqp_output" | grep " R " | grep "gpu" | wc -l)
-  gpu_pending=$(echo "$sqp_output" | grep " PD " | grep "gpu" | wc -l)
-
-  local cpu_running=$((total_running - gpu_running))
-  local cpu_pending=$((total_pending - gpu_pending))
-
-  local cpu_ratio gpu_ratio
-  if [ "$cpu_pending" -gt 0 ]; then
-    cpu_ratio=$(echo "scale=2; $cpu_running / $cpu_pending" | bc)
-  else
-    cpu_ratio="inf"
-  fi
-  if [ "$gpu_pending" -gt 0 ]; then
-    gpu_ratio=$(echo "scale=2; $gpu_running / $gpu_pending" | bc)
-  else
-    gpu_ratio="inf"
-  fi
-
-  echo ""
-  echo "busy-ness ratio (running/pending) | higher means potentially less busy"
-  echo ""
-  echo "CPU busyness: $cpu_ratio ($cpu_running running, $cpu_pending pending)"
-  echo "GPU busyness: $gpu_ratio ($gpu_running running, $gpu_pending pending)"
-  echo ""
-}
-
-# Show parent directories of given Slurm job IDs
-jobpath() {
-  if [ $# -eq 0 ]; then
-    echo "Usage: jobpath <jobid1> [jobid2 ...]"
-    return 1
-  fi
-  for id in "$@"; do
-    workdir=$(scontrol show job "$id" 2>/dev/null | awk -F= '/WorkDir/{print $2}')
-    if [ -n "$workdir" ]; then
-      echo "$id → $workdir"
-    else
-      echo "$id → [Job not found or WorkDir unavailable]"
+  jobpath() {
+    if [ $# -eq 0 ]; then
+      echo "Usage: jobpath <jobid1> [jobid2 ...]"
+      return 1
     fi
-  done
-}
+
+    for id in "$@"; do
+      workdir=$(qstat -f "$id" 2>/dev/null | awk '
+        /PBS_O_WORKDIR=/ {
+          sub(/^.*PBS_O_WORKDIR=/, "")
+          sub(/,.*/, "")
+          print
+          exit
+        }
+      ')
+      if [ -n "$workdir" ]; then
+        echo "$id -> $workdir"
+      else
+        echo "$id -> [Job not found or PBS_O_WORKDIR unavailable]"
+      fi
+    done
+  }
+else
+  alias cpu10='salloc --nodes=1 --ntasks=1 --mem=4G --time=00:10:00'
+  alias gpu10='salloc --nodes=1 --ntasks=1 --mem=4G --time=00:10:00 --gres=gpu:1'
+  alias fair='echo "Fairshare: " && sshare | cut -c 84- | sort -g | uniq | tail -1'
+  alias node_health='sinfo --long --Node'
+
+
+  # squeue
+  alias sqp='squeue -o "%.18i %Q %.9P %.9q %.8j %.8u %.10a %.2t %.10M %.10L %.6C %.12b %R"' #priority rating
+  # alias sqpmy='squeue -o "%.18i %Q %.9q %.8j %.8u %.10a %.2t %.10M %.10L %.6C %R" | grep $USER' #priority rating
+  function sqpmy {
+    printf "%12s %9s %9s %20s %8s %8s %2s %10s %10s %6s %6s %12s %s\n" \
+      "JOBID" "PRIORITY" "QOS" "NAME" "USER" "ACCOUNT" "ST" "TIME" "TIME_LIMIT" "NODES" "CPUS" "GRES/GPUS" "NODES|REASON"
+    # Running/suspended jobs: %S is the actual job start time
+    # squeue -u "$USER" -h -t R,S -o "%.12i %.8Q %.9q %.20j %.8u %.8a %.2t %.10M %.10L %.6D %.6C %.25S %R" 2>/dev/null
+    squeue -u "$USER" -h -t R,S -o "%.12i %.9Q %.9q %.20j %.8u %.8a %.2t %.10M %.10L %.6D %.6C %.12b %R" 2>/dev/null
+    # Pending jobs: --start asks the scheduler for a backfill estimate of START_TIME
+    # squeue --start -u "$USER" -h -o "%.12i %.8Q %.9q %.20j %.8u %.8a %.2t %.10M %.10L %.6D %.6C %.25S %R" 2>/dev/null
+    squeue -u "$USER" -h -t PD   -o "%.12i %.9Q %.9q %.20j %.8u %.8a %.2t %.10M %.10L %.6D %.6C %.12b %R" 2>/dev/null
+  }
+
+  # Show the current user's jobs with expected start time and pending reason.
+  # Includes all sqpmy columns (PRIORITY, QOS, ACCOUNT) plus NODES, START_TIME.
+  function sqpmy_eta {
+    printf "%12s %9s %9s %20s %8s %8s %2s %10s %10s %6s %6s %12s %20s %s\n" \
+      "JOBID" "PRIORITY" "QOS" "NAME" "USER" "ACCOUNT" "ST" "TIME" "TIME_LIMIT" "NODES" "CPUS" "GRES/GPUS" "START_TIME" "NODES|REASON"
+    # Running/suspended jobs: %S is the actual job start time
+    squeue -u "$USER" -h -t R,S -o "%.12i %.9Q %.9q %.20j %.8u %.8a %.2t %.10M %.10L %.6D %.6C %.12b %.20S %R" 2>/dev/null
+    # Pending jobs: %S shows backfill-estimated start time (N/A if not yet computed by scheduler)
+    squeue -u "$USER" -h -t PD   -o "%.12i %.9Q %.9q %.20j %.8u %.8a %.2t %.10M %.10L %.6D %.6C %.12b %.20S %R" 2>/dev/null
+  }
+
+  alias sq='squeue -u $USER -o "%.18i %.9Q %.6P %.6q %.12j %.2t %.9M %.5D %.4C %.10b %.10l"'
+  # alias sq='squeue -u $USER -o "%.18i %.9P %.12j %.8u %.2t %.10M %.6D %.8C %.10l"'
+
+  # assesses cluster "busyness" by comparing running vs pending jobs for CPU and GPU partitions
+  # Uses partition column to identify GPU jobs (partition name contains "gpu" on both DELTA and Stellar).
+  # Computes CPU jobs as total minus GPU jobs, so no cluster-specific special cases needed.
+  function busyness() {
+    local sqp_output
+    sqp_output=$(sqp 2>/dev/null)
+
+    local total_running total_pending gpu_running gpu_pending
+    total_running=$(echo "$sqp_output" | grep " R " | wc -l)
+    total_pending=$(echo "$sqp_output" | grep " PD " | wc -l)
+    gpu_running=$(echo "$sqp_output" | grep " R " | grep "gpu" | wc -l)
+    gpu_pending=$(echo "$sqp_output" | grep " PD " | grep "gpu" | wc -l)
+
+    local cpu_running=$((total_running - gpu_running))
+    local cpu_pending=$((total_pending - gpu_pending))
+
+    local cpu_ratio gpu_ratio
+    if [ "$cpu_pending" -gt 0 ]; then
+      cpu_ratio=$(echo "scale=2; $cpu_running / $cpu_pending" | bc)
+    else
+      cpu_ratio="inf"
+    fi
+    if [ "$gpu_pending" -gt 0 ]; then
+      gpu_ratio=$(echo "scale=2; $gpu_running / $gpu_pending" | bc)
+    else
+      gpu_ratio="inf"
+    fi
+
+    echo ""
+    echo "busy-ness ratio (running/pending) | higher means potentially less busy"
+    echo ""
+    echo "CPU busyness: $cpu_ratio ($cpu_running running, $cpu_pending pending)"
+    echo "GPU busyness: $gpu_ratio ($gpu_running running, $gpu_pending pending)"
+    echo ""
+  }
+
+  # Show parent directories of given Slurm job IDs
+  jobpath() {
+    if [ $# -eq 0 ]; then
+      echo "Usage: jobpath <jobid1> [jobid2 ...]"
+      return 1
+    fi
+    for id in "$@"; do
+      workdir=$(scontrol show job "$id" 2>/dev/null | awk -F= '/WorkDir/{print $2}')
+      if [ -n "$workdir" ]; then
+        echo "$id -> $workdir"
+      else
+        echo "$id -> [Job not found or WorkDir unavailable]"
+      fi
+    done
+  }
+fi
 
 end_block2=$(date +%s)
 elapsed_block2=$(( end_block2 - start_block2 ))
 if [ $elapsed_block2 -gt 10 ]; then
-  echo "WARNING: Defining squeue aliases (block 2) took $elapsed_block2 seconds!"
+  echo "WARNING: Defining scheduler aliases (block 2) took $elapsed_block2 seconds!"
 fi
 
 
@@ -584,6 +648,11 @@ hog_summary() {
   local useraccount=${2:-$USER}
   local start_date=""
 
+  if [ "$CLUSTER" == "POLARIS" ]; then
+    echo "hog_summary is a Slurm-only helper; POLARIS uses PBS Pro accounting."
+    return 1
+  fi
+
   # Calculate the start date based on the provided number of days
   start_date=$(date -d"${days} days ago" +%D)
 
@@ -616,6 +685,11 @@ hog_summary() {
 
 
 hog_OG() {
+  if [ "$CLUSTER" == "POLARIS" ]; then
+    echo "hog_OG is a Slurm-only helper; POLARIS uses PBS Pro accounting."
+    return 1
+  fi
+
   start_date=$(date -d"30 days ago" +%D);
   account=$(sshare | grep $USER | awk '{print $1}' | head -n 1);
   sreport user top start=${start_date} end=now TopCount=100 accounts=${account} -t hourper --tres=cpu;
@@ -748,6 +822,22 @@ elif [ "$CLUSTER" == "NCSA_DELTA" ]; then
   echo "Running jobs: $jobs_running, procs $total_cores_sum"
   echo "Pending jobs: $jobs_pending"
 }
+elif [ "$CLUSTER" == "POLARIS" ]; then
+  myjobs() {
+  local qstat_output jobs_running jobs_pending total_jobs
+
+  qstat_output=$(qstat -u "$USER" 2>/dev/null)
+  jobs_running=$(echo "$qstat_output" | awk '$0 ~ /^[0-9]/ && $10 == "R" {count++} END {print count+0}')
+  jobs_pending=$(echo "$qstat_output" | awk '$0 ~ /^[0-9]/ && ($10 == "Q" || $10 == "H" || $10 == "W") {count++} END {print count+0}')
+  total_jobs=$((jobs_running + jobs_pending))
+
+  echo "####################"
+  echo "PBS Pro jobs for user $USER"
+  echo "####################"
+  echo "Total jobs: $total_jobs"
+  echo "Running jobs: $jobs_running"
+  echo "Pending/held/waiting jobs: $jobs_pending"
+}
 fi
 
 
@@ -764,16 +854,26 @@ if [ $verbose -eq 1 ]; then
 fi
 # setting up environment in cluster
 alias modl='module load'
-alias sb='sbatch'
 alias pyclean='configure_clean_python_environment'
 alias pypin='pin_helper_python'
+if [ "$CLUSTER" == "POLARIS" ]; then
+  alias sb='qsub'
+else
+  alias sb='sbatch'
+fi
 
 if [ "$CLUSTER" == "DELLA" ] || [ "$CLUSTER" == "TIGER" ] || [ "$CLUSTER" == "STELLAR" ]; then
   alias js='jobstats'
 elif [ "$CLUSTER" == "NCSA_DELTA" ]; then
   js() { seff "$@"; }
+elif [ "$CLUSTER" == "POLARIS" ]; then
+  js() { qstat -f "$@"; }
 fi
-alias jspending='scontrol show job'
+if [ "$CLUSTER" == "POLARIS" ]; then
+  alias jspending='qstat -f'
+else
+  alias jspending='scontrol show job'
+fi
 
 # Clear any stale conda aliases from an older sourced version of this file
 # before defining the conda helpers below. This avoids interactive alias
