@@ -481,17 +481,43 @@ else
   # Uses partition column to identify GPU jobs (partition name contains "gpu" on both DELTA and Stellar).
   # Computes CPU jobs as total minus GPU jobs, so no cluster-specific special cases needed.
   function busyness() {
+    local include_all=0
+    if [ "${1:-}" == "-a" ]; then
+      include_all=1
+    elif [ -n "${1:-}" ]; then
+      echo "Usage: busyness [-a]"
+      echo "  default: exclude dependency/maintenance/QOS/held/user-limit pending reasons"
+      echo "  -a:      include all pending jobs"
+      return 1
+    fi
+
     local sqp_output
     sqp_output=$(sqp 2>/dev/null)
 
-    local total_running total_pending gpu_running gpu_pending
-    total_running=$(echo "$sqp_output" | grep " R " | wc -l)
-    total_pending=$(echo "$sqp_output" | grep " PD " | wc -l)
-    gpu_running=$(echo "$sqp_output" | grep " R " | grep "gpu" | wc -l)
-    gpu_pending=$(echo "$sqp_output" | grep " PD " | grep "gpu" | wc -l)
+    local total_running total_pending_all total_pending_filtered gpu_running gpu_pending_all gpu_pending_filtered
+    total_running=$(echo "$sqp_output" | awk 'NR > 1 && $8 == "R" {count++} END {print count+0}')
+    total_pending_all=$(echo "$sqp_output" | awk 'NR > 1 && $8 == "PD" {count++} END {print count+0}')
+    total_pending_filtered=$(echo "$sqp_output" | awk 'NR > 1 && $8 == "PD" && tolower($0) !~ /(dependency|dependencyneversatisfied|reqnodenotavail|reserved for maintenance|nodes required for job are down|invalidqos|jobheldadmin|jobhelduser|qosmaxjobsperuserlimit|qosmaxcpuperuserlimit|qosmaxgresperuser|cpuperuserlimit|qosmax.*peruser|assocmax.*limit|assocgrp.*limit|begintime)/ {count++} END {print count+0}')
+    gpu_running=$(echo "$sqp_output" | awk 'NR > 1 && $8 == "R" && (tolower($3) ~ /gpu/ || tolower($12) ~ /gpu/) {count++} END {print count+0}')
+    gpu_pending_all=$(echo "$sqp_output" | awk 'NR > 1 && $8 == "PD" && (tolower($3) ~ /gpu/ || tolower($12) ~ /gpu/) {count++} END {print count+0}')
+    gpu_pending_filtered=$(echo "$sqp_output" | awk 'NR > 1 && $8 == "PD" && tolower($0) !~ /(dependency|dependencyneversatisfied|reqnodenotavail|reserved for maintenance|nodes required for job are down|invalidqos|jobheldadmin|jobhelduser|qosmaxjobsperuserlimit|qosmaxcpuperuserlimit|qosmaxgresperuser|cpuperuserlimit|qosmax.*peruser|assocmax.*limit|assocgrp.*limit|begintime)/ && (tolower($3) ~ /gpu/ || tolower($12) ~ /gpu/) {count++} END {print count+0}')
+
+    local total_pending gpu_pending mode_label
+    if [ "$include_all" -eq 1 ]; then
+      total_pending=$total_pending_all
+      gpu_pending=$gpu_pending_all
+      mode_label="all pending jobs"
+    else
+      total_pending=$total_pending_filtered
+      gpu_pending=$gpu_pending_filtered
+      mode_label="filtered pending jobs; use busyness -a to include dependency/maintenance/QOS/held/user-limit reasons"
+    fi
 
     local cpu_running=$((total_running - gpu_running))
     local cpu_pending=$((total_pending - gpu_pending))
+    local excluded_pending=$((total_pending_all - total_pending_filtered))
+    local excluded_gpu_pending=$((gpu_pending_all - gpu_pending_filtered))
+    local excluded_cpu_pending=$((excluded_pending - excluded_gpu_pending))
 
     local cpu_ratio gpu_ratio
     if [ "$cpu_pending" -gt 0 ]; then
@@ -507,9 +533,13 @@ else
 
     echo ""
     echo "busy-ness ratio (running/pending) | higher means potentially less busy"
+    echo "mode: $mode_label"
     echo ""
     echo "CPU busyness: $cpu_ratio ($cpu_running running, $cpu_pending pending)"
     echo "GPU busyness: $gpu_ratio ($gpu_running running, $gpu_pending pending)"
+    if [ "$include_all" -eq 0 ]; then
+      echo "Excluded tagged pending: CPU $excluded_cpu_pending, GPU $excluded_gpu_pending, total $excluded_pending"
+    fi
     echo ""
   }
 
