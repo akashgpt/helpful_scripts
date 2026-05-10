@@ -239,6 +239,14 @@ find_lapack_library() {
 		"/soft/libraries/aocl"
 }
 
+library_defines_symbol() {
+	local library_path="$1"
+	local symbol="$2"
+
+	nm -A "${library_path}" 2>/dev/null \
+		| awk -v symbol="${symbol}" '$NF == symbol && $(NF-1) != "U" {found=1; exit} END {exit found ? 0 : 1}'
+}
+
 find_library_defining_symbol() {
 	local symbol="$1"
 	shift
@@ -252,14 +260,14 @@ find_library_defining_symbol() {
 
 	for root in "$@"; do
 		if [[ -n "${root}" && -f "${root}" ]]; then
-			if nm -A "${root}" 2>/dev/null | grep -q "[[:space:]]${symbol}$"; then
+			if library_defines_symbol "${root}" "${symbol}"; then
 				echo "${root}"
 				return 0
 			fi
 		elif [[ -n "${root}" && -d "${root}" ]]; then
 			found="$(find "${root}" -maxdepth 8 -type f \( -name '*.a' -o -name '*.so' -o -name '*.so.*' \) -print0 2>/dev/null \
 				| xargs -0 -r nm -A 2>/dev/null \
-				| awk -v symbol="${symbol}" '$NF == symbol {sub(/:.*/, "", $1); print $1; exit}')"
+				| awk -v symbol="${symbol}" '$NF == symbol && $(NF-1) != "U" {sub(/:.*/, "", $1); print $1; exit}')"
 			if [[ -n "${found}" ]]; then
 				echo "${found}"
 				return 0
@@ -274,6 +282,12 @@ find_aocl_extra_libs() {
 	local alcpu_lib=""
 	alcpu_lib="$(find_library_defining_symbol "alcpu_flag_is_available" \
 		"${AOCL_ALCPU_LIB:-}" \
+		"/soft/libraries/math_libs/aocl-4.2/4.2.0/gcc/lib_LP64/libaoclutils.a" \
+		"/soft/libraries/math_libs/aocl-4.2/4.2.0/gcc/lib_LP64/libaoclutils.so" \
+		"/soft/libraries/math_libs/aocl-4.2/4.2.0/gcc/lib_LP64/libalm.so" \
+		"/soft/libraries/math_libs/aocl-4.2/4.2.0/gcc/lib_ILP64/libaoclutils.a" \
+		"/soft/libraries/math_libs/aocl-4.2/4.2.0/gcc/lib_ILP64/libaoclutils.so" \
+		"/soft/libraries/math_libs/aocl-4.2/4.2.0/gcc/lib_ILP64/libalm.so" \
 		"/soft/libraries/math_libs/aocl-4.2/4.2.0/gcc/lib_LP64" \
 		"/soft/libraries/math_libs/aocl-4.2/4.2.0/gcc/lib_ILP64" \
 		"/soft/libraries/math_libs/aocl-4.2" \
