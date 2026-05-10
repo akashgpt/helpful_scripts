@@ -239,10 +239,57 @@ find_lapack_library() {
 		"/soft/libraries/aocl"
 }
 
+find_library_defining_symbol() {
+	local symbol="$1"
+	shift
+	local root=""
+	local found=""
+
+	if ! command -v nm >/dev/null 2>&1; then
+		echo "ERROR: nm is not available; cannot search for ${symbol}." >&2
+		return 1
+	fi
+
+	for root in "$@"; do
+		if [[ -n "${root}" && -f "${root}" ]]; then
+			if nm -A "${root}" 2>/dev/null | grep -q "[[:space:]]${symbol}$"; then
+				echo "${root}"
+				return 0
+			fi
+		elif [[ -n "${root}" && -d "${root}" ]]; then
+			found="$(find "${root}" -maxdepth 8 -type f \( -name '*.a' -o -name '*.so' -o -name '*.so.*' \) -print0 2>/dev/null \
+				| xargs -0 -r nm -A 2>/dev/null \
+				| awk -v symbol="${symbol}" '$NF == symbol {sub(/:.*/, "", $1); print $1; exit}')"
+			if [[ -n "${found}" ]]; then
+				echo "${found}"
+				return 0
+			fi
+		fi
+	done
+
+	return 1
+}
+
+find_aocl_extra_libs() {
+	local alcpu_lib=""
+	alcpu_lib="$(find_library_defining_symbol "alcpu_flag_is_available" \
+		"${AOCL_ALCPU_LIB:-}" \
+		"/soft/libraries/math_libs/aocl-4.2/4.2.0/gcc/lib_LP64" \
+		"/soft/libraries/math_libs/aocl-4.2/4.2.0/gcc/lib_ILP64" \
+		"/soft/libraries/math_libs/aocl-4.2" \
+		"/soft/libraries/math_libs" \
+		"/soft/libraries/aocl" \
+		"/soft/applications/vasp/aol-libs")" || true
+
+	if [[ -n "${alcpu_lib}" ]]; then
+		echo "${alcpu_lib}"
+	fi
+}
+
 patch_makefile_include_for_detected_paths() {
 	local makefile_path="$1"
 
-	python3 - "$makefile_path" "$AOCL_FFTW_INCLUDE_DIR" "$AOCL_FFTW_LIB_DIR" "$AOCL_BLAS_LIB" "$AOCL_LAPACK_LIB" <<'PY_PATCH'
+	python3 - "$makefile_path" "$AOCL_FFTW_INCLUDE_DIR" "$AOCL_FFTW_LIB_DIR" "$AOCL_BLAS_LIB" "$AOCL_LAPACK_LIB" "$AOCL_EXTRA_LIBS" <<'PY_PATCH'
 from pathlib import Path
 import sys
 
@@ -251,15 +298,19 @@ fftw_include_dir = sys.argv[2]
 fftw_lib_dir = sys.argv[3]
 blas_lib = sys.argv[4]
 lapack_lib = sys.argv[5]
+aocl_extra_libs = sys.argv[6]
 text = makefile_path.read_text()
 
 if 'FFTW_INCDIR ?=' not in text:
 	text = text.replace('FFTW        = $(AOCL_ROOT)/amd-fftw\n', 'FFTW        = $(AOCL_ROOT)/amd-fftw\nFFTW_INCDIR ?= $(FFTW)/include\n', 1)
 if 'FFTW_LIBDIR ?=' not in text:
 	text = text.replace('FFTW_INCDIR ?= $(FFTW)/include\n', 'FFTW_INCDIR ?= $(FFTW)/include\nFFTW_LIBDIR ?= $(FFTW)/lib\n', 1)
+if 'AOCL_EXTRA_LIBS ?=' not in text:
+	text = text.replace('FFTW_LIBDIR ?= $(FFTW)/lib\n', 'FFTW_LIBDIR ?= $(FFTW)/lib\nAOCL_EXTRA_LIBS ?=\n', 1)
 
 text = text.replace('INCS       += -I$(FFTW)/include', 'INCS       += -I$(FFTW_INCDIR)')
 text = text.replace('LLIBS      += -L$(FFTW)/lib -lfftw3 -lfftw3_omp -lomp', 'LLIBS      += -L$(FFTW_LIBDIR) -lfftw3 -lfftw3_omp -lomp')
+text = text.replace('LLIBS       = $(SCALAPACK) $(LAPACK) $(BLAS) $(CUDA)', 'LLIBS       = $(SCALAPACK) $(LAPACK) $(BLAS) $(AOCL_EXTRA_LIBS) $(CUDA)')
 
 lines = []
 seen_include = False
@@ -269,6 +320,8 @@ for line in text.splitlines():
 		lines.append(f'BLAS        = {blas_lib}')
 	elif line.startswith('LAPACK') and '=' in line:
 		lines.append(f'LAPACK      = {lapack_lib}')
+	elif line.startswith('AOCL_EXTRA_LIBS ?='):
+		lines.append(f'AOCL_EXTRA_LIBS ?= {aocl_extra_libs}')
 	elif line.startswith('FFTW_INCDIR ?='):
 		lines.append(f'FFTW_INCDIR ?= {fftw_include_dir}')
 		seen_include = True
@@ -300,6 +353,7 @@ print_environment_summary() {
 	echo "AOCL_FFTW_LIB_DIR: ${AOCL_FFTW_LIB_DIR:-unset}"
 	echo "AOCL_BLAS_LIB: ${AOCL_BLAS_LIB:-unset}"
 	echo "AOCL_LAPACK_LIB: ${AOCL_LAPACK_LIB:-unset}"
+	echo "AOCL_EXTRA_LIBS: ${AOCL_EXTRA_LIBS:-unset}"
 	echo "NVROOT: ${NVROOT:-unset}"
 	echo "NVIDIA_PATH: ${NVIDIA_PATH:-unset}"
 	echo "MPICH_GPU_SUPPORT_ENABLED: ${MPICH_GPU_SUPPORT_ENABLED:-unset}"
@@ -341,6 +395,7 @@ run_build() {
 	AOCL_FFTW_LIB_DIR="$(find_fftw_library_directory)" || die "Could not locate an AOCL FFTW library directory."
 	AOCL_BLAS_LIB="$(find_blas_library)" || die "Could not locate an AOCL BLIS library."
 	AOCL_LAPACK_LIB="$(find_lapack_library)" || die "Could not locate an AOCL libFLAME library."
+	AOCL_EXTRA_LIBS="${AOCL_EXTRA_LIBS:-$(find_aocl_extra_libs)}"
 	prepend_library_path "${AOCL_FFTW_LIB_DIR}"
 	prepend_library_path "$(dirname "${AOCL_BLAS_LIB}")"
 	prepend_library_path "$(dirname "${AOCL_LAPACK_LIB}")"
@@ -356,6 +411,11 @@ run_build() {
 	echo "Using AOCL FFTW library directory: ${AOCL_FFTW_LIB_DIR}"
 	echo "Using AOCL BLIS library: ${AOCL_BLAS_LIB}"
 	echo "Using AOCL libFLAME library: ${AOCL_LAPACK_LIB}"
+	if [[ -n "${AOCL_EXTRA_LIBS}" ]]; then
+		echo "Using AOCL extra library/libs: ${AOCL_EXTRA_LIBS}"
+	else
+		echo "Using AOCL extra library/libs: <none detected>"
+	fi
 
 	print_environment_summary
 

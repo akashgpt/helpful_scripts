@@ -83,6 +83,7 @@ LAPACK      = $(AOCL_ROOT)/lib_LP64/libflame.a
 FFTW        = $(AOCL_ROOT)
 FFTW_INCDIR ?= $(AOCL_ROOT)/include_LP64
 FFTW_LIBDIR ?= $(AOCL_ROOT)/lib_LP64
+AOCL_EXTRA_LIBS ?=
 
 # Cray LibSci is loaded by module, but the ALCF recipe leaves explicit ScaLAPACK
 # blank. Keep this override here so it can be enabled quickly if needed.
@@ -91,7 +92,7 @@ SCALAPACK   =
 #SCALAPACK  = -Mscalapack
 #SCALAPACK  = /soft/libraries/aocl/3.2.0/lib/libscalapack.a
 
-LLIBS       = $(SCALAPACK) $(LAPACK) $(BLAS) $(CUDA)
+LLIBS       = $(SCALAPACK) $(LAPACK) $(BLAS) $(AOCL_EXTRA_LIBS) $(CUDA)
 
 # --- NVHPC root (module normally sets NVIDIA_PATH; auto-detect as fallback) ---
 NVROOT     ?= $(shell which nvfortran | awk -F /compilers/bin/nvfortran '{ print $$1 }')
