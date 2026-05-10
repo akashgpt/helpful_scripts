@@ -79,6 +79,7 @@ AOCL_ROOT   ?= /soft/applications/vasp/aol-libs/3.2
 BLAS        = $(AOCL_ROOT)/amd-blis/lib/LP64/libblis-mt.a
 LAPACK      = $(AOCL_ROOT)/amd-libflame/lib/LP64/libflame.a
 FFTW        = $(AOCL_ROOT)/amd-fftw
+FFTW_INCDIR ?= $(FFTW)/include
 
 # Cray LibSci is loaded by module, but the ALCF recipe leaves explicit ScaLAPACK
 # blank. Keep this override here so it can be enabled quickly if needed.
@@ -102,7 +103,7 @@ LLIBS      += -L$(NVROOT)/math_libs/lib64 -Wl,-rpath=$(NVROOT)/math_libs/lib64
 
 # --- FFTW from AOCL ---
 LLIBS      += -L$(FFTW)/lib -lfftw3 -lfftw3_omp -lomp
-INCS       += -I$(FFTW)/include
+INCS       += -I$(FFTW_INCDIR)
 
 # --- Redefine the standard list of O1 and O2 objects ---
 SOURCE_O1  := pade_fit.o minimax_dependence.o wave_window.o
