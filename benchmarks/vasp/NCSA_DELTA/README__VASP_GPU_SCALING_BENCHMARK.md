@@ -447,6 +447,10 @@ This runs and produces correct energies but with no speedup.
 
 ### 7.6 DELTA -- Cray MPICH + GTL (Crashes on 2+ GPUs)
 
+This path is retained only as a negative/diagnostic reference. Do not use it in
+production multi-GPU ALCHEMY scripts. Prefer the explicit HPC-X/OpenMPI binary
+`vasp_std__NCSA_DELTA_GPU`.
+
 ```bash
 #!/bin/bash
 #SBATCH --partition=gpuA100x4
@@ -470,10 +474,12 @@ ulimit -s unlimited
 
 srun --mpi=pmi2 --ntasks=2 --cpus-per-task=16 --gpus-per-task=1 \
      --gpu-bind=closest --cpu-bind=cores \
-     vasp_std__NCSA_DELTA_GPU_craympich
+     NOT_FOR_MULTI_GPU__vasp_std__NCSA_DELTA_GPU_craympich
 ```
 
 Result: 1 GPU works, 2 GPU crashes with `CUDA_ERROR_ILLEGAL_ADDRESS` in `m_sumb_d`.
+Older installs may still have this binary as `vasp_std__NCSA_DELTA_GPU_craympich`;
+rename/archive it with a `NOT_FOR_MULTI_GPU__` prefix to avoid accidental use.
 
 ---
 
@@ -487,11 +493,15 @@ Two binaries were built:
    - Modules: `nvhpc-hpcx-cuda12/25.3`, `intel-oneapi-mkl/2024.2.2`
    - Built: 2026-04-04
    - MPI: HPC-X OpenMPI (bundled with nvhpc-hpcx-cuda12)
+   - Use this explicit binary in Delta GPU scripts; do not rely on a generic
+     `bin/vasp_std` path unless it has been checksum-verified against this file.
 
 2. **Cray MPICH build** (`vasp_std__NCSA_DELTA_GPU_craympich`):
    - Modules: `PrgEnv-nvidia/8.6.0`, `craype-x86-milan`, `cudatoolkit/25.3_12.8`
    - Compile flags: `-DUSENCCL`, `-DNVCUDA`, `-DACC_OFFLOAD`, GPU target `cc80,cuda12.8`
    - MPI: Cray MPICH 8.1.32
+   - Not recommended for multi-GPU production. Archive/rename with a
+     `NOT_FOR_MULTI_GPU__` prefix if kept locally.
 
 ### 8.2 VASP Build on Stellar
 
