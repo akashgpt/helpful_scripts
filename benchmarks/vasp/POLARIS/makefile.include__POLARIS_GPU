@@ -74,12 +74,15 @@ DEBUG       = -Mfree -O0 -traceback
 # --- CUDA math libraries ---
 CUDA        = -cudalib=cublas,cusolver,cufft,nccl -cuda
 
-# --- AOCL CPU math libraries used by the ALCF Polaris VASP recipe ---
-AOCL_ROOT   ?= /soft/applications/vasp/aol-libs/3.2
-BLAS        = $(AOCL_ROOT)/amd-blis/lib/LP64/libblis-mt.a
-LAPACK      = $(AOCL_ROOT)/amd-libflame/lib/LP64/libflame.a
-FFTW        = $(AOCL_ROOT)/amd-fftw
-FFTW_INCDIR ?= $(FFTW)/include
+# --- AOCL CPU math libraries ---
+# ALCF's VASP page historically used /soft/applications/vasp/aol-libs/3.2.
+# Polaris currently exposes AOCL 4.2 under /soft/libraries/math_libs.
+AOCL_ROOT   ?= /soft/libraries/math_libs/aocl-4.2/4.2.0/gcc
+BLAS        = $(AOCL_ROOT)/lib_LP64/libblis-mt.a
+LAPACK      = $(AOCL_ROOT)/lib_LP64/libflame.a
+FFTW        = $(AOCL_ROOT)
+FFTW_INCDIR ?= $(AOCL_ROOT)/include_LP64
+FFTW_LIBDIR ?= $(AOCL_ROOT)/lib_LP64
 
 # Cray LibSci is loaded by module, but the ALCF recipe leaves explicit ScaLAPACK
 # blank. Keep this override here so it can be enabled quickly if needed.
@@ -102,7 +105,7 @@ INCS       += -I$(QD)/include/qd
 LLIBS      += -L$(NVROOT)/math_libs/lib64 -Wl,-rpath=$(NVROOT)/math_libs/lib64
 
 # --- FFTW from AOCL ---
-LLIBS      += -L$(FFTW)/lib -lfftw3 -lfftw3_omp -lomp
+LLIBS      += -L$(FFTW_LIBDIR) -lfftw3 -lfftw3_omp -lomp
 INCS       += -I$(FFTW_INCDIR)
 
 # --- Redefine the standard list of O1 and O2 objects ---

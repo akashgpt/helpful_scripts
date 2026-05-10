@@ -61,6 +61,8 @@ load_polaris_modules() {
 
 	prepend_library_path "${NVROOT}/cuda/lib64"
 	prepend_library_path "${NVROOT}/compilers/extras/qd/lib"
+	# The ALCF VASP page currently documents the AOCL 3.2 VASP paths.
+	# Additional AOCL 4.2 paths are detected below if Polaris exposes those instead.
 	prepend_library_path "/soft/applications/vasp/aol-libs/3.2/amd-blis/lib/LP64"
 	prepend_library_path "/soft/applications/vasp/aol-libs/3.2/amd-libflame/lib/LP64"
 	prepend_library_path "/soft/applications/vasp/aol-libs/3.2/amd-fftw/lib"
@@ -84,7 +86,7 @@ find_existing_directory() {
 	local candidate=""
 
 	for candidate in "$@"; do
-		if [[ -d "${candidate}" ]]; then
+		if [[ -n "${candidate}" && -d "${candidate}" ]]; then
 			echo "${candidate}"
 			return 0
 		fi
@@ -97,32 +99,188 @@ find_existing_directory() {
 	return 1
 }
 
+find_first_file() {
+	local label="$1"
+	local name_pattern="$2"
+	shift 2
+	local candidate=""
+	local root=""
+	local found_file=""
+
+	for candidate in "$@"; do
+		if [[ -n "${candidate}" && -f "${candidate}" ]]; then
+			echo "${candidate}"
+			return 0
+		fi
+	done
+
+	for root in "$@"; do
+		if [[ -n "${root}" && -d "${root}" ]]; then
+			found_file="$(find "${root}" -maxdepth 8 -type f -name "${name_pattern}" -print -quit 2>/dev/null || true)"
+			if [[ -n "${found_file}" ]]; then
+				echo "${found_file}"
+				return 0
+			fi
+		fi
+	done
+
+	echo "ERROR: Could not find ${label}. Pattern: ${name_pattern}" >&2
+	echo "Checked/searched:" >&2
+	for candidate in "$@"; do
+		echo "  ${candidate}" >&2
+	done
+	return 1
+}
+
+find_fftw_include_directory() {
+	local candidate=""
+	local root=""
+	local found_file=""
+	local -a candidates=(
+		"${AOCL_FFTW_INCLUDE_DIR:-}"
+		"${FFTW_INCDIR:-}"
+		"${FFTW_ROOT:-}/include"
+		"${FFTW_ROOT:-}/include_LP64"
+		"/soft/libraries/math_libs/aocl-4.2/4.2.0/gcc/include_LP64"
+		"/soft/libraries/math_libs/aocl-4.2/4.2.0/gcc/include_ILP64"
+		"/soft/applications/vasp/aol-libs/3.2/amd-fftw/include"
+		"/soft/applications/vasp/aol-libs/3.2/amd-fftw/include_LP64"
+		"/soft/applications/vasp/aol-libs/3.2/amd-fftw/include/LP64"
+		"/soft/libraries/aocl/3.2.0/include_LP64"
+		"/soft/libraries/aocl/3.2.0/include"
+	)
+	local -a search_roots=(
+		"/soft/libraries/math_libs/aocl-4.2"
+		"/soft/libraries/math_libs"
+		"/soft/applications/vasp/aol-libs/3.2"
+		"/soft/applications/vasp/aol-libs"
+		"/soft/libraries/aocl"
+		"/soft/libraries"
+	)
+
+	for candidate in "${candidates[@]}"; do
+		if [[ -n "${candidate}" && -d "${candidate}" ]]; then
+			if compgen -G "${candidate}/fftw3*" >/dev/null; then
+				echo "${candidate}"
+				return 0
+			fi
+		fi
+	done
+
+	for root in "${search_roots[@]}"; do
+		if [[ -d "${root}" ]]; then
+			found_file="$(find "${root}" -maxdepth 8 -type f \
+				\( -name 'fftw3.f03' -o -name 'fftw3.f' -o -name 'fftw3.h' \) \
+				-print -quit 2>/dev/null || true)"
+			if [[ -n "${found_file}" ]]; then
+				dirname "${found_file}"
+				return 0
+			fi
+		fi
+	done
+
+	echo "ERROR: Could not find an FFTW include directory containing fftw3.f03, fftw3.f, or fftw3.h." >&2
+	echo "Checked fixed candidates:" >&2
+	for candidate in "${candidates[@]}"; do
+		echo "  ${candidate}" >&2
+	done
+	echo "Searched roots:" >&2
+	for root in "${search_roots[@]}"; do
+		echo "  ${root}" >&2
+	done
+	echo "You can override with: AOCL_FFTW_INCLUDE_DIR=/path/to/include ${0} ..." >&2
+	return 1
+}
+
+find_fftw_library_directory() {
+	local fftw_lib=""
+	local fftw_dir=""
+	fftw_lib="$(find_first_file "AOCL FFTW library" 'libfftw3.*' \
+		"${AOCL_FFTW_LIB_DIR:-}" \
+		"${FFTW_LIBDIR:-}" \
+		"${FFTW_ROOT:-}/lib" \
+		"/soft/libraries/math_libs/aocl-4.2/4.2.0/gcc/lib_LP64/libfftw3.a" \
+		"/soft/libraries/math_libs/aocl-4.2/4.2.0/gcc/lib_ILP64/libfftw3.a" \
+		"/soft/libraries/math_libs/aocl-4.2" \
+		"/soft/libraries/math_libs" \
+		"/soft/applications/vasp/aol-libs/3.2/amd-fftw/lib" \
+		"/soft/libraries/aocl")" || return 1
+	fftw_dir="$(dirname "${fftw_lib}")"
+	if ! compgen -G "${fftw_dir}/libfftw3_omp.*" >/dev/null; then
+		echo "ERROR: Found ${fftw_lib}, but no libfftw3_omp.* in ${fftw_dir}" >&2
+		return 1
+	fi
+	echo "${fftw_dir}"
+}
+
+find_blas_library() {
+	find_first_file "AOCL BLIS library" 'libblis*.a' \
+		"${AOCL_BLAS_LIB:-}" \
+		"${BLAS_LIB:-}" \
+		"/soft/applications/vasp/aol-libs/3.2/amd-blis/lib/LP64/libblis-mt.a" \
+		"/soft/applications/vasp/aol-libs/3.2/amd-blis/lib/ILP64/libblis-mt.a" \
+		"/soft/libraries/math_libs/aocl-4.2/4.2.0/gcc/lib_LP64/libblis-mt.a" \
+		"/soft/libraries/math_libs/aocl-4.2/4.2.0/gcc/lib_ILP64/libblis-mt.a" \
+		"/soft/libraries/math_libs/aocl-4.2" \
+		"/soft/libraries/math_libs" \
+		"/soft/libraries/aocl"
+}
+
+find_lapack_library() {
+	find_first_file "AOCL libFLAME library" 'libflame*.a' \
+		"${AOCL_LAPACK_LIB:-}" \
+		"${LAPACK_LIB:-}" \
+		"/soft/applications/vasp/aol-libs/3.2/amd-libflame/lib/LP64/libflame.a" \
+		"/soft/applications/vasp/aol-libs/3.2/amd-libflame/lib/ILP64/libflame.a" \
+		"/soft/libraries/math_libs/aocl-4.2/4.2.0/gcc/lib_LP64/libflame.a" \
+		"/soft/libraries/math_libs/aocl-4.2/4.2.0/gcc/lib_ILP64/libflame.a" \
+		"/soft/libraries/math_libs/aocl-4.2" \
+		"/soft/libraries/math_libs" \
+		"/soft/libraries/aocl"
+}
+
 patch_makefile_include_for_detected_paths() {
 	local makefile_path="$1"
 
-	python3 - "$makefile_path" "$AOCL_FFTW_INCLUDE_DIR" <<'PY_PATCH'
+	python3 - "$makefile_path" "$AOCL_FFTW_INCLUDE_DIR" "$AOCL_FFTW_LIB_DIR" "$AOCL_BLAS_LIB" "$AOCL_LAPACK_LIB" <<'PY_PATCH'
 from pathlib import Path
 import sys
 
 makefile_path = Path(sys.argv[1])
 fftw_include_dir = sys.argv[2]
+fftw_lib_dir = sys.argv[3]
+blas_lib = sys.argv[4]
+lapack_lib = sys.argv[5]
 text = makefile_path.read_text()
 
 if 'FFTW_INCDIR ?=' not in text:
 	text = text.replace('FFTW        = $(AOCL_ROOT)/amd-fftw\n', 'FFTW        = $(AOCL_ROOT)/amd-fftw\nFFTW_INCDIR ?= $(FFTW)/include\n', 1)
+if 'FFTW_LIBDIR ?=' not in text:
+	text = text.replace('FFTW_INCDIR ?= $(FFTW)/include\n', 'FFTW_INCDIR ?= $(FFTW)/include\nFFTW_LIBDIR ?= $(FFTW)/lib\n', 1)
 
 text = text.replace('INCS       += -I$(FFTW)/include', 'INCS       += -I$(FFTW_INCDIR)')
+text = text.replace('LLIBS      += -L$(FFTW)/lib -lfftw3 -lfftw3_omp -lomp', 'LLIBS      += -L$(FFTW_LIBDIR) -lfftw3 -lfftw3_omp -lomp')
 
 lines = []
-replaced = False
+seen_include = False
+seen_lib = False
 for line in text.splitlines():
-	if line.startswith('FFTW_INCDIR ?='):
+	if line.startswith('BLAS') and '=' in line and 'BLACS' not in line:
+		lines.append(f'BLAS        = {blas_lib}')
+	elif line.startswith('LAPACK') and '=' in line:
+		lines.append(f'LAPACK      = {lapack_lib}')
+	elif line.startswith('FFTW_INCDIR ?='):
 		lines.append(f'FFTW_INCDIR ?= {fftw_include_dir}')
-		replaced = True
+		seen_include = True
+	elif line.startswith('FFTW_LIBDIR ?='):
+		lines.append(f'FFTW_LIBDIR ?= {fftw_lib_dir}')
+		seen_lib = True
 	else:
 		lines.append(line)
-if not replaced:
+if not seen_include:
 	raise SystemExit('FFTW_INCDIR line was not found or inserted')
+if not seen_lib:
+	raise SystemExit('FFTW_LIBDIR line was not found or inserted')
 
 makefile_path.write_text('\n'.join(lines) + '\n')
 PY_PATCH
@@ -139,6 +297,9 @@ print_environment_summary() {
 	echo "Build jobs: ${BUILD_JOBS}"
 	echo "Template: ${MAKEFILE_TEMPLATE}"
 	echo "AOCL_FFTW_INCLUDE_DIR: ${AOCL_FFTW_INCLUDE_DIR:-unset}"
+	echo "AOCL_FFTW_LIB_DIR: ${AOCL_FFTW_LIB_DIR:-unset}"
+	echo "AOCL_BLAS_LIB: ${AOCL_BLAS_LIB:-unset}"
+	echo "AOCL_LAPACK_LIB: ${AOCL_LAPACK_LIB:-unset}"
 	echo "NVROOT: ${NVROOT:-unset}"
 	echo "NVIDIA_PATH: ${NVIDIA_PATH:-unset}"
 	echo "MPICH_GPU_SUPPORT_ENABLED: ${MPICH_GPU_SUPPORT_ENABLED:-unset}"
@@ -176,15 +337,13 @@ run_build() {
 	check_required_path "makefile" "VASP top-level makefile"
 	check_required_path "src" "VASP src directory"
 	check_required_path "${MAKEFILE_TEMPLATE}" "Polaris makefile.include template"
-	AOCL_FFTW_INCLUDE_DIR="$(find_existing_directory "AOCL FFTW include directory" \
-		"${AOCL_FFTW_INCLUDE_DIR:-}" \
-		"/soft/applications/vasp/aol-libs/3.2/amd-fftw/include" \
-		"/soft/applications/vasp/aol-libs/3.2/amd-fftw/include_LP64" \
-		"/soft/libraries/aocl/3.2.0/include_LP64" \
-		"/soft/libraries/aocl/3.2.0/include")" || die "Could not locate an AOCL FFTW include directory."
-	check_required_path "/soft/applications/vasp/aol-libs/3.2/amd-fftw/lib" "AOCL FFTW library directory"
-	check_required_path "/soft/applications/vasp/aol-libs/3.2/amd-blis/lib/LP64/libblis-mt.a" "AOCL BLIS LP64 library"
-	check_required_path "/soft/applications/vasp/aol-libs/3.2/amd-libflame/lib/LP64/libflame.a" "AOCL libFLAME LP64 library"
+	AOCL_FFTW_INCLUDE_DIR="$(find_fftw_include_directory)" || die "Could not locate an AOCL FFTW include directory."
+	AOCL_FFTW_LIB_DIR="$(find_fftw_library_directory)" || die "Could not locate an AOCL FFTW library directory."
+	AOCL_BLAS_LIB="$(find_blas_library)" || die "Could not locate an AOCL BLIS library."
+	AOCL_LAPACK_LIB="$(find_lapack_library)" || die "Could not locate an AOCL libFLAME library."
+	prepend_library_path "${AOCL_FFTW_LIB_DIR}"
+	prepend_library_path "$(dirname "${AOCL_BLAS_LIB}")"
+	prepend_library_path "$(dirname "${AOCL_LAPACK_LIB}")"
 
 	if [[ -f makefile.include ]]; then
 		cp -p makefile.include "makefile.include.backup.${TIMESTAMP}"
@@ -194,6 +353,9 @@ run_build() {
 	patch_makefile_include_for_detected_paths makefile.include
 	echo "Installed Polaris makefile.include from ${MAKEFILE_TEMPLATE}"
 	echo "Using AOCL FFTW include directory: ${AOCL_FFTW_INCLUDE_DIR}"
+	echo "Using AOCL FFTW library directory: ${AOCL_FFTW_LIB_DIR}"
+	echo "Using AOCL BLIS library: ${AOCL_BLAS_LIB}"
+	echo "Using AOCL libFLAME library: ${AOCL_LAPACK_LIB}"
 
 	print_environment_summary
 
