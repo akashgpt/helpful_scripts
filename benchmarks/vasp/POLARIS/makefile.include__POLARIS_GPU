@@ -1,0 +1,141 @@
+# =============================================================================
+# VASP 6.6.0 GPU makefile.include -- Polaris at ALCF
+# =============================================================================
+# Target hardware : NVIDIA A100 (cc80)
+# Compiler stack  : Cray compiler wrappers + NVHPC 25.5 OpenACC/OpenMP
+# MPI stack       : Cray MPICH through ftn
+# Math libs       : CUDA math libraries + AOCL BLIS/libFLAME/FFTW
+# HDF5            : disabled
+#
+# Based on:
+#   - ALCF Polaris VASP guide:
+#     https://docs.alcf.anl.gov/polaris/applications-and-libraries/applications/vasp/
+#   - Local Della/Stellar VASP 6.6.0 GPU makefiles in qmd/vasp/installation/
+#
+# Modules/environment to load before compiling AND running:
+#   module restore
+#   unset LD_PRELOAD
+#   module rm xalt
+#   module load cray-libsci
+#   module load nvidia/25.5
+#   export NVROOT=${NVIDIA_PATH}
+#   export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:${NVROOT}/cuda/lib64
+#   export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:${NVROOT}/compilers/extras/qd/lib
+#   export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:/soft/applications/vasp/aol-libs/3.2/amd-blis/lib/LP64
+#   export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:/soft/applications/vasp/aol-libs/3.2/amd-libflame/lib/LP64
+#   export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:/soft/applications/vasp/aol-libs/3.2/amd-fftw/lib
+#
+# Build command:
+#   cp makefile.include__POLARIS_GPU makefile.include
+#   make -j1
+#
+# Runtime note:
+#   export MPICH_GPU_SUPPORT_ENABLED=1
+#   Use the ALCF affinity wrapper, e.g. /soft/applications/vasp/affinity.sh,
+#   when launching with mpiexec on Polaris.
+# =============================================================================
+
+# --- Preprocessor options ---
+CPP_OPTIONS = -DHOST=\"LinuxNV_CrayMPICH\" \
+              -DMPI -DMPI_BLOCK=8000 -Duse_collective \
+              -DscaLAPACK \
+              -DCACHE_SIZE=4000 \
+              -Davoidalloc \
+              -Dvasp6 \
+              -Dtbdyn \
+              -Dqd_emulate \
+              -Dfock_dblbuf \
+              -DACC_OFFLOAD \
+              -D_OPENMP \
+              -D_OPENACC \
+              -DNVCUDA \
+              -DUSENCCL
+
+CPP         = nvfortran -Mpreprocess -Mfree -Mextend -E $(CPP_OPTIONS) $*$(FUFFIX) > $*$(SUFFIX)
+
+# --- GPU target: A100 = cc80 ---
+GPU        ?= -gpu=cc80
+
+# Polaris uses Cray wrappers. The ALCF guide also uses -target-accel=nvidia80.
+CC          = cc  -acc $(GPU) -mp -target-accel=nvidia80
+FC          = ftn -acc $(GPU) -mp -target-accel=nvidia80
+FCL         = ftn -acc $(GPU) -c++libs -target-accel=nvidia80
+
+FREE        = -Mfree
+
+FFLAGS      = -Mbackslash -Mlarge_arrays
+
+OFLAG       = -fast
+OFLAG_IN    = -fast -Mwarperf
+SOURCE_IN  := nonlr.o
+
+DEBUG       = -Mfree -O0 -traceback
+
+# --- CUDA math libraries ---
+CUDA        = -cudalib=cublas,cusolver,cufft,nccl -cuda
+
+# --- AOCL CPU math libraries used by the ALCF Polaris VASP recipe ---
+AOCL_ROOT   ?= /soft/applications/vasp/aol-libs/3.2
+BLAS        = $(AOCL_ROOT)/amd-blis/lib/LP64/libblis-mt.a
+LAPACK      = $(AOCL_ROOT)/amd-libflame/lib/LP64/libflame.a
+FFTW        = $(AOCL_ROOT)/amd-fftw
+
+# Cray LibSci is loaded by module, but the ALCF recipe leaves explicit ScaLAPACK
+# blank. Keep this override here so it can be enabled quickly if needed.
+BLACS       =
+SCALAPACK   =
+#SCALAPACK  = -Mscalapack
+#SCALAPACK  = /soft/libraries/aocl/3.2.0/lib/libscalapack.a
+
+LLIBS       = $(SCALAPACK) $(LAPACK) $(BLAS) $(CUDA)
+
+# --- NVHPC root (module normally sets NVIDIA_PATH; auto-detect as fallback) ---
+NVROOT     ?= $(shell which nvfortran | awk -F /compilers/bin/nvfortran '{ print $$1 }')
+
+# --- Quadruple precision emulation ---
+QD         ?= $(NVROOT)/compilers/extras/qd
+LLIBS      += -L$(QD)/lib -lqdmod -lqd -Wl,-rpath=$(QD)/lib
+INCS       += -I$(QD)/include/qd
+
+# --- NVHPC CUDA runtime path ---
+LLIBS      += -L$(NVROOT)/math_libs/lib64 -Wl,-rpath=$(NVROOT)/math_libs/lib64
+
+# --- FFTW from AOCL ---
+LLIBS      += -L$(FFTW)/lib -lfftw3 -lfftw3_omp -lomp
+INCS       += -I$(FFTW)/include
+
+# --- Redefine the standard list of O1 and O2 objects ---
+SOURCE_O1  := pade_fit.o minimax_dependence.o wave_window.o
+SOURCE_O2  := pead.o
+
+# --- Library compilers ---
+CPP_LIB     = $(CPP)
+FC_LIB      = nvfortran
+CC_LIB      = nvc -w
+CFLAGS_LIB  = -O
+FFLAGS_LIB  = -O1 -Mfixed
+FREE_LIB    = $(FREE)
+
+OBJECTS_LIB = linpack_double.o
+
+# --- Parser library ---
+CXX_PARS    = nvc++ --no_warnings
+
+# --- HDF5 (optional -- disabled) ---
+#CPP_OPTIONS += -DVASP_HDF5
+#HDF5_ROOT   ?= /path/to/your/hdf5/installation
+#LLIBS       += -L$(HDF5_ROOT)/lib -lhdf5_fortran
+#INCS        += -I$(HDF5_ROOT)/include
+
+# --- cusolvermp (optional -- disabled) ---
+#CPP_OPTIONS += -DCUSOLVERMP -DCUBLASMP
+#LLIBS       += -cudalib=cusolvermp,cublasmp -lnvhpcwrapcal
+
+# --- Wannier90 interface (optional -- disabled) ---
+#CPP_OPTIONS    += -DVASP2WANNIER90
+#WANNIER90_ROOT ?= /path/to/your/wannier90/installation
+#LLIBS          += -L$(WANNIER90_ROOT)/lib -lwannier
+
+# --- Normally no need to change these ---
+SRCDIR      = ../../src
+BINDIR      = ../../bin

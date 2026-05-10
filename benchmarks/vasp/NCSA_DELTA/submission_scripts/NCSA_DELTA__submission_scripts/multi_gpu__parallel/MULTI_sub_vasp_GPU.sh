@@ -44,6 +44,8 @@ if [[ $(hostname) == *"della"* ]] || [[ $(hostname) == *"stellar"* ]]; then
 	module load anaconda3/2025.12
 	conda activate ALCHEMY_env
 elif [[ $(hostname) == *"delta"* ]]; then
+	# Use the explicit HPC-X/OpenMPI build. A generic bin/vasp_std can point to
+	# the Cray-MPICH build on some installs, which is not safe for multi-GPU VASP.
 	VASP_BIN=/work/nvme/bguf/akashgpt/softwares/vasp/vasp.6.6.0.gpu/bin/vasp_std__NCSA_DELTA_GPU
 	module reset
 	module load nvhpc-hpcx-cuda12/25.3 intel-oneapi-mkl/2024.2.2 miniforge3-python

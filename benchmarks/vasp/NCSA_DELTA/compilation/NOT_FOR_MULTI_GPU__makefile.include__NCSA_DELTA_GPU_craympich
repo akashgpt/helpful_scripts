@@ -1,5 +1,8 @@
 # =============================================================================
 # VASP 6.6.0 GPU makefile.include — NCSA Delta RH9, Cray MPICH path
+# NOT FOR MULTI-GPU PRODUCTION:
+# This build works on 1 GPU but crashes on 2+ GPUs with CUDA illegal-address
+# failures in the VASP MPI layer. Keep it only as a diagnostic reference.
 # =============================================================================
 # Target hardware : NVIDIA A100-SXM4 on Delta GPU nodes (cc80)
 # Compiler stack  : PrgEnv-nvidia 8.6.0 + Cray MPICH 8.1.32 + CUDA 12.8

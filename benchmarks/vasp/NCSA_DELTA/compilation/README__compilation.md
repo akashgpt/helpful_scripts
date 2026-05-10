@@ -1,5 +1,17 @@
 # VASP 6.6.0 GPU Compilation on NCSA DELTA
 
+## Current Recommendation
+
+Use the explicitly named HPC-X/OpenMPI binary in scripts:
+
+```bash
+/work/nvme/bguf/akashgpt/softwares/vasp/vasp.6.6.0.gpu/bin/vasp_std__NCSA_DELTA_GPU
+```
+
+Do not rely on a generic `bin/vasp_std` path on Delta unless its checksum has
+been verified against `vasp_std__NCSA_DELTA_GPU`. A previous local default
+`bin/vasp_std` matched the Cray-MPICH build, which is unsafe for multi-GPU jobs.
+
 ## Working Build: HPC-X OpenMPI
 
 This is the build used in all successful benchmarks.
@@ -29,14 +41,14 @@ done
 
 ---
 
-## Broken Build: Cray MPICH (PrgEnv-nvidia)
+## Not For Multi-GPU: Cray MPICH (PrgEnv-nvidia)
 
 Built to test if Cray MPICH would fix multi-GPU scaling. **Crashes on 2+ GPUs** with
 `CUDA_ERROR_ILLEGAL_ADDRESS` in `m_sumb_d` (GPU-aware MPI + NCCL conflict).
 
-- **Makefile:** `makefile.include__NCSA_DELTA_GPU_craympich`
+- **Makefile:** `NOT_FOR_MULTI_GPU__makefile.include__NCSA_DELTA_GPU_craympich`
 - **Build dir:** `/work/nvme/bguf/akashgpt/softwares/vasp/vasp.6.6.0.gpu/build_delta_gpu_rh9_prgenv_nvidia_craympich/`
-- **Binary:** `vasp_std__NCSA_DELTA_GPU_craympich`
+- **Binary:** `NOT_FOR_MULTI_GPU__vasp_std__NCSA_DELTA_GPU_craympich` if archived under that name, or `vasp_std__NCSA_DELTA_GPU_craympich` in older local installs.
 - **Built:** 2026-04-05
 
 ### Modules
@@ -69,5 +81,5 @@ A "portable" build with different optimization flags. Not benchmarked.
 | Build | Binary suffix | 1 GPU | Multi-GPU | Recommended |
 |---|---|---|---|---|
 | HPC-X OpenMPI | `__NCSA_DELTA_GPU` | Working | Broken scaling (binding issue, not build issue) | **Yes** |
-| Cray MPICH | `__NCSA_DELTA_GPU_craympich` | Working | Crashes | No |
+| Cray MPICH | `__NCSA_DELTA_GPU_craympich` | Working | Crashes | No: keep only as `NOT_FOR_MULTI_GPU__*` reference |
 | HPC-X Portable | `__NCSA_DELTA_GPU_portable` | Untested | Untested | No |

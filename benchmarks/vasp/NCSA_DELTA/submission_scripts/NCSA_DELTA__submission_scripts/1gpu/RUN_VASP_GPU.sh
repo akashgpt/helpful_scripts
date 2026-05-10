@@ -2,6 +2,8 @@
 ## VASP 6.6.0 GPU -- NCSA DELTA -- 1 GPU (A100-SXM4 80 GB)
 ## Status: WORKING (elapsed ~1405 s on benchmark system)
 ## Build:  HPC-X OpenMPI (nvhpc-hpcx-cuda12/25.3)
+## Use the explicit __NCSA_DELTA_GPU binary. Do not replace this with a
+## generic bin/vasp_std unless it has been verified to match the HPC-X build.
 #SBATCH --account=bguf-delta-gpu
 #SBATCH --job-name=qmd_gpu
 #SBATCH --partition=gpuA100x4

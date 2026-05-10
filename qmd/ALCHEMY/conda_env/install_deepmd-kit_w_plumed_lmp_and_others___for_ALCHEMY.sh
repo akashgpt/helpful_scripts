@@ -69,6 +69,16 @@
 #   conda activate ALCHEMY_env
 #   export MPICH_GPU_SUPPORT_ENABLED=1  # helpful for multi-rank GPU runs
 #
+# Example setup for ALCF Polaris:
+#   module restore
+#   module switch PrgEnv-nvidia PrgEnv-gnu
+#   module use /soft/modulefiles
+#   module load cudatoolkit-standalone
+#   module load spack-pe-base cmake cray-fftw conda
+#   eval "$(conda shell.bash hook)"
+#   conda activate ALCHEMY_env
+#   export MPICH_GPU_SUPPORT_ENABLED=1
+#
 # LAMMPS e.g.:
 #   lmp -in <name of lammps input file>
 #
@@ -86,6 +96,10 @@ dir_w_plumed_patches="/projects/BURROWS/akashgpt/lammp*"
 deepmd_plmd_lmp_misc__folder_name="deepmd-kit_and_others__${conda_env_name}"
 conda_env="${conda_env_name}"
 lmp_exec_name="lmp"
+build_jobs=16
+mpi_cxx_compiler="mpicxx"
+deepmd_cmake_extra_args=()
+lammps_cmake_extra_args=()
 
 
 # send all output to log file
@@ -100,6 +114,183 @@ echo "deepmd_plmd_lmp_misc__folder_name: ${deepmd_plmd_lmp_misc__folder_name}"
 echo "conda_env: ${conda_env}"
 echo "lmp_exec_name: ${lmp_exec_name}"
 echo "====================="
+
+
+load_first_available_module() {
+	local module_name=""
+
+	for module_name in "$@"; do
+		if module load "${module_name}" >/dev/null 2>&1; then
+			echo "Loaded module: ${module_name}"
+			return 0
+		fi
+	done
+
+	echo "ERROR: Could not load any of these modules: $*" >&2
+	return 1
+}
+
+
+set_cuda_toolkit_root_from_environment() {
+	local cuda_root_candidate=""
+
+	if [[ -n "${CUDAToolkit_ROOT:-}" ]]; then
+		return 0
+	fi
+
+	for cuda_root_candidate in "${CUDA_HOME:-}" "${CUDATOOLKIT_HOME:-}" "${CUDA_PATH:-}" "${NVHPC_CUDA_HOME:-}"; do
+		if [[ -n "${cuda_root_candidate}" && -d "${cuda_root_candidate}" ]]; then
+			export CUDAToolkit_ROOT="${cuda_root_candidate}"
+			return 0
+		fi
+	done
+
+	return 0
+}
+
+
+resolve_cmake_command() {
+	if command -v cmake3 >/dev/null 2>&1; then
+		command -v cmake3
+		return 0
+	fi
+
+	if command -v cmake >/dev/null 2>&1; then
+		command -v cmake
+		return 0
+	fi
+
+	echo "ERROR: Neither cmake3 nor cmake was found in PATH." >&2
+	return 1
+}
+
+
+resolve_plumed_patch_glob() {
+	local patch_glob_candidate=""
+
+	if compgen -G "${dir_w_plumed_patches}" >/dev/null; then
+		return 0
+	fi
+
+	for patch_glob_candidate in \
+		"/lus/grand/projects/CoreCollapseModel/akashgpt/lammp*" \
+		"/projects/BURROWS/akashgpt/lammp*" \
+		"/projects/bguf/akashgpt/lammp*"; do
+		if compgen -G "${patch_glob_candidate}" >/dev/null; then
+			dir_w_plumed_patches="${patch_glob_candidate}"
+			echo "Using PLUMED patch glob: ${dir_w_plumed_patches}"
+			return 0
+		fi
+	done
+
+	echo "ERROR: Could not find PLUMED patch files matching: ${dir_w_plumed_patches}" >&2
+	return 1
+}
+
+
+debug_banner() {
+	local message="$1"
+
+	echo ""
+	echo "===================== ALCHEMY_INSTALL_DEBUG ====================="
+	echo "${message}"
+	echo "Date|Time: $(date)"
+	echo "PWD: $(pwd)"
+	echo "================================================================="
+}
+
+
+debug_command() {
+	local description="$1"
+	shift
+
+	echo ""
+	echo "ALCHEMY_INSTALL_DEBUG command: ${description}"
+	echo "ALCHEMY_INSTALL_DEBUG running: $*"
+	if "$@"; then
+		echo "ALCHEMY_INSTALL_DEBUG ok: ${description}"
+		return 0
+	fi
+
+	echo "ALCHEMY_INSTALL_DEBUG warning: ${description} failed with status $?. Continuing because this is diagnostic." >&2
+	return 0
+}
+
+
+require_command_available() {
+	local command_name="$1"
+
+	if ! command -v "${command_name}" >/dev/null 2>&1; then
+		echo "ERROR: Required command '${command_name}' not found." >&2
+		echo "ALCHEMY_INSTALL_DEBUG PATH=${PATH}" >&2
+		return 1
+	fi
+
+	echo "ALCHEMY_INSTALL_DEBUG command '${command_name}' -> $(command -v "${command_name}")"
+}
+
+
+require_path_exists() {
+	local path_to_check="$1"
+	local description="$2"
+
+	if [[ ! -e "${path_to_check}" ]]; then
+		echo "ERROR: Missing ${description}: ${path_to_check}" >&2
+		return 1
+	fi
+
+	echo "ALCHEMY_INSTALL_DEBUG found ${description}: ${path_to_check}"
+}
+
+
+debug_python_import() {
+	local module_name="$1"
+
+	require_command_available python || return 1
+	echo "ALCHEMY_INSTALL_DEBUG python import check: ${module_name}"
+	python -c "import importlib; module = importlib.import_module('${module_name}'); print('${module_name}', getattr(module, '__version__', 'version_unknown'))"
+}
+
+
+debug_snapshot() {
+	local label="$1"
+
+	debug_banner "Snapshot: ${label}"
+	echo "Hostname: $(hostname)"
+	echo "Shell: ${SHELL:-unknown}"
+	echo "User: ${USER:-unknown}"
+	echo "PATH: ${PATH}"
+	echo "LD_LIBRARY_PATH: ${LD_LIBRARY_PATH:-unset}"
+	echo "CONDA_PREFIX: ${CONDA_PREFIX:-unset}"
+	echo "CUDAToolkit_ROOT: ${CUDAToolkit_ROOT:-unset}"
+	echo "CUDA_HOME: ${CUDA_HOME:-unset}"
+	echo "MPI_CXX_COMPILER: ${MPI_CXX_COMPILER:-unset}"
+	echo "MPICH_GPU_SUPPORT_ENABLED: ${MPICH_GPU_SUPPORT_ENABLED:-unset}"
+	echo "CRAY_ACCEL_TARGET: ${CRAY_ACCEL_TARGET:-unset}"
+	echo "http_proxy: ${http_proxy:-unset}"
+	echo "https_proxy: ${https_proxy:-unset}"
+
+	if type module >/dev/null 2>&1; then
+		echo "Loaded modules:"
+		module list 2>&1 || true
+	fi
+
+	debug_command "disk usage for current directory" df -h .
+	debug_command "compiler version" "${MPI_CXX_COMPILER:-c++}" --version
+	debug_command "cmake version" "${cmake_cmd:-cmake}" --version
+	debug_command "conda info" conda info
+	debug_command "pip version" pip --version
+	debug_command "python version" python --version
+}
+
+
+debug_lammps_binary() {
+	local lammps_binary="$1"
+
+	require_path_exists "${lammps_binary}" "LAMMPS executable" || return 1
+	echo "ALCHEMY_INSTALL_DEBUG LAMMPS help smoke check: ${lammps_binary}"
+	"${lammps_binary}" -h | sed -n '1,80p'
+}
 
 
 # check if deepmd_plmd_lmp_misc__folder_name already exists and exit if so
@@ -145,6 +336,35 @@ elif [[ $(hostname) == *"delta"* ]]; then
     module load cudatoolkit/25.3_12.8
     module load fftw/3.3.10-gcc13.3.1
     module load miniforge3-python
+elif [[ $(hostname) == *"polaris"* ]]; then
+    module restore
+    echo "# ========================== #"
+    echo "Loading modules for ALCF Polaris"
+    echo "# ========================== #"
+
+    module switch PrgEnv-nvidia PrgEnv-gnu 2>/dev/null || module swap PrgEnv-nvidia PrgEnv-gnu 2>/dev/null || true
+    module use /soft/modulefiles
+    load_first_available_module cudatoolkit-standalone/12.9.1 cudatoolkit-standalone || return 1
+    load_first_available_module spack-pe-base || return 1
+    load_first_available_module cmake || return 1
+    load_first_available_module cray-fftw || return 1
+    load_first_available_module conda miniforge3-python || return 1
+    load_first_available_module apptainer || true
+
+    # Polaris compute nodes need the ALCF proxy for outbound downloads.
+    # These are harmless on login nodes and avoid git/pip/wget failures in
+    # interactive compute-node build jobs.
+    export http_proxy="${http_proxy:-http://proxy.alcf.anl.gov:3128}"
+    export https_proxy="${https_proxy:-http://proxy.alcf.anl.gov:3128}"
+    export HTTP_PROXY="${HTTP_PROXY:-${http_proxy}}"
+    export HTTPS_PROXY="${HTTPS_PROXY:-${https_proxy}}"
+
+    export MPICH_GPU_SUPPORT_ENABLED="${MPICH_GPU_SUPPORT_ENABLED:-1}"
+    export CRAY_ACCEL_TARGET="${CRAY_ACCEL_TARGET:-nvidia80}"
+    mpi_cxx_compiler="${MPI_CXX_COMPILER:-CC}"
+    build_jobs="${BUILD_JOBS:-8}"
+    deepmd_cmake_extra_args+=("-DCMAKE_CUDA_ARCHITECTURES=80")
+    lammps_cmake_extra_args+=("-DCMAKE_CUDA_ARCHITECTURES=80")
 elif [[ $(hostname) == *"tiger"* ]]; then
     echo "Run the following command for Tiger (no access to GPUs on Tiger):" 
     echo "module purge && module load anaconda3/2025.12 && conda create -n ALCHEMY_env -c conda-forge -y deepmd-kit lammps horovod ase parallel dpdata"
@@ -163,6 +383,24 @@ if command -v conda >/dev/null 2>&1; then
     eval "$(conda shell.bash hook)"
 fi
 
+cmake_cmd="$(resolve_cmake_command)" || return 1
+set_cuda_toolkit_root_from_environment
+
+cuda_cmake_args=()
+if [[ -n "${CUDAToolkit_ROOT:-}" ]]; then
+    cuda_cmake_args+=("-DCUDAToolkit_ROOT=${CUDAToolkit_ROOT}")
+fi
+
+export MPI_CXX_COMPILER="${mpi_cxx_compiler}"
+export CXX="${CXX:-${MPI_CXX_COMPILER}}"
+resolve_plumed_patch_glob || return 1
+require_command_available git || return 1
+require_command_available wget || return 1
+require_command_available tar || return 1
+require_command_available make || return 1
+require_command_available "${cmake_cmd}" || return 1
+require_command_available "${MPI_CXX_COMPILER}" || return 1
+
 
 
 # echo required modules
@@ -170,6 +408,13 @@ echo "====================="
 echo "Required modules"
 module list
 echo "====================="
+echo "cmake command: ${cmake_cmd}"
+echo "MPI C++ compiler wrapper: ${MPI_CXX_COMPILER}"
+echo "CUDAToolkit_ROOT: ${CUDAToolkit_ROOT:-not set}"
+echo "build_jobs: ${build_jobs}"
+echo "dir_w_plumed_patches: ${dir_w_plumed_patches}"
+echo "====================="
+debug_snapshot "after module and compiler setup"
 
 
 ## DeePMD-kit installation
@@ -186,6 +431,13 @@ cd $parent_dir
 
 conda create -y --name $conda_env python=3.11
 conda activate $conda_env
+conda config --env --add channels conda-forge 2>/dev/null || true
+conda config --env --set channel_priority strict 2>/dev/null || true
+conda config --env --set solver libmamba 2>/dev/null || true
+debug_snapshot "after conda env creation and activation"
+require_path_exists "${CONDA_PREFIX}" "active conda prefix" || return 1
+require_command_available python || return 1
+require_command_available pip || return 1
 pip install --upgrade pip
 
 # All installed libraries
@@ -226,6 +478,7 @@ echo "====================="
 echo "Installing TensorFlow"
 echo "====================="
 pip install --upgrade tensorflow --no-cache-dir
+debug_python_import tensorflow || return 1
 
 
 
@@ -254,6 +507,7 @@ cd $deepmd_source_dir
 export DP_VARIANT=cuda
 # export CUDAToolkit_ROOT=$CUDA_HOME
 pip install .
+debug_python_import deepmd || return 1
 
 # will possibly fail ^ in Della >> if so, do the following
 conda install -y -c conda-forge "dscribe==1.2.2"
@@ -265,10 +519,12 @@ cd $deepmd_source_dir/source
 mkdir build
 cd build
 
-cmake3 \
+"${cmake_cmd}" \
     -DUSE_TF_PYTHON_LIBS=TRUE \
     -DCMAKE_INSTALL_PREFIX=$CONDA_PREFIX \
     -DUSE_CUDA_TOOLKIT=TRUE \
+    "${cuda_cmake_args[@]}" \
+    "${deepmd_cmake_extra_args[@]}" \
     -DLAMMPS_SOURCE_ROOT="${deepmd_source_dir}/source/lammps-stable_2Aug2023_update3" \
     -DDP_USING_C_API=OFF \
     ..
@@ -291,7 +547,10 @@ cmake3 \
 #     -DDP_USING_C_API=OFF \
 #     ..
 
-make -j16 install && make lammps
+make -j"${build_jobs}" install && make -j"${build_jobs}" lammps
+require_path_exists "${deepmd_source_dir}/source/build/USER-DEEPMD" "DeePMD LAMMPS plugin directory" || return 1
+require_command_available dp || return 1
+debug_command "dp help after DeePMD build" dp -h
 
 echo ""
 ## PLUMED installation
@@ -306,11 +565,14 @@ cd plumed2-2.8.2
 # + Make sure to use cpp files that are compatible with the plumed2 version being used here
 # e.g.:
 # cp $AG_BURROWS/lammp*/* src/colvar/
+resolve_plumed_patch_glob || return 1
 cp $dir_w_plumed_patches/* src/colvar/
 # ==============================
 
-./configure --prefix=$CONDA_PREFIX --enable-modules=all CXX=mpicxx CXXFLAGS="-Ofast"
-make -j16 install
+./configure --prefix=$CONDA_PREFIX --enable-modules=all CXX="${MPI_CXX_COMPILER}" CXXFLAGS="-Ofast"
+make -j"${build_jobs}" install
+require_command_available plumed || return 1
+debug_command "plumed version after install" plumed --version
 
 
 # activate Plumed2 relevant env variables when conda env gets activated
@@ -318,12 +580,20 @@ make -j16 install
 
 
 # ==============================
+mkdir -p "${CONDA_PREFIX}/etc/conda/activate.d"
 cat << 'EOF' > "${CONDA_PREFIX}/etc/conda/activate.d/env_vars.sh"
 #!/bin/bash
 # Activate PLUMED environment variables and isolate from user site-packages
 
 # Prevent ~/.local/lib/pythonX.Y/site-packages from shadowing conda packages
 export PYTHONNOUSERSITE=1
+
+# Polaris/Cray MPICH runtime defaults. These are harmless on non-Polaris
+# hosts and useful for GPU-aware MPI runs launched through PBS/mpiexec.
+if [[ $(hostname) == *"polaris"* ]]; then
+    export MPICH_GPU_SUPPORT_ENABLED="${MPICH_GPU_SUPPORT_ENABLED:-1}"
+    export CRAY_ACCEL_TARGET="${CRAY_ACCEL_TARGET:-nvidia80}"
+fi
 
 # Set paths for PLUMED
 export libdir="$CONDA_PREFIX/lib"
@@ -389,10 +659,12 @@ cd build
 echo "include(${deepmd_source_dir}/source/lmp/builtin.cmake)" >> ../cmake/CMakeLists.txt
 
 # version 1 -- works but without multiple cores + uses gpu for deepmd
-cmake3 \
+"${cmake_cmd}" \
         -DCMAKE_INSTALL_PREFIX=$CONDA_PREFIX \
         -DCMAKE_INSTALL_PATH=${CONDA_PREFIX} \
-        -DCMAKE_CXX_COMPILER=mpicxx \
+        -DCMAKE_CXX_COMPILER="${MPI_CXX_COMPILER}" \
+        "${cuda_cmake_args[@]}" \
+        "${lammps_cmake_extra_args[@]}" \
         -DPKG_KSPACE=yes \
         -DPKG_RIGID=yes \
         -DPKG_MANYBODY=yes \
@@ -461,7 +733,8 @@ cmake3 \
 #         -DBUILD_SHARED_LIBS=yes \
 #         ../cmake
 
-make -j16 install  
+make -j"${build_jobs}" install  
+debug_lammps_binary "$PWD/lmp" || return 1
 
 
 
@@ -469,8 +742,10 @@ make -j16 install
 # Making a symbolic link to the lmp_mpi executable in the LAMMPS source directory. While this executable is technically
 # accessible from any conda environment since it's in ~/.local/bin, it's not guaranteed that the auxiliary packages will work.
 # ln -s $PWD/<name of the executable> ~/.local/bin/lmp_plmd # likely "lmp"
+mkdir -p "$HOME/.local/bin"
 rm -f ~/.local/bin/${lmp_exec_name}
 ln -s $PWD/lmp ~/.local/bin/${lmp_exec_name}
+require_path_exists "$HOME/.local/bin/${lmp_exec_name}" "LAMMPS symlink" || return 1
 
 
 ## Reinstall TensorFlow to fix clobbered dependencies
@@ -486,6 +761,14 @@ echo "====================="
 pip uninstall -y mxnet 2>/dev/null
 echo "INFO: Uninstalled mxnet (unused horovod backend, incompatible with numpy>=2)."
 pip install --upgrade --force-reinstall tensorflow --no-cache-dir
+debug_python_import tensorflow || return 1
+debug_python_import deepmd || return 1
+debug_python_import dpdata || return 1
+debug_python_import ase || return 1
+require_command_available dp || return 1
+require_command_available plumed || return 1
+debug_lammps_binary "$HOME/.local/bin/${lmp_exec_name}" || return 1
+debug_snapshot "final installation state"
 
 ## Horovod note
 # As of 2026-04, horovod 0.28.1 (latest release) cannot compile against TF 2.21
@@ -502,5 +785,5 @@ echo "====================="
 echo "Installation complete!"
 echo "Date|Time: $(date)"
 echo "====================="
-echo "REMINDER: Always add 'export PYTHONNOUSERSITE=1' to your sbatch scripts"
+echo "REMINDER: Always add 'export PYTHONNOUSERSITE=1' to your scheduler scripts"
 echo "          before running dp or lmp commands."
