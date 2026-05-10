@@ -38,6 +38,8 @@ prepend_library_path() {
 }
 
 load_polaris_modules() {
+	# Mirrors the ALCF Polaris VASP guide section
+	# "Setting up compiler and libraries with module".
 	echo "== Loading Polaris VASP GPU build environment =="
 
 	if ! command -v module >/dev/null 2>&1; then
@@ -76,6 +78,56 @@ check_required_path() {
 	echo "Found ${label}: ${path}"
 }
 
+find_existing_directory() {
+	local label="$1"
+	shift
+	local candidate=""
+
+	for candidate in "$@"; do
+		if [[ -d "${candidate}" ]]; then
+			echo "${candidate}"
+			return 0
+		fi
+	done
+
+	echo "ERROR: Could not find ${label}. Tried:" >&2
+	for candidate in "$@"; do
+		echo "  ${candidate}" >&2
+	done
+	return 1
+}
+
+patch_makefile_include_for_detected_paths() {
+	local makefile_path="$1"
+
+	python3 - "$makefile_path" "$AOCL_FFTW_INCLUDE_DIR" <<'PY_PATCH'
+from pathlib import Path
+import sys
+
+makefile_path = Path(sys.argv[1])
+fftw_include_dir = sys.argv[2]
+text = makefile_path.read_text()
+
+if 'FFTW_INCDIR ?=' not in text:
+	text = text.replace('FFTW        = $(AOCL_ROOT)/amd-fftw\n', 'FFTW        = $(AOCL_ROOT)/amd-fftw\nFFTW_INCDIR ?= $(FFTW)/include\n', 1)
+
+text = text.replace('INCS       += -I$(FFTW)/include', 'INCS       += -I$(FFTW_INCDIR)')
+
+lines = []
+replaced = False
+for line in text.splitlines():
+	if line.startswith('FFTW_INCDIR ?='):
+		lines.append(f'FFTW_INCDIR ?= {fftw_include_dir}')
+		replaced = True
+	else:
+		lines.append(line)
+if not replaced:
+	raise SystemExit('FFTW_INCDIR line was not found or inserted')
+
+makefile_path.write_text('\n'.join(lines) + '\n')
+PY_PATCH
+}
+
 print_environment_summary() {
 	echo
 	echo "== Build environment summary =="
@@ -86,6 +138,7 @@ print_environment_summary() {
 	echo "Build target: ${BUILD_TARGET}"
 	echo "Build jobs: ${BUILD_JOBS}"
 	echo "Template: ${MAKEFILE_TEMPLATE}"
+	echo "AOCL_FFTW_INCLUDE_DIR: ${AOCL_FFTW_INCLUDE_DIR:-unset}"
 	echo "NVROOT: ${NVROOT:-unset}"
 	echo "NVIDIA_PATH: ${NVIDIA_PATH:-unset}"
 	echo "MPICH_GPU_SUPPORT_ENABLED: ${MPICH_GPU_SUPPORT_ENABLED:-unset}"
@@ -123,7 +176,12 @@ run_build() {
 	check_required_path "makefile" "VASP top-level makefile"
 	check_required_path "src" "VASP src directory"
 	check_required_path "${MAKEFILE_TEMPLATE}" "Polaris makefile.include template"
-	check_required_path "/soft/applications/vasp/aol-libs/3.2/amd-fftw/include" "AOCL FFTW include directory"
+	AOCL_FFTW_INCLUDE_DIR="$(find_existing_directory "AOCL FFTW include directory" \
+		"${AOCL_FFTW_INCLUDE_DIR:-}" \
+		"/soft/applications/vasp/aol-libs/3.2/amd-fftw/include" \
+		"/soft/applications/vasp/aol-libs/3.2/amd-fftw/include_LP64" \
+		"/soft/libraries/aocl/3.2.0/include_LP64" \
+		"/soft/libraries/aocl/3.2.0/include")" || die "Could not locate an AOCL FFTW include directory."
 	check_required_path "/soft/applications/vasp/aol-libs/3.2/amd-fftw/lib" "AOCL FFTW library directory"
 	check_required_path "/soft/applications/vasp/aol-libs/3.2/amd-blis/lib/LP64/libblis-mt.a" "AOCL BLIS LP64 library"
 	check_required_path "/soft/applications/vasp/aol-libs/3.2/amd-libflame/lib/LP64/libflame.a" "AOCL libFLAME LP64 library"
@@ -133,7 +191,9 @@ run_build() {
 		echo "Backed up existing makefile.include -> makefile.include.backup.${TIMESTAMP}"
 	fi
 	cp "${MAKEFILE_TEMPLATE}" makefile.include
+	patch_makefile_include_for_detected_paths makefile.include
 	echo "Installed Polaris makefile.include from ${MAKEFILE_TEMPLATE}"
+	echo "Using AOCL FFTW include directory: ${AOCL_FFTW_INCLUDE_DIR}"
 
 	print_environment_summary
 
