@@ -363,29 +363,51 @@ shopt -s extglob     # enable extended glob patterns
 shopt -s checkwinsize # check window size after each command 
 
 if [ "$CLUSTER" == "POLARIS" ]; then
-  alias q='qstat -u $USER'
+  # PBS Pro job listing for the current user. ALCF recommends `qstat -was1`
+  # because it shows nodes, tasks, requested walltime, state, elapsed time,
+  # and scheduler comments in a compact one-line format.
+  alias q='qstat -was1 -u $USER'
+  # Full PBS job details for one or more job IDs, including comments and
+  # PBS_O_WORKDIR when available.
   alias qf='qstat -f'
+  # Delete queued or running PBS jobs.
   alias qd='qdel'
+  # Alter attributes of a queued PBS job, such as walltime or filesystems.
+  alias qa='qalter'
+  # Place or release a user hold on PBS jobs.
+  alias qh='qhold'
+  alias qr='qrls'
+  # Select PBS job IDs matching criteria; useful for piping into qstat/qdel.
+  alias qs='qselect'
+  # List PBS queues and queue-level status.
+  alias qqueues='qstat -Q'
+  # Keep the existing submit shortcut name, but map it to PBS qsub on POLARIS.
   alias sb='qsub'
-  alias sq='qstat -u $USER'
-  alias sqp='qstat -u $USER'
+  # Slurm-style names kept for muscle memory; on POLARIS they call PBS qstat.
+  alias sq='qstat -was1 -u $USER'
+  alias sqp='qstat -was1 -u $USER'
   alias fair='echo "Fairshare helper is Slurm-only; POLARIS uses PBS Pro."'
+  # PBS node status.
   alias node_health='pbsnodes -a'
 
+  # Show current user's PBS jobs in the same spirit as the Slurm sqpmy helper.
   sqpmy() {
-    qstat -u "$USER"
+    qstat -was1 -u "$USER"
   }
 
+  # Show current user's PBS jobs with scheduler-provided start-time estimates
+  # when PBS has that information available.
   sqpmy_eta() {
-    qstat -u "$USER"
+    qstat -was1 -T -u "$USER"
   }
 
+  # Summarize current user's PBS jobs by running vs queued/held/waiting state.
   busyness() {
     local qstat_output
     local jobs_running
     local jobs_pending
 
-    qstat_output=$(qstat -u "$USER" 2>/dev/null)
+    qstat_output=$(qstat -was1 -u "$USER" 2>/dev/null)
     jobs_running=$(echo "$qstat_output" | awk '$0 ~ /^[0-9]/ && $10 == "R" {count++} END {print count+0}')
     jobs_pending=$(echo "$qstat_output" | awk '$0 ~ /^[0-9]/ && ($10 == "Q" || $10 == "H" || $10 == "W") {count++} END {print count+0}')
 
@@ -397,6 +419,7 @@ if [ "$CLUSTER" == "POLARIS" ]; then
     echo ""
   }
 
+  # Show the submit working directory recorded in PBS_O_WORKDIR for job IDs.
   jobpath() {
     if [ $# -eq 0 ]; then
       echo "Usage: jobpath <jobid1> [jobid2 ...]"
@@ -826,7 +849,7 @@ elif [ "$CLUSTER" == "POLARIS" ]; then
   myjobs() {
   local qstat_output jobs_running jobs_pending total_jobs
 
-  qstat_output=$(qstat -u "$USER" 2>/dev/null)
+  qstat_output=$(qstat -was1 -u "$USER" 2>/dev/null)
   jobs_running=$(echo "$qstat_output" | awk '$0 ~ /^[0-9]/ && $10 == "R" {count++} END {print count+0}')
   jobs_pending=$(echo "$qstat_output" | awk '$0 ~ /^[0-9]/ && ($10 == "Q" || $10 == "H" || $10 == "W") {count++} END {print count+0}')
   total_jobs=$((jobs_running + jobs_pending))
