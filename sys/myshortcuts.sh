@@ -401,21 +401,51 @@ if [ "$CLUSTER" == "POLARIS" ]; then
     qstat -was1 -T -u "$USER"
   }
 
-  # Summarize current user's PBS jobs by running vs queued/held/waiting state.
+  # Summarize current user's PBS jobs by running vs queued state.
+  # Default excludes held/waiting jobs; use -a to include Q/H/W as pending.
   busyness() {
+    local include_all=0
+    if [ "${1:-}" == "-a" ]; then
+      include_all=1
+    elif [ -n "${1:-}" ]; then
+      echo "Usage: busyness [-a]"
+      echo "  default: count queued PBS jobs only"
+      echo "  -a:      include queued/held/waiting PBS jobs"
+      return 1
+    fi
+
     local qstat_output
     local jobs_running
+    local jobs_pending_all
+    local jobs_pending_filtered
     local jobs_pending
+    local jobs_excluded
 
     qstat_output=$(qstat -was1 -u "$USER" 2>/dev/null)
     jobs_running=$(echo "$qstat_output" | awk '$0 ~ /^[0-9]/ && $10 == "R" {count++} END {print count+0}')
-    jobs_pending=$(echo "$qstat_output" | awk '$0 ~ /^[0-9]/ && ($10 == "Q" || $10 == "H" || $10 == "W") {count++} END {print count+0}')
+    jobs_pending_all=$(echo "$qstat_output" | awk '$0 ~ /^[0-9]/ && ($10 == "Q" || $10 == "H" || $10 == "W") {count++} END {print count+0}')
+    jobs_pending_filtered=$(echo "$qstat_output" | awk '$0 ~ /^[0-9]/ && $10 == "Q" {count++} END {print count+0}')
+
+    if [ "$include_all" -eq 1 ]; then
+      jobs_pending=$jobs_pending_all
+    else
+      jobs_pending=$jobs_pending_filtered
+    fi
+    jobs_excluded=$((jobs_pending_all - jobs_pending_filtered))
 
     echo ""
     echo "PBS Pro jobs for $USER"
+    if [ "$include_all" -eq 1 ]; then
+      echo "mode: all queued/held/waiting jobs"
+    else
+      echo "mode: queued jobs only; use busyness -a to include held/waiting jobs"
+    fi
     echo ""
     echo "Running jobs: $jobs_running"
-    echo "Pending/held/waiting jobs: $jobs_pending"
+    echo "Pending jobs: $jobs_pending"
+    if [ "$include_all" -eq 0 ]; then
+      echo "Excluded held/waiting jobs: $jobs_excluded"
+    fi
     echo ""
   }
 
@@ -538,6 +568,7 @@ else
     echo "CPU busyness: $cpu_ratio ($cpu_running running, $cpu_pending pending)"
     echo "GPU busyness: $gpu_ratio ($gpu_running running, $gpu_pending pending)"
     if [ "$include_all" -eq 0 ]; then
+      echo ""
       echo "Excluded tagged pending: CPU $excluded_cpu_pending, GPU $excluded_gpu_pending, total $excluded_pending"
     fi
     echo ""
