@@ -91,6 +91,7 @@
 
 # =============================
 conda_env_name="ALCHEMY_env" # name of the conda environment to create and install everything in
+delete_existing_conda_env=0 # 0/no: reuse an existing conda env; 1/yes: delete and recreate it
 dir_w_plumed_patches="/projects/BURROWS/akashgpt/lammp*"
 # dir_w_plumed_patches="/projects/bguf/akashgpt/lammp*"
 asap_repo_url="https://github.com/akashgpt/ASAP.git" # patched ASAP (asaplib) for dscribe>=2.0 / NumPy 2.x; cloned same way as deepmd-kit
@@ -118,6 +119,7 @@ echo "Hostname: $(hostname)"
 echo "conda_env_name: ${conda_env_name}"
 echo "deepmd_plmd_lmp_misc__folder_name: ${deepmd_plmd_lmp_misc__folder_name}"
 echo "conda_env: ${conda_env}"
+echo "delete_existing_conda_env: ${delete_existing_conda_env}"
 echo "lmp_exec_name: ${lmp_exec_name}"
 echo "====================="
 
@@ -246,6 +248,13 @@ require_path_exists() {
 	fi
 
 	echo "ALCHEMY_INSTALL_DEBUG found ${description}: ${path_to_check}"
+}
+
+
+conda_environment_exists() {
+	local environment_name="$1"
+
+	conda env list | awk '{print $1}' | grep -Fxq "${environment_name}"
 }
 
 
@@ -432,10 +441,17 @@ cd ${deepmd_plmd_lmp_misc__folder_name}
 deepmd_source_dir=`pwd`
 cd $parent_dir
 
-# check if $conda_env already exists, and remove it if so
-# conda env -y remove -n $conda_env
-
-conda create -y --name $conda_env python=3.11
+if conda_environment_exists "${conda_env}"; then
+	if [[ "${delete_existing_conda_env}" -gt 0 ]]; then
+		echo "Existing conda environment '${conda_env}' found. Removing because delete_existing_conda_env=${delete_existing_conda_env}."
+		conda env remove -y --name "${conda_env}" || return 1
+		conda create -y --name "${conda_env}" python=3.11 || return 1
+	else
+		echo "Existing conda environment '${conda_env}' found. Reusing it because delete_existing_conda_env=${delete_existing_conda_env}."
+	fi
+else
+	conda create -y --name "${conda_env}" python=3.11 || return 1
+fi
 conda activate $conda_env
 conda config --env --add channels conda-forge 2>/dev/null || true
 conda config --env --set channel_priority strict 2>/dev/null || true
