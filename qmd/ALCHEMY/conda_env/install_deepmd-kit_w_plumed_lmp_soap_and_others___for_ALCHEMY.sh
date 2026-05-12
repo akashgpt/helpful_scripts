@@ -91,7 +91,7 @@
 
 # =============================
 conda_env_name="ALCHEMY_env" # name of the conda environment to create and install everything in
-delete_existing_conda_env=0 # 0/no: reuse an existing conda env; 1/yes: delete and recreate it
+del_existing_conda_env_and_dir=1 # 0/no: reuse an existing conda env; 1/yes: delete and recreate it
 dir_w_plumed_patches="/projects/BURROWS/akashgpt/lammp*"
 # dir_w_plumed_patches="/projects/bguf/akashgpt/lammp*"
 asap_repo_url="https://github.com/akashgpt/ASAP.git" # patched ASAP (asaplib) for dscribe>=2.0 / NumPy 2.x; cloned same way as deepmd-kit
@@ -119,7 +119,7 @@ echo "Hostname: $(hostname)"
 echo "conda_env_name: ${conda_env_name}"
 echo "deepmd_plmd_lmp_misc__folder_name: ${deepmd_plmd_lmp_misc__folder_name}"
 echo "conda_env: ${conda_env}"
-echo "delete_existing_conda_env: ${delete_existing_conda_env}"
+echo "del_existing_conda_env_and_dir: ${del_existing_conda_env_and_dir}"
 echo "lmp_exec_name: ${lmp_exec_name}"
 echo "====================="
 
@@ -310,9 +310,14 @@ debug_lammps_binary() {
 
 # check if deepmd_plmd_lmp_misc__folder_name already exists and exit if so
 if [ -d "$deepmd_plmd_lmp_misc__folder_name" ]; then
-    echo "Directory ${deepmd_plmd_lmp_misc__folder_name} already exists. Exiting..."
-    # end script with error without closing the respective terminal
-    return 1
+	if [[ "${del_existing_conda_env_and_dir}" -gt 0 ]]; then
+		echo "Directory ${deepmd_plmd_lmp_misc__folder_name} already exists. Removing because del_existing_conda_env_and_dir=${del_existing_conda_env_and_dir}."
+		rm -rf "${deepmd_plmd_lmp_misc__folder_name}" || return 1
+	else
+		echo "Directory ${deepmd_plmd_lmp_misc__folder_name} already exists. Exiting..."
+		# end script with error without closing the respective terminal
+		return 1
+	fi
 fi
 
 parent_dir=`pwd`
@@ -442,12 +447,12 @@ deepmd_source_dir=`pwd`
 cd $parent_dir
 
 if conda_environment_exists "${conda_env}"; then
-	if [[ "${delete_existing_conda_env}" -gt 0 ]]; then
-		echo "Existing conda environment '${conda_env}' found. Removing because delete_existing_conda_env=${delete_existing_conda_env}."
+	if [[ "${del_existing_conda_env_and_dir}" -gt 0 ]]; then
+		echo "Existing conda environment '${conda_env}' found. Removing because del_existing_conda_env_and_dir=${del_existing_conda_env_and_dir}."
 		conda env remove -y --name "${conda_env}" || return 1
 		conda create -y --name "${conda_env}" python=3.11 || return 1
 	else
-		echo "Existing conda environment '${conda_env}' found. Reusing it because delete_existing_conda_env=${delete_existing_conda_env}."
+		echo "Existing conda environment '${conda_env}' found. Reusing it because del_existing_conda_env_and_dir=${del_existing_conda_env_and_dir}."
 	fi
 else
 	conda create -y --name "${conda_env}" python=3.11 || return 1
