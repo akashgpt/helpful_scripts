@@ -113,6 +113,7 @@ lammps_cmake_extra_args=()
 exec > >(tee -i log.${deepmd_plmd_lmp_misc__folder_name})
 exec 2>&1
 
+echo ""
 echo "====================="
 echo "Date|Time: $(date)"
 echo "Hostname: $(hostname)"
