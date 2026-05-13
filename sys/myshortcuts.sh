@@ -46,25 +46,36 @@ echo "Sourcing myshortcuts.sh at $(date)"
 # BLOCK 1: Detect cluster name
 ##########################################
 start_block1=$(date +%s)
+# Some clusters use Cray Shasta-style hostnames on compute nodes (e.g. ALCF
+# Polaris compute: "xNNNNcNsNNbNnN") that do not contain the cluster's
+# marketing name. Build a bundle of host identifiers so the same match works
+# whether we are on a login node or a compute node:
+#   - hostname        : short name (login: "polaris-login-XX"; compute: "x3004...").
+#   - hostname -f     : FQDN, typically "<short>.<domain>.polaris.alcf.anl.gov" on Polaris compute.
+#   - $PBS_O_HOST     : set in PBS jobs to the submitting login node ("polaris-login-XX...").
+# All three are concatenated and pattern-matched; any one matching is enough.
+host_short="$(hostname 2>/dev/null || echo '')"
+host_fqdn="$(hostname -f 2>/dev/null || echo '')"
+host_id_bundle="${host_short} ${host_fqdn} ${PBS_O_HOST:-}"
 # check name of current cluster
-if [[ $(hostname) == *"della"* ]]; then
+if [[ "${host_id_bundle}" == *"della"* ]]; then
   export CLUSTER="DELLA"
-  echo "CLUSTER set to DELLA based on hostname $(hostname)"
-elif [[ $(hostname) == *"tiger"* ]]; then
+  echo "CLUSTER set to DELLA based on host identifiers: ${host_id_bundle}"
+elif [[ "${host_id_bundle}" == *"tiger"* ]]; then
   export CLUSTER="TIGER"
-  echo "CLUSTER set to TIGER based on hostname $(hostname)"
-elif [[ $(hostname) == *"stellar"* ]]; then
+  echo "CLUSTER set to TIGER based on host identifiers: ${host_id_bundle}"
+elif [[ "${host_id_bundle}" == *"stellar"* ]]; then
   export CLUSTER="STELLAR"
-  echo "CLUSTER set to STELLAR based on hostname $(hostname)"
-elif [[ $(hostname) == *"delta"* ]]; then
+  echo "CLUSTER set to STELLAR based on host identifiers: ${host_id_bundle}"
+elif [[ "${host_id_bundle}" == *"delta"* ]]; then
   export CLUSTER="NCSA_DELTA" # NCSA (via ACCESS)
-  echo "CLUSTER set to NCSA_DELTA based on hostname $(hostname)"
-elif [[ $(hostname) == *"polaris"* ]]; then
-  export CLUSTER="POLARIS" # ALCF
-  echo "CLUSTER set to POLARIS based on hostname $(hostname)"
+  echo "CLUSTER set to NCSA_DELTA based on host identifiers: ${host_id_bundle}"
+elif [[ "${host_id_bundle}" == *"polaris"* ]]; then
+  export CLUSTER="POLARIS" # ALCF (login or PBS compute node)
+  echo "CLUSTER set to POLARIS based on host identifiers: ${host_id_bundle}"
 else
   export CLUSTER="UNKNOWN"
-  echo "WARNING: Cluster name detection failed for hostname $(hostname). CLUSTER set to UNKNOWN."
+  echo "WARNING: Cluster name detection failed for host identifiers: ${host_id_bundle}. CLUSTER set to UNKNOWN."
 fi
 
 
