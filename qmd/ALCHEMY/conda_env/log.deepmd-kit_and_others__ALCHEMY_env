@@ -1,9 +1,10 @@
 =====================
-Date|Time: Tue May 12 09:04:52 PM UTC 2026
+Date|Time: Tue May 12 10:18:53 PM UTC 2026
 Hostname: polaris-login-01
 conda_env_name: ALCHEMY_env
 deepmd_plmd_lmp_misc__folder_name: deepmd-kit_and_others__ALCHEMY_env
 conda_env: ALCHEMY_env
+del_existing_conda_env_and_dir: 1
 lmp_exec_name: lmp
 =====================
 Running "module reset". Resetting modules to system default. The following $MODULEPATH directories have been removed: /opt/cray/pe/lmod/modulefiles/mpi/nvidia/20/ofi/1.0/cray-mpich/8.0
@@ -16,7 +17,6 @@ Loaded module: cmake
 Loaded module: cray-fftw
 Loaded module: conda
 Loaded module: apptainer
-Using PLUMED patch glob: /lus/grand/projects/CoreCollapseModel/akashgpt/softwares/lammps_patches*
 ALCHEMY_INSTALL_DEBUG command 'git' -> /usr/bin/git
 ALCHEMY_INSTALL_DEBUG command 'wget' -> /usr/bin/wget
 ALCHEMY_INSTALL_DEBUG command 'tar' -> /usr/bin/tar
@@ -44,12 +44,12 @@ cmake command: /soft/applications/conda/2025-09-25/mconda3/bin/cmake
 MPI C++ compiler wrapper: CC
 CUDAToolkit_ROOT: /soft/compilers/cudatoolkit/cuda-12.9.1/
 build_jobs: 8
-dir_w_plumed_patches: /lus/grand/projects/CoreCollapseModel/akashgpt/softwares/lammps_patches*
+dir_w_plumed_patches: /lus/grand/projects/CoreCollapseModel/akashgpt/softwares/lammp*
 =====================
 
 ===================== ALCHEMY_INSTALL_DEBUG =====================
 Snapshot: after module and compiler setup
-Date|Time: Tue May 12 09:05:00 PM UTC 2026
+Date|Time: Tue May 12 10:19:02 PM UTC 2026
 PWD: /lus/grand/projects/CoreCollapseModel/akashgpt/softwares/installing_MLMD_related_stuff
 =================================================================
 Hostname: polaris-login-01
@@ -155,11 +155,7 @@ ALCHEMY_INSTALL_DEBUG ok: python version
 Installing DeePMD-kit
 =====================
 Cloning into 'deepmd-kit_and_others__ALCHEMY_env'...
-Updating files:  21% (523/2415)
-Updating files:  22% (532/2415)
-Updating files:  23% (556/2415)
-Updating files:  24% (580/2415)
-Updating files:  25% (604/2415)
+Updating files:  25% (621/2415)
 Updating files:  26% (628/2415)
 Updating files:  27% (653/2415)
 Updating files:  28% (677/2415)
@@ -175,7 +171,6 @@ Updating files:  37% (894/2415)
 Updating files:  38% (918/2415)
 Updating files:  39% (942/2415)
 Updating files:  40% (966/2415)
-Updating files:  40% (979/2415)
 Updating files:  41% (991/2415)
 Updating files:  42% (1015/2415)
 Updating files:  43% (1039/2415)
@@ -196,13 +191,13 @@ Updating files:  57% (1377/2415)
 Updating files:  58% (1401/2415)
 Updating files:  59% (1425/2415)
 Updating files:  60% (1449/2415)
-Updating files:  60% (1471/2415)
 Updating files:  61% (1474/2415)
 Updating files:  62% (1498/2415)
 Updating files:  63% (1522/2415)
 Updating files:  64% (1546/2415)
 Updating files:  65% (1570/2415)
 Updating files:  66% (1594/2415)
+Updating files:  66% (1599/2415)
 Updating files:  67% (1619/2415)
 Updating files:  68% (1643/2415)
 Updating files:  69% (1667/2415)
@@ -214,7 +209,6 @@ Updating files:  74% (1788/2415)
 Updating files:  75% (1812/2415)
 Updating files:  76% (1836/2415)
 Updating files:  77% (1860/2415)
-Updating files:  77% (1863/2415)
 Updating files:  78% (1884/2415)
 Updating files:  79% (1908/2415)
 Updating files:  80% (1932/2415)
@@ -226,6 +220,7 @@ Updating files:  85% (2053/2415)
 Updating files:  86% (2077/2415)
 Updating files:  87% (2102/2415)
 Updating files:  88% (2126/2415)
+Updating files:  88% (2136/2415)
 Updating files:  89% (2150/2415)
 Updating files:  90% (2174/2415)
 Updating files:  91% (2198/2415)
@@ -237,16 +232,149 @@ Updating files:  96% (2319/2415)
 Updating files:  97% (2343/2415)
 Updating files:  98% (2367/2415)
 Updating files:  99% (2391/2415)
-Updating files:  99% (2404/2415)
 Updating files: 100% (2415/2415)
 Updating files: 100% (2415/2415), done.
-Retrieving notices: - \ done
+Existing conda environment 'ALCHEMY_env' found. Removing because del_existing_conda_env_and_dir=1.
+
+Remove all packages in environment /lus/grand/projects/CoreCollapseModel/akashgpt/softwares/conda_envs_dir_secondary/envs/ALCHEMY_env:
+
+
+## Package Plan ##
+
+  environment location: /lus/grand/projects/CoreCollapseModel/akashgpt/softwares/conda_envs_dir_secondary/envs/ALCHEMY_env
+
+
+The following packages will be REMOVED:
+
+  _openmp_mutex-4.5-20_gnu
+  ase-3.28.0-pyhd8ed1ab_1
+  aws-c-auth-0.10.1-ha62d5e7_3
+  aws-c-cal-0.9.13-h2c9d079_1
+  aws-c-common-0.12.6-hb03c661_0
+  aws-c-compression-0.3.2-h8b1a151_0
+  aws-c-http-0.10.13-h4bacb7b_0
+  aws-c-io-0.26.3-h692f434_1
+  aws-c-s3-0.12.2-he6ee468_1
+  aws-c-sdkutils-0.2.4-h8b1a151_4
+  aws-checksums-0.2.10-h8b1a151_0
+  bracex-2.2.1-pyhd8ed1ab_0
+  brotli-1.2.0-hed03a55_1
+  brotli-bin-1.2.0-hb03c661_1
+  bzip2-1.0.8-hda65f42_9
+  c-ares-1.34.6-hb03c661_0
+  ca-certificates-2026.4.22-hbd8a1cb_0
+  cached-property-1.5.2-hd8ed1ab_1
+  cached_property-1.5.2-pyha770c72_1
+  contourpy-1.3.3-py311h724c32c_4
+  cuda-nvrtc-13.2.78-hecca717_0
+  cuda-version-13.2-he2cc418_3
+  cudnn-9.22.0.52-h886f0b6_0
+  cycler-0.12.1-pyhcf101f3_2
+  cyrus-sasl-2.1.28-hac629b4_1
+  dpdata-1.0.2-pyhd8ed1ab_0
+  fftw-3.3.11-nompi_h3b011a4_100
+  fonttools-4.62.1-py311h3778330_0
+  freetype-2.14.3-ha770c72_0
+  gsl-2.8-hbf7d49c_1
+  h5py-3.16.0-nompi_py311hfef529e_102
+  hdf5-2.1.0-nompi_h87a9417_105
+  keyutils-1.6.3-hb9d3cd8_0
+  kiwisolver-1.5.0-py311h724c32c_0
+  krb5-1.22.2-ha1258a1_0
+  lcms2-2.19.1-h0c24ade_0
+  ld_impl_linux-64-2.45.1-default_hbd61a6d_102
+  lerc-4.1.0-hdb68285_0
+  libaec-1.1.5-h088129d_0
+  libblas-3.11.0-7_h4a7cf45_openblas
+  libbrotlicommon-1.2.0-hb03c661_1
+  libbrotlidec-1.2.0-hb03c661_1
+  libbrotlienc-1.2.0-hb03c661_1
+  libcblas-3.11.0-7_h0358290_openblas
+  libcublas-13.4.0.1-h676940d_0
+  libcudnn-9.22.0.52-ha4b6413_0
+  libcudnn-dev-9.22.0.52-h7bcfba5_0
+  libcurl-8.20.0-hcf29cc6_0
+  libdeflate-1.25-h17f619e_0
+  libedit-3.1.20250104-pl5321h7949ede_0
+  libev-4.33-hd590300_2
+  libexpat-2.8.0-hecca717_0
+  libffi-3.5.2-h3435931_0
+  libfreetype-2.14.3-ha770c72_0
+  libfreetype6-2.14.3-h73754d4_0
+  libgcc-15.2.0-he0feb66_19
+  libgcc-ng-15.2.0-h69a702a_19
+  libgfortran-15.2.0-h69a702a_19
+  libgfortran5-15.2.0-h68bc16d_19
+  libgomp-15.2.0-he0feb66_19
+  libjpeg-turbo-3.1.4.1-hb03c661_0
+  liblapack-3.11.0-7_h47877c9_openblas
+  liblzma-5.8.3-hb03c661_0
+  libnghttp2-1.68.1-h877daf1_0
+  libnsl-2.0.1-hb9d3cd8_1
+  libntlm-1.8-hb9d3cd8_0
+  libopenblas-0.3.33-pthreads_h94d23a6_0
+  libpng-1.6.58-h421ea60_0
+  libsqlite-3.53.1-h0c1763c_0
+  libssh2-1.11.1-hcf80075_0
+  libstdcxx-15.2.0-h934c35e_19
+  libstdcxx-ng-15.2.0-hdf11a46_19
+  libtiff-4.7.1-h9d88235_1
+  libuuid-2.42-h5347b49_0
+  libwebp-base-1.6.0-hd42ef1d_0
+  libxcb-1.17.0-h8a09558_0
+  libxcrypt-4.4.36-hd590300_1
+  libzlib-1.3.2-h25fd6f3_2
+  matplotlib-base-3.10.9-py311h0f3be63_0
+  monty-2026.2.18-pyhc364b38_1
+  msgpack-numpy-0.4.8-pyhcf101f3_2
+  msgpack-python-1.1.2-py311hdf67eae_1
+  munkres-1.1.4-pyhd8ed1ab_1
+  ncurses-6.6-hdb14827_0
+  numpy-2.4.3-py311h2e04523_0
+  openjpeg-2.5.4-h55fea9a_0
+  openldap-2.6.13-hbde042b_0
+  openssl-3.6.2-h35e630c_0
+  packaging-26.2-pyhc364b38_0
+  parallel-20260422-ha770c72_0
+  perl-5.32.1-7_hd590300_perl5
+  pillow-12.2.0-py311hf88fc01_0
+  pip-26.1.1-pyh8b19718_0
+  pthread-stubs-0.4-hb9d3cd8_1002
+  pyparsing-3.3.2-pyhcf101f3_0
+  python-3.11.15-hd63d673_0_cpython
+  python-dateutil-2.9.0.post0-pyhe01879c_2
+  python-lmdb-2.1.1-py311hc665b79_0
+  python_abi-3.11-8_cp311
+  qhull-2020.2-h434a139_5
+  readline-8.3-h853b02a_0
+  ruamel.yaml-0.19.1-pyhcf101f3_0
+  ruamel.yaml.clib-0.2.15-py311haee01d2_1
+  s2n-1.7.2-hc5a330e_1
+  scipy-1.17.1-py311hbe70eeb_0
+  setuptools-82.0.1-pyh332efcf_0
+  six-1.17.0-pyhe01879c_1
+  tk-8.6.13-noxft_h366c992_103
+  tzdata-2025c-hc9c84f9_1
+  unicodedata2-17.0.1-py311h49ec1c0_0
+  wcmatch-10.1-pyhd8ed1ab_0
+  wheel-0.47.0-pyhd8ed1ab_0
+  xorg-libxau-1.0.12-hb03c661_1
+  xorg-libxdmcp-1.1.5-hb03c661_1
+  zlib-ng-2.3.3-hceb46e0_1
+  zstd-1.5.7-hb78ec9c_6
+
+
+
+Downloading and Extracting Packages: ...working... done
+Preparing transaction: - done
+Verifying transaction: | / - \ | / done
+Executing transaction: \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ done
 Channels:
  - conda-forge
  - pytorch
 Platform: linux-64
-Collecting package metadata (repodata.json): / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - done
-Solving environment: | / done
+Collecting package metadata (repodata.json): - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ done
+Solving environment: / - done
 
 
 ==> WARNING: A newer version of conda exists. <==
@@ -299,9 +427,9 @@ The following NEW packages will be INSTALLED:
 
 
 Downloading and Extracting Packages: ...working... done
-Preparing transaction: \ | / - \ | / - \ done
-Verifying transaction: / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / done
-Executing transaction: \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - done
+Preparing transaction: | / - \ | / - \ done
+Verifying transaction: / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | done
+Executing transaction: - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / done
 #
 # To activate this environment, use
 #
@@ -314,7 +442,7 @@ Executing transaction: \ | / - \ | / - \ | / - \ | /
 
 ===================== ALCHEMY_INSTALL_DEBUG =====================
 Snapshot: after conda env creation and activation
-Date|Time: Tue May 12 09:07:11 PM UTC 2026
+Date|Time: Tue May 12 10:21:59 PM UTC 2026
 PWD: /lus/grand/projects/CoreCollapseModel/akashgpt/softwares/installing_MLMD_related_stuff
 =================================================================
 Hostname: polaris-login-01
@@ -425,8 +553,8 @@ Channels:
  - conda-forge
  - pytorch
 Platform: linux-64
-Collecting package metadata (repodata.json): - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | done
-Solving environment: - \ done
+Collecting package metadata (repodata.json): - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / done
+Solving environment: \ done
 
 
 ==> WARNING: A newer version of conda exists. <==
@@ -461,14 +589,14 @@ The following NEW packages will be INSTALLED:
 
 Downloading and Extracting Packages: ...working... done
 Preparing transaction: / done
-Verifying transaction: \ | / - done
-Executing transaction: | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ done
+Verifying transaction: \ | / - \ done
+Executing transaction: / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - done
 Channels:
  - conda-forge
  - pytorch
 Platform: linux-64
-Collecting package metadata (repodata.json): - \ | / - \ done
-Solving environment: / - done
+Collecting package metadata (repodata.json): - \ | / - done
+Solving environment: | / done
 
 
 ==> WARNING: A newer version of conda exists. <==
@@ -490,16 +618,6 @@ Please update conda by running
     - gsl
 
 
-The following packages will be downloaded:
-
-    package                    |            build
-    ---------------------------|-----------------
-    libblas-3.11.0             |7_h4a7cf45_openblas          18 KB  conda-forge
-    libcblas-3.11.0            |7_h0358290_openblas          18 KB  conda-forge
-    libopenblas-0.3.33         |pthreads_h94d23a6_0         5.7 MB  conda-forge
-    ------------------------------------------------------------
-                                           Total:         5.7 MB
-
 The following NEW packages will be INSTALLED:
 
   fftw               conda-forge/linux-64::fftw-3.3.11-nompi_h3b011a4_100 
@@ -512,47 +630,16 @@ The following NEW packages will be INSTALLED:
 
 
 
-Downloading and Extracting Packages: ...working...
-libopenblas-0.3.33   | 5.7 MB    |            |   0% 
-
-libblas-3.11.0       | 18 KB     |            |   0% [A
-
-
-libcblas-3.11.0      | 18 KB     |            |   0% [A[A
-libopenblas-0.3.33   | 5.7 MB    |            |   0% 
-
-libblas-3.11.0       | 18 KB     | ########7  |  88% [A
-
-libblas-3.11.0       | 18 KB     | ########## | 100% [A
-
-
-libcblas-3.11.0      | 18 KB     | ########7  |  88% [A[A
-
-
-libcblas-3.11.0      | 18 KB     | ########## | 100% [A[A
-libopenblas-0.3.33   | 5.7 MB    | ########## | 100% 
-
-libblas-3.11.0       | 18 KB     | ########## | 100% [A
-
-
-libcblas-3.11.0      | 18 KB     | ########## | 100% [A[A
-libopenblas-0.3.33   | 5.7 MB    | ########## | 100% 
-libopenblas-0.3.33   | 5.7 MB    | ########## | 100% 
-                                                     
-
-                                                     [A
-
-
-                                                     [A[A done
-Preparing transaction: | done
-Verifying transaction: - \ | / - \ | / - done
-Executing transaction: | / - \ | / - \ | / - \ | / - \ | / done
+Downloading and Extracting Packages: ...working... done
+Preparing transaction: \ done
+Verifying transaction: / - \ | / - \ | / done
+Executing transaction: \ | / - \ | / - \ | / - \ | / - \ done
 Channels:
  - conda-forge
  - pytorch
 Platform: linux-64
-Collecting package metadata (repodata.json): - \ | / - \ done
-Solving environment: / - done
+Collecting package metadata (repodata.json): - \ | / - done
+Solving environment: | done
 
 
 ==> WARNING: A newer version of conda exists. <==
@@ -586,9 +673,9 @@ The following NEW packages will be INSTALLED:
 
 
 Downloading and Extracting Packages: ...working... done
-Preparing transaction: | done
-Verifying transaction: - \ | / - \ | / - \ | / - \ | / - \ done
-Executing transaction: / - \ | / - \ | / - \ | / - \ | / done
+Preparing transaction: - done
+Verifying transaction: | / - \ | / - \ | / - \ | / - \ | / - done
+Executing transaction: | / - \ | / - \ | / - \ | / - \ done
 =======================
 Installing dpdata, ase, parallel, and other python packages
 =======================
@@ -596,8 +683,8 @@ Channels:
  - conda-forge
  - pytorch
 Platform: linux-64
-Collecting package metadata (repodata.json): - \ | / - \ done
-Solving environment: / - done
+Collecting package metadata (repodata.json): - \ | / - done
+Solving environment: | / done
 
 
 ==> WARNING: A newer version of conda exists. <==
@@ -617,14 +704,6 @@ Please update conda by running
   added / updated specs:
     - conda-forge::dpdata
 
-
-The following packages will be downloaded:
-
-    package                    |            build
-    ---------------------------|-----------------
-    liblapack-3.11.0           |7_h47877c9_openblas          18 KB  conda-forge
-    ------------------------------------------------------------
-                                           Total:          18 KB
 
 The following NEW packages will be INSTALLED:
 
@@ -664,22 +743,16 @@ The following NEW packages will be INSTALLED:
 
 
 
-Downloading and Extracting Packages: ...working...
-liblapack-3.11.0     | 18 KB     |            |   0% 
-liblapack-3.11.0     | 18 KB     | ########7  |  88% 
-liblapack-3.11.0     | 18 KB     | ########## | 100% 
-liblapack-3.11.0     | 18 KB     | ########## | 100% 
-                                                     
- done
-Preparing transaction: | / - \ done
-Verifying transaction: / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - done
-Executing transaction: | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ done
+Downloading and Extracting Packages: ...working... done
+Preparing transaction: \ | / - done
+Verifying transaction: | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - done
+Executing transaction: | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - done
 Channels:
  - conda-forge
  - pytorch
 Platform: linux-64
-Collecting package metadata (repodata.json): - \ | / - \ | / done
-Solving environment: \ | done
+Collecting package metadata (repodata.json): - \ | / - done
+Solving environment: | / done
 
 
 ==> WARNING: A newer version of conda exists. <==
@@ -744,9 +817,9 @@ The following NEW packages will be INSTALLED:
 
 
 Downloading and Extracting Packages: ...working... done
-Preparing transaction: - \ | / - \ | done
-Verifying transaction: - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | done
-Executing transaction: - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - done
+Preparing transaction: \ | / - \ | done
+Verifying transaction: - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - done
+Executing transaction: | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | done
 =====================
 Installing TensorFlow
 =====================
@@ -810,13 +883,13 @@ Collecting pygments<3.0.0,>=2.13.0 (from rich->keras>=3.12.0->tensorflow)
 Collecting mdurl~=0.1 (from markdown-it-py>=2.2.0->rich->keras>=3.12.0->tensorflow)
   Downloading mdurl-0.1.2-py3-none-any.whl.metadata (1.6 kB)
 Downloading tensorflow-2.21.0-cp311-cp311-manylinux_2_27_x86_64.whl (572.4 MB)
-   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 572.4/572.4 MB 289.9 MB/s  0:00:01
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 572.4/572.4 MB 194.9 MB/s  0:00:02
 Downloading grpcio-1.80.0-cp311-cp311-manylinux2014_x86_64.manylinux_2_17_x86_64.whl (6.8 MB)
-   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 6.8/6.8 MB 255.5 MB/s  0:00:00
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 6.8/6.8 MB 275.1 MB/s  0:00:00
 Downloading h5py-3.14.0-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (4.5 MB)
-   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 4.5/4.5 MB 242.8 MB/s  0:00:00
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 4.5/4.5 MB 346.8 MB/s  0:00:00
 Downloading ml_dtypes-0.5.4-cp311-cp311-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl (5.0 MB)
-   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 5.0/5.0 MB 230.6 MB/s  0:00:00
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 5.0/5.0 MB 208.7 MB/s  0:00:00
 Downloading protobuf-7.34.1-cp310-abi3-manylinux2014_x86_64.whl (324 kB)
 Downloading requests-2.34.0-py3-none-any.whl (73 kB)
 Downloading charset_normalizer-3.4.7-cp311-cp311-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (214 kB)
@@ -830,9 +903,9 @@ Downloading flatbuffers-25.12.19-py2.py3-none-any.whl (26 kB)
 Downloading gast-0.7.0-py3-none-any.whl (22 kB)
 Downloading google_pasta-0.2.0-py3-none-any.whl (57 kB)
 Downloading keras-3.14.1-py3-none-any.whl (1.6 MB)
-   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 1.6/1.6 MB 178.6 MB/s  0:00:00
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 1.6/1.6 MB 110.3 MB/s  0:00:00
 Downloading libclang-18.1.1-py2.py3-none-manylinux2010_x86_64.whl (24.5 MB)
-   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 24.5/24.5 MB 210.1 MB/s  0:00:00
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 24.5/24.5 MB 223.5 MB/s  0:00:00
 Downloading opt_einsum-3.4.0-py3-none-any.whl (71 kB)
 Downloading termcolor-3.3.0-py3-none-any.whl (7.7 kB)
 Downloading wrapt-2.1.2-cp311-cp311-manylinux1_x86_64.manylinux_2_28_x86_64.manylinux_2_5_x86_64.whl (114 kB)
@@ -840,7 +913,7 @@ Downloading namex-0.1.0-py3-none-any.whl (5.9 kB)
 Downloading optree-0.19.1-cp311-cp311-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl (447 kB)
 Downloading rich-15.0.0-py3-none-any.whl (310 kB)
 Downloading pygments-2.20.0-py3-none-any.whl (1.2 MB)
-   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 1.2/1.2 MB 413.4 MB/s  0:00:00
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 1.2/1.2 MB 215.3 MB/s  0:00:00
 Downloading markdown_it_py-4.2.0-py3-none-any.whl (91 kB)
 Downloading mdurl-0.1.2-py3-none-any.whl (10.0 kB)
 Installing collected packages: namex, libclang, flatbuffers, wrapt, urllib3, typing_extensions, termcolor, pygments, protobuf, opt_einsum, ml_dtypes, mdurl, idna, h5py, google_pasta, gast, charset_normalizer, certifi, absl-py, requests, optree, markdown-it-py, grpcio, astunparse, rich, keras, tensorflow
@@ -853,16 +926,8 @@ Successfully installed absl-py-2.4.0 astunparse-1.6.3 certifi-2026.4.22 charset_
 ALCHEMY_INSTALL_DEBUG command 'python' -> /lus/grand/projects/CoreCollapseModel/akashgpt/softwares/conda_envs_dir_secondary/envs/ALCHEMY_env/bin/python
 ALCHEMY_INSTALL_DEBUG python import check: tensorflow
 WARNING: All log messages before absl::InitializeLog() is called are written to STDERR
-I0000 00:00:1778620306.143926 1546802 cpu_feature_guard.cc:227] This TensorFlow binary is optimized to use available CPU instructions in performance-critical operations.
+I0000 00:00:1778624782.880313 2053969 cpu_feature_guard.cc:227] This TensorFlow binary is optimized to use available CPU instructions in performance-critical operations.
 To enable the following instructions: AVX2 FMA, in other operations, rebuild TensorFlow with the appropriate compiler flags.
-OpenBLAS blas_thread_init: pthread_create failed for thread 29 of 128: Resource temporarily unavailable
-OpenBLAS blas_thread_init: ensure that your address space and process count limits are big enough (ulimit -a)
-OpenBLAS blas_thread_init: or set a smaller OPENBLAS_NUM_THREADS to fit into what you have available
-OpenBLAS blas_thread_init: RLIMIT_NPROC 2060434 current, 2060434 max
-OpenBLAS blas_thread_init: pthread_create failed for thread 30 of 128: Resource temporarily unavailable
-OpenBLAS blas_thread_init: ensure that your address space and process count limits are big enough (ulimit -a)
-OpenBLAS blas_thread_init: or set a smaller OPENBLAS_NUM_THREADS to fit into what you have available
-OpenBLAS blas_thread_init: RLIMIT_NPROC 2060434 current, 2060434 max
 OpenBLAS blas_thread_init: pthread_create failed for thread 31 of 128: Resource temporarily unavailable
 OpenBLAS blas_thread_init: ensure that your address space and process count limits are big enough (ulimit -a)
 OpenBLAS blas_thread_init: or set a smaller OPENBLAS_NUM_THREADS to fit into what you have available

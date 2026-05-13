@@ -99,6 +99,16 @@ asap_branch="ALCHEMY"
 # =============================
 
 
+# Keep Python scientific packages from over-threading on login/build nodes.
+# This must happen before the first TensorFlow/NumPy import smoke test.
+export OPENBLAS_NUM_THREADS="${OPENBLAS_NUM_THREADS:-1}"
+export OMP_NUM_THREADS="${OMP_NUM_THREADS:-1}"
+export MKL_NUM_THREADS="${MKL_NUM_THREADS:-1}"
+export NUMEXPR_NUM_THREADS="${NUMEXPR_NUM_THREADS:-1}"
+export TF_NUM_INTRAOP_THREADS="${TF_NUM_INTRAOP_THREADS:-1}"
+export TF_NUM_INTEROP_THREADS="${TF_NUM_INTEROP_THREADS:-1}"
+export PYTHONNOUSERSITE="${PYTHONNOUSERSITE:-1}"
+
 
 deepmd_plmd_lmp_misc__folder_name="deepmd-kit_and_others__${conda_env_name}"
 conda_env="${conda_env_name}"
@@ -122,6 +132,13 @@ echo "deepmd_plmd_lmp_misc__folder_name: ${deepmd_plmd_lmp_misc__folder_name}"
 echo "conda_env: ${conda_env}"
 echo "del_existing_conda_env_and_dir: ${del_existing_conda_env_and_dir}"
 echo "lmp_exec_name: ${lmp_exec_name}"
+echo "OPENBLAS_NUM_THREADS: ${OPENBLAS_NUM_THREADS}"
+echo "OMP_NUM_THREADS: ${OMP_NUM_THREADS}"
+echo "MKL_NUM_THREADS: ${MKL_NUM_THREADS}"
+echo "NUMEXPR_NUM_THREADS: ${NUMEXPR_NUM_THREADS}"
+echo "TF_NUM_INTRAOP_THREADS: ${TF_NUM_INTRAOP_THREADS}"
+echo "TF_NUM_INTEROP_THREADS: ${TF_NUM_INTEROP_THREADS}"
+echo "PYTHONNOUSERSITE: ${PYTHONNOUSERSITE}"
 echo "====================="
 
 
@@ -297,6 +314,21 @@ debug_snapshot() {
 	debug_command "conda info" conda info
 	debug_command "pip version" pip --version
 	debug_command "python version" python --version
+	# Per-user task/process quota for this login session (cgroup v2 first, then v1).
+	# Records the actual upper bound that triggered prior OpenBLAS pthread_create
+	# EAGAIN failures on ALCF Polaris login nodes.
+	debug_command "user cgroup pids.max" bash -c '
+		for f in \
+			/sys/fs/cgroup/user.slice/user-$(id -u).slice/pids.max \
+			/sys/fs/cgroup/pids/user.slice/user-$(id -u).slice/pids.max; do
+			if [[ -r "$f" ]]; then
+				echo "$f: $(cat "$f")"
+				exit 0
+			fi
+		done
+		echo "user cgroup pids.max: not readable"
+	'
+	debug_command "ulimit -a" bash -c "ulimit -a"
 }
 
 
@@ -505,7 +537,7 @@ conda install -y -c conda-forge ase parallel
 echo "====================="
 echo "Installing TensorFlow"
 echo "====================="
-pip install --upgrade tensorflow --no-cache-dir
+pip install --upgrade tensorflow --no-cache-dir || return 1
 debug_python_import tensorflow || return 1
 
 
@@ -813,7 +845,7 @@ echo "====================="
 # install prevents pip from printing a spurious dependency conflict warning.
 pip uninstall -y mxnet 2>/dev/null
 echo "INFO: Uninstalled mxnet (unused horovod backend, incompatible with numpy>=2)."
-pip install --upgrade --force-reinstall tensorflow --no-cache-dir
+pip install --upgrade --force-reinstall tensorflow --no-cache-dir || return 1
 debug_python_import tensorflow || return 1
 debug_python_import deepmd || return 1
 debug_python_import dpdata || return 1
