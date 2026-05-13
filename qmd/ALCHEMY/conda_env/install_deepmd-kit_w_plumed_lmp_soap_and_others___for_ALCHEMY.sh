@@ -94,19 +94,23 @@ conda_env_name="ALCHEMY_env" # name of the conda environment to create and insta
 del_existing_conda_env_and_dir=1 # 0/no: reuse an existing conda env; 1/yes: delete and recreate it
 dir_w_plumed_patches="/projects/BURROWS/akashgpt/lammp*"
 # dir_w_plumed_patches="/projects/bguf/akashgpt/lammp*"
+# dir_w_plumed_patches="/lus/grand/projects/CoreCollapseModel/akashgpt/softwares/lammp*"
 asap_repo_url="https://github.com/akashgpt/ASAP.git" # patched ASAP (asaplib) for dscribe>=2.0 / NumPy 2.x; cloned same way as deepmd-kit
 asap_branch="ALCHEMY"
 # =============================
 
 
-# Keep Python scientific packages from over-threading on login/build nodes.
-# This must happen before the first TensorFlow/NumPy import smoke test.
-export OPENBLAS_NUM_THREADS="${OPENBLAS_NUM_THREADS:-1}"
-export OMP_NUM_THREADS="${OMP_NUM_THREADS:-1}"
-export MKL_NUM_THREADS="${MKL_NUM_THREADS:-1}"
-export NUMEXPR_NUM_THREADS="${NUMEXPR_NUM_THREADS:-1}"
-export TF_NUM_INTRAOP_THREADS="${TF_NUM_INTRAOP_THREADS:-1}"
-export TF_NUM_INTEROP_THREADS="${TF_NUM_INTEROP_THREADS:-1}"
+# Force BLAS / OMP thread caps to 1 for the entire install. PBS interactive
+# sessions on Polaris (and similar) export OMP_NUM_THREADS to the core count,
+# which would (a) cause OpenBLAS thread-spawn storms during TF/NumPy import
+# smoke tests on login nodes and (b) silently override our intended caps.
+# Using bare "=1" (not "${VAR:-1}") makes the cap unambiguous in the log.
+export OPENBLAS_NUM_THREADS=1
+export OMP_NUM_THREADS=1
+export MKL_NUM_THREADS=1
+export NUMEXPR_NUM_THREADS=1
+export TF_NUM_INTRAOP_THREADS=1
+export TF_NUM_INTEROP_THREADS=1
 export PYTHONNOUSERSITE="${PYTHONNOUSERSITE:-1}"
 
 
@@ -226,6 +230,40 @@ debug_banner() {
 }
 
 
+fail_build() {
+	# Surface a clear failure banner with diagnostic context when a build step
+	# fails. Always returns the supplied non-zero exit code so callers can
+	# pipe via:
+	#     <build cmd> || { fail_build "<label>" $?; return 1; }
+	local label="$1"
+	local rc="${2:-1}"
+	local build_log=""
+
+	echo ""
+	echo "######################################################################"
+	echo "BUILD FAILURE: ${label} (rc=${rc})"
+	echo "######################################################################"
+	echo "Date|Time:         $(date)"
+	echo "PWD:               $(pwd)"
+	echo "Host identifiers:  ${host_id_bundle:-(not set)}"
+	echo "CUDA toolkit:      ${CUDAToolkit_ROOT:-unset}"
+	echo "Conda prefix:      ${CONDA_PREFIX:-unset}"
+	echo "Full install log:  ${parent_dir:-(unknown)}/log.${deepmd_plmd_lmp_misc__folder_name:-(unknown)}"
+	for build_log in \
+		CMakeOutput.log \
+		CMakeError.log \
+		CMakeFiles/CMakeOutput.log \
+		CMakeFiles/CMakeError.log \
+		config.log; do
+		if [[ -r "${build_log}" ]]; then
+			echo "Build artefact:    $(pwd)/${build_log}"
+		fi
+	done
+	echo "######################################################################"
+	return "${rc}"
+}
+
+
 debug_command() {
 	local description="$1"
 	shift
@@ -277,11 +315,15 @@ conda_environment_exists() {
 
 
 debug_python_import() {
+	# Run from a neutral cwd so Python does not shadow the installed package
+	# with a same-named source-tree subdirectory (e.g. an incomplete deepmd/
+	# left behind by a failed `pip install .` would otherwise be imported
+	# and produce misleading "No module named 'deepmd._version'" errors).
 	local module_name="$1"
 
 	require_command_available python || return 1
 	echo "ALCHEMY_INSTALL_DEBUG python import check: ${module_name}"
-	python -c "import importlib; module = importlib.import_module('${module_name}'); print('${module_name}', getattr(module, '__version__', 'version_unknown'))"
+	( cd /tmp && python -c "import importlib; module = importlib.import_module('${module_name}'); print('${module_name}', getattr(module, '__version__', 'version_unknown'))" )
 }
 
 
@@ -314,6 +356,34 @@ debug_snapshot() {
 	debug_command "conda info" conda info
 	debug_command "pip version" pip --version
 	debug_command "python version" python --version
+	# CUDA toolkit + CCCL/Thrust headers. Mismatches here (e.g. CUDA 12.9 CCCL
+	# 2.x macros incompatible with DeePMD-kit's nvcc invocations) are the most
+	# common reason the deepmd-kit wheel build fails on Polaris-class nodes.
+	debug_command "nvcc version" bash -c '
+		nvcc_bin="${CUDAToolkit_ROOT:-${CUDA_HOME:-/usr}}/bin/nvcc"
+		if [[ -x "${nvcc_bin}" ]]; then
+			"${nvcc_bin}" --version
+		elif command -v nvcc >/dev/null 2>&1; then
+			nvcc --version
+		else
+			echo "nvcc not found"
+		fi
+	'
+	debug_command "CCCL / Thrust header versions" bash -c '
+		root="${CUDAToolkit_ROOT:-${CUDA_HOME:-/usr}}"
+		printed=0
+		for f in \
+			"${root}/include/cub/version.cuh" \
+			"${root}/include/thrust/version.h" \
+			"${root}/include/cuda/std/__cccl/version.h"; do
+			if [[ -r "$f" ]]; then
+				echo "--- $f ---"
+				grep -E "CCCL_VERSION|CUB_VERSION|THRUST_VERSION" "$f" || true
+				printed=1
+			fi
+		done
+		[[ "$printed" = 0 ]] && echo "No CCCL/Thrust headers found under ${root}/include/"
+	'
 	# Per-user task/process quota for this login session (cgroup v2 first, then v1).
 	# Records the actual upper bound that triggered prior OpenBLAS pthread_create
 	# EAGAIN failures on ALCF Polaris login nodes.
@@ -408,7 +478,37 @@ elif [[ "${host_id_bundle}" == *"polaris"* ]]; then
 
     module switch PrgEnv-nvidia PrgEnv-gnu 2>/dev/null || module swap PrgEnv-nvidia PrgEnv-gnu 2>/dev/null || true
     module use /soft/modulefiles
-    load_first_available_module cudatoolkit-standalone/12.9.1 cudatoolkit-standalone || return 1
+    # CUDA toolkit fallback order on Polaris.
+    #
+    # Background: DeePMD-kit 3.x's CUDA sources do not compile against CCCL 2.x
+    # macros (the "_CCCL_PP_SPLICE_WITH_IMPL1 passed 3 arguments, but takes
+    # just 2" build failure observed on this cluster with 12.9.1).
+    #
+    # Polaris toolkit inventory (probed 2026-05):
+    #   - 11.8.0 .. 12.4.1  : NO cuda/std/__cccl/version.h header (pre-CCCL-2)
+    #                         => safe for DeePMD-kit nvcc compiles.
+    #   - 12.5.0 .. 12.6.3  : CCCL bundled, version uncertain; *may* work.
+    #   - 12.8.x and newer  : CCCL 2.x macros confirmed-broken w/ DeePMD-kit.
+    #
+    # Fallback order: prefer the newest pre-CCCL-2 release first, fall through
+    # to older pre-CCCL releases, then optimistically try the 12.5/12.6 line,
+    # and only as a last resort accept a known-broken toolkit (so the operator
+    # at least gets a clean build-failure banner pointing at the CUDA pin).
+    load_first_available_module \
+        cudatoolkit-standalone/12.4.1 \
+        cudatoolkit-standalone/12.4.0 \
+        cudatoolkit-standalone/12.3.2 \
+        cudatoolkit-standalone/12.2.2 \
+        cudatoolkit-standalone/11.8.0 \
+        cudatoolkit-standalone/12.6.3 \
+        cudatoolkit-standalone/12.6.2 \
+        cudatoolkit-standalone/12.6.1 \
+        cudatoolkit-standalone/12.6.0 \
+        cudatoolkit-standalone/12.5.0 \
+        cudatoolkit-standalone/12.8.1 \
+        cudatoolkit-standalone/12.8.0 \
+        cudatoolkit-standalone/12.9.1 \
+        cudatoolkit-standalone || return 1
     load_first_available_module spack-pe-base || return 1
     load_first_available_module cmake || return 1
     load_first_available_module cray-fftw || return 1
@@ -509,7 +609,7 @@ debug_snapshot "after conda env creation and activation"
 require_path_exists "${CONDA_PREFIX}" "active conda prefix" || return 1
 require_command_available python || return 1
 require_command_available pip || return 1
-pip install --upgrade pip
+pip install --upgrade pip || { fail_build "pip self-upgrade" $?; return 1; }
 
 # All installed libraries
 # conda install -y -c conda-forge cuda-toolkit
@@ -564,20 +664,48 @@ echo "====================="
 exec 3>&1
 # Redirect stdout to /dev/null to stop output to the terminal
 exec 1>/dev/null
-# download LAMMPS
-wget https://github.com/lammps/lammps/archive/stable_2Aug2023_update3.tar.gz
-tar -zxvf stable_2Aug2023_update3.tar.gz
-# download PLUMED2
-wget https://github.com/plumed/plumed2/archive/refs/tags/v2.8.2.tar.gz
-tar -zxvf v2.8.2.tar.gz
+# download + extract LAMMPS and PLUMED. Capture rcs so we can restore stdout
+# (via FD 3) before reporting any failure -- otherwise the fail_build banner
+# would itself be redirected to /dev/null.
+wget https://github.com/lammps/lammps/archive/stable_2Aug2023_update3.tar.gz && \
+    tar -zxvf stable_2Aug2023_update3.tar.gz
+lammps_dl_rc=$?
+wget https://github.com/plumed/plumed2/archive/refs/tags/v2.8.2.tar.gz && \
+    tar -zxvf v2.8.2.tar.gz
+plumed_dl_rc=$?
 # Restore stdout from FD 3 to resume output to the terminal
 exec 1>&3
+if [[ "${lammps_dl_rc}" -ne 0 ]]; then
+    fail_build "LAMMPS download/extract" "${lammps_dl_rc}"
+    return 1
+fi
+if [[ "${plumed_dl_rc}" -ne 0 ]]; then
+    fail_build "PLUMED download/extract" "${plumed_dl_rc}"
+    return 1
+fi
 
 
 cd $deepmd_source_dir
 export DP_VARIANT=cuda
 # export CUDAToolkit_ROOT=$CUDA_HOME
-pip install .
+
+# `pip install .` runs DeePMD-kit's scikit-build (or scikit-build-core) backend,
+# which performs its OWN internal cmake configure step. That step does not see
+# our deepmd_cmake_extra_args / cuda_cmake_args arrays, so pins like
+# -DCMAKE_CUDA_ARCHITECTURES=80 and -DCUDAToolkit_ROOT=... would be silently
+# dropped from the Python C-extension build (.so files under deepmd/lib/).
+# CMAKE_ARGS is the env var honored by both scikit-build flavors, so we
+# forward the same args via it. The explicit cmake invocation later (for the
+# C++ libdeepmd_op_cuda + LAMMPS USER-DEEPMD plugin) keeps using the arrays
+# directly; this just plugs the gap for the pip-install path.
+_deepmd_pip_cmake_args=("${cuda_cmake_args[@]}" "${deepmd_cmake_extra_args[@]}")
+if [[ ${#_deepmd_pip_cmake_args[@]} -gt 0 ]]; then
+    export CMAKE_ARGS="${_deepmd_pip_cmake_args[*]}${CMAKE_ARGS:+ ${CMAKE_ARGS}}"
+    echo "Forwarding to scikit-build via CMAKE_ARGS: ${CMAKE_ARGS}"
+fi
+unset _deepmd_pip_cmake_args
+
+pip install . || { fail_build "DeePMD-kit pip install (1st)" $?; return 1; }
 debug_python_import deepmd || return 1
 
 # will possibly fail ^ in Della >> if so, do the following
@@ -586,7 +714,7 @@ debug_python_import deepmd || return 1
 conda install -y -c conda-forge "dscribe>=2.0,<3"
 conda install -y -c conda-forge "click>=7.0"
 conda install -y -c conda-forge scipy scikit-learn ase umap-learn pyyaml tqdm pandas
-pip install .
+pip install . || { fail_build "DeePMD-kit pip install (2nd, after conda installs)" $?; return 1; }
 
 ## ASAP (asaplib) installation
 # Clone the patched ASAP (akashgpt/ASAP, branch ALCHEMY -- modernized for
@@ -606,7 +734,8 @@ else
     git clone --branch "${asap_branch}" --single-branch "${asap_repo_url}" "${asap_source_dir}"
 fi
 require_path_exists "${asap_source_dir}/setup.py" "ASAP source tree" || return 1
-python -m pip install --no-deps "${asap_source_dir}"
+python -m pip install --no-deps "${asap_source_dir}" \
+    || { fail_build "ASAP (asaplib) pip install" $?; return 1; }
 debug_python_import asaplib || return 1
 require_command_available asap || return 1
 debug_command "asap CLI smoke test" asap --help
@@ -623,7 +752,7 @@ cd build
     "${deepmd_cmake_extra_args[@]}" \
     -DLAMMPS_SOURCE_ROOT="${deepmd_source_dir}/source/lammps-stable_2Aug2023_update3" \
     -DDP_USING_C_API=OFF \
-    ..
+    .. || { fail_build "DeePMD-kit cmake configure" $?; return 1; }
 
 # ^ cmake command might have issues finding python on Della; 
 # if so, edit the shebang (first line) at /home/ag5805/.local/bin/cmake 
@@ -643,7 +772,8 @@ cd build
 #     -DDP_USING_C_API=OFF \
 #     ..
 
-make -j"${build_jobs}" install && make -j"${build_jobs}" lammps
+make -j"${build_jobs}" install && make -j"${build_jobs}" lammps \
+    || { fail_build "DeePMD-kit make install + make lammps" $?; return 1; }
 require_path_exists "${deepmd_source_dir}/source/build/USER-DEEPMD" "DeePMD LAMMPS plugin directory" || return 1
 require_command_available dp || return 1
 debug_command "dp help after DeePMD build" dp -h
@@ -665,8 +795,10 @@ resolve_plumed_patch_glob || return 1
 cp $dir_w_plumed_patches/* src/colvar/
 # ==============================
 
-./configure --prefix=$CONDA_PREFIX --enable-modules=all CXX="${MPI_CXX_COMPILER}" CXXFLAGS="-Ofast"
-make -j"${build_jobs}" install
+./configure --prefix=$CONDA_PREFIX --enable-modules=all CXX="${MPI_CXX_COMPILER}" CXXFLAGS="-Ofast" \
+    || { fail_build "PLUMED ./configure" $?; return 1; }
+make -j"${build_jobs}" install \
+    || { fail_build "PLUMED make install" $?; return 1; }
 require_command_available plumed || return 1
 debug_command "plumed version after install" plumed --version
 
@@ -780,7 +912,7 @@ echo "include(${deepmd_source_dir}/source/lmp/builtin.cmake)" >> ../cmake/CMakeL
         -DENABLE_TESTING=no \
         -DLAMMPS_INSTALL_RPATH=yes \
         -DBUILD_SHARED_LIBS=yes \
-        ../cmake
+        ../cmake || { fail_build "LAMMPS cmake configure" $?; return 1; }
 
 
 # cmake3 \
@@ -833,7 +965,8 @@ echo "include(${deepmd_source_dir}/source/lmp/builtin.cmake)" >> ../cmake/CMakeL
 #         -DBUILD_SHARED_LIBS=yes \
 #         ../cmake
 
-make -j"${build_jobs}" install  
+make -j"${build_jobs}" install \
+    || { fail_build "LAMMPS make install" $?; return 1; }
 debug_lammps_binary "$PWD/lmp" || return 1
 
 
