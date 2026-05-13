@@ -357,8 +357,19 @@ parent_dir=`pwd`
 cd ${parent_dir}
 
 
+# Compute nodes on some clusters (e.g. ALCF Polaris) use Cray Shasta-style
+# hostnames like "xNNNNcNsNNbNnN" that do not contain the cluster's marketing
+# name. Build a bundle of host identifiers so login + compute nodes both match:
+#   - hostname        : short name
+#   - hostname -f     : FQDN, typically "<short>.<...>.polaris.alcf.anl.gov" on Polaris compute
+#   - $PBS_O_HOST     : set inside PBS jobs to the submitting login node
+host_short="$(hostname 2>/dev/null || echo '')"
+host_fqdn="$(hostname -f 2>/dev/null || echo '')"
+host_id_bundle="${host_short} ${host_fqdn} ${PBS_O_HOST:-}"
+echo "Cluster detection host identifiers: ${host_id_bundle}"
+
 # if cluster della9, then ... else if stellar, then ...
-if [[ $(hostname) == *"della"* ]]; then
+if [[ "${host_id_bundle}" == *"della"* ]]; then
     module purge
     echo "# ========================== #"
     echo "Loading modules for Della"
@@ -368,7 +379,7 @@ if [[ $(hostname) == *"della"* ]]; then
     module load cudatoolkit/12.8
     module load fftw/gcc/openmpi-4.1.6/3.3.10
     module load anaconda3/2025.12
-elif [[ $(hostname) == *"stellar"* ]]; then
+elif [[ "${host_id_bundle}" == *"stellar"* ]]; then
     module purge
     echo "# ========================== #"
     echo "Loading modules for Stellar"
@@ -378,7 +389,7 @@ elif [[ $(hostname) == *"stellar"* ]]; then
     module load cudatoolkit/12.4
     module load fftw/gcc/openmpi-4.1.6/3.3.10
     module load anaconda3/2025.12
-elif [[ $(hostname) == *"delta"* ]]; then
+elif [[ "${host_id_bundle}" == *"delta"* ]]; then
     module reset
     echo "# ========================== #"
     echo "Loading modules for Delta"
@@ -389,7 +400,7 @@ elif [[ $(hostname) == *"delta"* ]]; then
     module load cudatoolkit/25.3_12.8
     module load fftw/3.3.10-gcc13.3.1
     module load miniforge3-python
-elif [[ $(hostname) == *"polaris"* ]]; then
+elif [[ "${host_id_bundle}" == *"polaris"* ]]; then
     module restore
     echo "# ========================== #"
     echo "Loading modules for ALCF Polaris"
@@ -418,8 +429,8 @@ elif [[ $(hostname) == *"polaris"* ]]; then
     build_jobs="${BUILD_JOBS:-8}"
     deepmd_cmake_extra_args+=("-DCMAKE_CUDA_ARCHITECTURES=80")
     lammps_cmake_extra_args+=("-DCMAKE_CUDA_ARCHITECTURES=80")
-elif [[ $(hostname) == *"tiger"* ]]; then
-    echo "Run the following command for Tiger (no access to GPUs on Tiger):" 
+elif [[ "${host_id_bundle}" == *"tiger"* ]]; then
+    echo "Run the following command for Tiger (no access to GPUs on Tiger):"
     echo "module purge && module load anaconda3/2025.12 && conda create -n ALCHEMY_env -c conda-forge -y deepmd-kit lammps horovod ase parallel dpdata"
     echo "Exiting."
     exit 0
@@ -675,10 +686,14 @@ export PYTHONNOUSERSITE=1
 
 # Polaris/Cray MPICH runtime defaults. These are harmless on non-Polaris
 # hosts and useful for GPU-aware MPI runs launched through PBS/mpiexec.
-if [[ $(hostname) == *"polaris"* ]]; then
+# Polaris compute nodes use Cray Shasta hostnames (e.g. "xNNNNcNsNNbNnN")
+# that lack the marketing name, so also check FQDN and PBS_O_HOST.
+_polaris_host_bundle="$(hostname 2>/dev/null) $(hostname -f 2>/dev/null) ${PBS_O_HOST:-}"
+if [[ "${_polaris_host_bundle}" == *"polaris"* ]]; then
     export MPICH_GPU_SUPPORT_ENABLED="${MPICH_GPU_SUPPORT_ENABLED:-1}"
     export CRAY_ACCEL_TARGET="${CRAY_ACCEL_TARGET:-nvidia80}"
 fi
+unset _polaris_host_bundle
 
 # Set paths for PLUMED
 export libdir="$CONDA_PREFIX/lib"
