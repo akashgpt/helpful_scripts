@@ -478,6 +478,13 @@ elif [[ "${host_id_bundle}" == *"polaris"* ]]; then
 
     module switch PrgEnv-nvidia PrgEnv-gnu 2>/dev/null || module swap PrgEnv-nvidia PrgEnv-gnu 2>/dev/null || true
     module use /soft/modulefiles
+
+    # `module restore` can leave a default CUDA toolkit loaded. Clear that
+    # state before probing the fallback list so we do not accidentally keep a
+    # restored 12.8/12.9 toolkit while thinking an older toolkit was selected.
+    module unload cudatoolkit-standalone cudatoolkit 2>/dev/null || true
+    unset CUDAToolkit_ROOT CUDA_HOME CUDA_PATH CUDATOOLKIT_HOME
+
     # CUDA toolkit fallback order on Polaris.
     #
     # Background: DeePMD-kit 3.x's CUDA sources do not compile against CCCL 2.x
