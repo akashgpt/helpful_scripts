@@ -161,6 +161,42 @@ load_first_available_module() {
 }
 
 
+remove_polaris_cuda_toolkit_paths_from_var() {
+	local var_name="$1"
+	local var_value="${!var_name:-}"
+	local cleaned_value=""
+	local entry=""
+	local old_ifs="${IFS}"
+
+	IFS=":"
+	for entry in ${var_value}; do
+		case "${entry}" in
+			/soft/compilers/cudatoolkit/cuda-*/bin|\
+			/soft/compilers/cudatoolkit/cuda-*/lib|\
+			/soft/compilers/cudatoolkit/cuda-*/lib64|\
+			/soft/compilers/cudatoolkit/cuda-*/extras/CUPTI/lib|\
+			/soft/compilers/cudatoolkit/cuda-*/extras/CUPTI/lib64)
+				continue
+				;;
+		esac
+		cleaned_value="${cleaned_value:+${cleaned_value}:}${entry}"
+	done
+	IFS="${old_ifs}"
+
+	printf -v "${var_name}" '%s' "${cleaned_value}"
+	export "${var_name}"
+}
+
+
+clean_polaris_cuda_toolkit_environment() {
+	module unload cudatoolkit-standalone cudatoolkit cuda cudnn nccl tensorrt trt 2>/dev/null || true
+	unset CUDAToolkit_ROOT CUDA_HOME CUDA_PATH CUDATOOLKIT_HOME
+	remove_polaris_cuda_toolkit_paths_from_var PATH
+	remove_polaris_cuda_toolkit_paths_from_var LD_LIBRARY_PATH
+	hash -r
+}
+
+
 set_cuda_toolkit_root_from_environment() {
 	local cuda_root_candidate=""
 
@@ -271,12 +307,18 @@ debug_command() {
 	echo ""
 	echo "ALCHEMY_INSTALL_DEBUG command: ${description}"
 	echo "ALCHEMY_INSTALL_DEBUG running: $*"
-	if "$@"; then
+	# Capture the command's actual exit status before any subsequent
+	# constructs (the `if/then/fi` below would otherwise mask it: $? after
+	# `if cmd; then ... fi` reflects the if construct, not cmd, so the
+	# warning branch would always print "failed with status 0").
+	"$@"
+	local rc=$?
+	if [[ $rc -eq 0 ]]; then
 		echo "ALCHEMY_INSTALL_DEBUG ok: ${description}"
 		return 0
 	fi
 
-	echo "ALCHEMY_INSTALL_DEBUG warning: ${description} failed with status $?. Continuing because this is diagnostic." >&2
+	echo "ALCHEMY_INSTALL_DEBUG warning: ${description} failed with status ${rc}. Continuing because this is diagnostic." >&2
 	return 0
 }
 
@@ -382,7 +424,13 @@ debug_snapshot() {
 				printed=1
 			fi
 		done
-		[[ "$printed" = 0 ]] && echo "No CCCL/Thrust headers found under ${root}/include/"
+		# Ensure the inner script always exits 0 -- the [[ ]] && pattern
+		# would otherwise return 1 in the success case (printed=1), making
+		# debug_command print a spurious "failed" warning.
+		if [[ "$printed" = 0 ]]; then
+			echo "No CCCL/Thrust headers found under ${root}/include/"
+		fi
+		exit 0
 	'
 	# Per-user task/process quota for this login session (cgroup v2 first, then v1).
 	# Records the actual upper bound that triggered prior OpenBLAS pthread_create
@@ -480,10 +528,9 @@ elif [[ "${host_id_bundle}" == *"polaris"* ]]; then
     module use /soft/modulefiles
 
     # `module restore` can leave a default CUDA toolkit loaded. Clear that
-    # state before probing the fallback list so we do not accidentally keep a
-    # restored 12.8/12.9 toolkit while thinking an older toolkit was selected.
-    module unload cudatoolkit-standalone cudatoolkit 2>/dev/null || true
-    unset CUDAToolkit_ROOT CUDA_HOME CUDA_PATH CUDATOOLKIT_HOME
+    # state before probing the fallback list so stale 12.8/12.9 paths do not
+    # survive ahead of the selected toolkit in PATH / LD_LIBRARY_PATH.
+    clean_polaris_cuda_toolkit_environment
 
     # CUDA toolkit fallback order on Polaris.
     #
@@ -516,6 +563,50 @@ elif [[ "${host_id_bundle}" == *"polaris"* ]]; then
         cudatoolkit-standalone/12.8.0 \
         cudatoolkit-standalone/12.9.1 \
         cudatoolkit-standalone || return 1
+
+    # Force CUDA env to match the freshly-loaded cudatoolkit-standalone module.
+    # `module unload cudatoolkit*` does not strip stale paths that the user's
+    # calling shell may have added to PATH / LD_LIBRARY_PATH outside the
+    # module system (e.g. residue from a previous `module load
+    # cudatoolkit-standalone/12.9.1` whose env vars were exported into the
+    # current shell). Without this guard, `nvcc` resolves to the old toolkit
+    # and CMake's FindCUDAToolkit picks up the wrong include tree, even
+    # though `module list` correctly shows the newly-loaded version.
+    polaris_cuda_version="$(module --terse list 2>&1 \
+        | grep -oE '^cudatoolkit-standalone/[0-9.]+' \
+        | head -1 \
+        | sed 's|.*/||')"
+    if [[ -n "${polaris_cuda_version}" ]]; then
+        polaris_cuda_root="/soft/compilers/cudatoolkit/cuda-${polaris_cuda_version}"
+        if [[ -d "${polaris_cuda_root}" ]]; then
+            echo "Pinning CUDA root to active module install path: ${polaris_cuda_root}"
+            remove_polaris_cuda_toolkit_paths_from_var PATH
+            remove_polaris_cuda_toolkit_paths_from_var LD_LIBRARY_PATH
+            export CUDA_HOME="${polaris_cuda_root}"
+            export CUDAToolkit_ROOT="${polaris_cuda_root}"
+            export CUDA_PATH="${polaris_cuda_root}"
+            export CUDATOOLKIT_HOME="${polaris_cuda_root}"
+            export PATH="${polaris_cuda_root}/bin${PATH:+:${PATH}}"
+            export LD_LIBRARY_PATH="${polaris_cuda_root}/lib64${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}"
+            # Clear bash's command-resolution cache so an old `nvcc` location
+            # cached earlier in the session is not silently reused.
+            hash -r
+            polaris_nvcc="$(command -v nvcc || true)"
+            if [[ "${polaris_nvcc}" != "${polaris_cuda_root}/bin/nvcc" ]]; then
+                echo "ERROR: nvcc still resolves outside the pinned CUDA root." >&2
+                echo "       expected: ${polaris_cuda_root}/bin/nvcc" >&2
+                echo "       actual:   ${polaris_nvcc:-not found}" >&2
+                return 1
+            fi
+            echo "Pinned CUDA nvcc: ${polaris_nvcc}"
+        else
+            echo "WARNING: expected CUDA install path ${polaris_cuda_root} does not exist; not pinning CUDA env."
+        fi
+    else
+        echo "WARNING: could not determine loaded cudatoolkit-standalone version; not pinning CUDA env."
+    fi
+    unset polaris_cuda_version polaris_cuda_root polaris_nvcc
+
     load_first_available_module spack-pe-base || return 1
     load_first_available_module cmake || return 1
     load_first_available_module cray-fftw || return 1
@@ -807,7 +898,7 @@ cp $dir_w_plumed_patches/* src/colvar/
 make -j"${build_jobs}" install \
     || { fail_build "PLUMED make install" $?; return 1; }
 require_command_available plumed || return 1
-debug_command "plumed version after install" plumed --version
+debug_command "plumed version after install" plumed info --version
 
 
 # activate Plumed2 relevant env variables when conda env gets activated
