@@ -356,6 +356,35 @@ conda_environment_exists() {
 }
 
 
+reject_soft_applications_prefix() {
+	local prefix_to_check="$1"
+	local description="$2"
+
+	case "${prefix_to_check}" in
+		/soft/applications|/soft/applications/*)
+			echo "ERROR: ${description} is under read-only /soft/applications: ${prefix_to_check}" >&2
+			echo "       Update your .condarc envs_dirs/pkgs_dirs to point at writable storage." >&2
+			return 1
+			;;
+	esac
+}
+
+
+require_writable_directory() {
+	local directory_to_check="$1"
+	local description="$2"
+
+	if [[ ! -d "${directory_to_check}" ]]; then
+		echo "ERROR: Missing ${description}: ${directory_to_check}" >&2
+		return 1
+	fi
+	if [[ ! -w "${directory_to_check}" ]]; then
+		echo "ERROR: ${description} is not writable: ${directory_to_check}" >&2
+		return 1
+	fi
+}
+
+
 debug_python_import() {
 	# Run from a neutral cwd so Python does not shadow the installed package
 	# with a same-named source-tree subdirectory (e.g. an incomplete deepmd/
@@ -699,12 +728,14 @@ if conda_environment_exists "${conda_env}"; then
 else
 	conda create -y --name "${conda_env}" python=3.11 || return 1
 fi
-conda activate $conda_env
+conda activate "${conda_env}"
 conda config --env --add channels conda-forge 2>/dev/null || true
 conda config --env --set channel_priority strict 2>/dev/null || true
 conda config --env --set solver libmamba 2>/dev/null || true
 debug_snapshot "after conda env creation and activation"
 require_path_exists "${CONDA_PREFIX}" "active conda prefix" || return 1
+reject_soft_applications_prefix "${CONDA_PREFIX}" "Active conda prefix" || return 1
+require_writable_directory "${CONDA_PREFIX}" "Active conda prefix" || return 1
 require_command_available python || return 1
 require_command_available pip || return 1
 pip install --upgrade pip || { fail_build "pip self-upgrade" $?; return 1; }
@@ -977,7 +1008,7 @@ echo "====================="
 echo "Installing LAMMPS"
 echo "====================="
 conda deactivate
-conda activate $conda_env # # to make all plumed environment variables are set before proceeding -- see end of this file
+conda activate "${conda_env}" # # to make all plumed environment variables are set before proceeding -- see end of this file
 
 cd $deepmd_source_dir/source
 cd lammps-stable_2Aug2023_update3/src/
