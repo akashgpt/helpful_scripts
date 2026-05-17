@@ -92,9 +92,9 @@
 # =============================
 conda_env_name="ALCHEMY_env" # name of the conda environment to create and install everything in
 del_existing_conda_env_and_dir=1 # 0/no: reuse an existing conda env; 1/yes: delete and recreate it
-dir_w_plumed_patches="/projects/BURROWS/akashgpt/lammp*"
+# dir_w_plumed_patches="/projects/BURROWS/akashgpt/lammp*"
 # dir_w_plumed_patches="/projects/bguf/akashgpt/lammp*"
-# dir_w_plumed_patches="/lus/grand/projects/CoreCollapseModel/akashgpt/softwares/lammp*"
+dir_w_plumed_patches="/lus/grand/projects/CoreCollapseModel/akashgpt/softwares/lammp*"
 asap_repo_url="https://github.com/akashgpt/ASAP.git" # patched ASAP (asaplib) for dscribe>=2.0 / NumPy 2.x; cloned same way as deepmd-kit
 asap_branch="ALCHEMY"
 # =============================
@@ -119,6 +119,7 @@ conda_env="${conda_env_name}"
 lmp_exec_name="lmp"
 build_jobs=16
 mpi_cxx_compiler="mpicxx"
+cuda_host_cxx_compiler=""
 deepmd_cmake_extra_args=()
 lammps_cmake_extra_args=()
 
@@ -244,6 +245,27 @@ pin_polaris_cuda_toolkit_environment() {
 		return 1
 	fi
 	echo "Pinned CUDA nvcc: ${polaris_nvcc}"
+}
+
+
+resolve_polaris_cuda_host_cxx() {
+	local cuda_host_candidate=""
+
+	for cuda_host_candidate in \
+		"${CUDAHOSTCXX:-}" \
+		"$(command -v g++-13 2>/dev/null || true)" \
+		"$(command -v g++-13.3 2>/dev/null || true)" \
+		/usr/bin/g++-13 \
+		/usr/bin/g++-13.3 \
+		/opt/cray/pe/gcc-native/13*/bin/g++ \
+		/soft/spack/pe/*/base/install/*/gcc-13*/gcc-13*/bin/g++; do
+		if [[ -n "${cuda_host_candidate}" && -x "${cuda_host_candidate}" ]]; then
+			echo "${cuda_host_candidate}"
+			return 0
+		fi
+	done
+
+	return 1
 }
 
 
@@ -460,6 +482,7 @@ debug_snapshot() {
 	echo "CONDA_PREFIX: ${CONDA_PREFIX:-unset}"
 	echo "CUDAToolkit_ROOT: ${CUDAToolkit_ROOT:-unset}"
 	echo "CUDA_HOME: ${CUDA_HOME:-unset}"
+	echo "CUDAHOSTCXX: ${CUDAHOSTCXX:-unset}"
 	echo "MPI_CXX_COMPILER: ${MPI_CXX_COMPILER:-unset}"
 	echo "MPICH_GPU_SUPPORT_ENABLED: ${MPICH_GPU_SUPPORT_ENABLED:-unset}"
 	echo "CRAY_ACCEL_TARGET: ${CRAY_ACCEL_TARGET:-unset}"
@@ -668,9 +691,26 @@ elif [[ "${host_id_bundle}" == *"polaris"* ]]; then
     export CRAY_ACCEL_TARGET="${CRAY_ACCEL_TARGET:-nvidia80}"
     mpi_cxx_compiler="${MPI_CXX_COMPILER:-CC}"
     build_jobs="${BUILD_JOBS:-8}"
+    # CUDA 12.4 does not support GCC/G++ 14's C++ headers. Polaris currently
+    # loads gcc-native/14.x by default, so keep the Cray wrapper for MPI C++
+    # builds but force nvcc's host compiler to a GCC 13 C++ compiler.
+    module switch gcc-native gcc-native/13.3.1 2>/dev/null \
+        || module swap gcc-native gcc-native/13.3.1 2>/dev/null \
+        || module switch gcc-native gcc-native/13.2 2>/dev/null \
+        || module swap gcc-native gcc-native/13.2 2>/dev/null \
+        || true
+    cuda_host_cxx_compiler="$(resolve_polaris_cuda_host_cxx)" || {
+        echo "ERROR: Could not find a GCC 13 g++ for CUDAHOSTCXX on Polaris." >&2
+        echo "       CUDA 12.4 fails with g++-14; load a gcc-native/13.x module or set CUDAHOSTCXX." >&2
+        return 1
+    }
+    export CUDAHOSTCXX="${cuda_host_cxx_compiler}"
+    echo "CUDA host C++ compiler for nvcc: ${CUDAHOSTCXX}"
     deepmd_cmake_extra_args+=("-DCMAKE_CUDA_ARCHITECTURES=80")
+    deepmd_cmake_extra_args+=("-DCMAKE_CUDA_HOST_COMPILER=${CUDAHOSTCXX}")
     deepmd_cmake_extra_args+=("-DCMAKE_CUDA_FLAGS=-allow-unsupported-compiler")
     lammps_cmake_extra_args+=("-DCMAKE_CUDA_ARCHITECTURES=80")
+    lammps_cmake_extra_args+=("-DCMAKE_CUDA_HOST_COMPILER=${CUDAHOSTCXX}")
     lammps_cmake_extra_args+=("-DCMAKE_CUDA_FLAGS=-allow-unsupported-compiler")
 elif [[ "${host_id_bundle}" == *"tiger"* ]]; then
     echo "Run the following command for Tiger (no access to GPUs on Tiger):"
@@ -718,6 +758,7 @@ echo "====================="
 echo "cmake command: ${cmake_cmd}"
 echo "MPI C++ compiler wrapper: ${MPI_CXX_COMPILER}"
 echo "CUDAToolkit_ROOT: ${CUDAToolkit_ROOT:-not set}"
+echo "CUDAHOSTCXX: ${CUDAHOSTCXX:-not set}"
 echo "build_jobs: ${build_jobs}"
 echo "dir_w_plumed_patches: ${dir_w_plumed_patches}"
 echo "====================="

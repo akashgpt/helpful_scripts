@@ -1,0 +1,17 @@
+case_id	group	status	gpus	nodes	steps	decay_steps	scale_by_worker	source_or_output
+reuse_1gpu_10k	update_matched	reuse	1	1	10000	10000	linear	/scratch/gpfs/BURROWS/akashgpt/qmd_data/NH3_H2/sim_data_ML_v3__plumed_test__v2/v7_i34/train__test/tf_hvd_apptainer300cuda126_bench_20260422/10k_gpu_scaling_loss_rerun/1gpu
+reuse_2gpu_10k	update_matched	reuse	2	1	10000	10000	linear	/scratch/gpfs/BURROWS/akashgpt/qmd_data/NH3_H2/sim_data_ML_v3__plumed_test__v2/v7_i34/train__test/tf_hvd_apptainer300cuda126_bench_20260422/10k_gpu_scaling_loss_rerun/2gpu
+reuse_4gpu_10k	update_matched	reuse	4	1	10000	10000	linear	/scratch/gpfs/BURROWS/akashgpt/qmd_data/NH3_H2/sim_data_ML_v3__plumed_test__v2/v7_i34/train__test/tf_hvd_apptainer300cuda126_bench_20260422/10k_gpu_scaling_loss_rerun/4gpu
+reuse_8gpu_10k	update_matched	reuse	8	2	10000	10000	linear	/scratch/gpfs/BURROWS/akashgpt/qmd_data/NH3_H2/sim_data_ML_v3__plumed_test__v2/v7_i34/train__test/tf_hvd_apptainer300cuda126_bench_20260422/multinode_scaling_10k_20260516/2node_8gpu
+reuse_16gpu_10k	update_matched	reuse	16	4	10000	10000	linear	/scratch/gpfs/BURROWS/akashgpt/qmd_data/NH3_H2/sim_data_ML_v3__plumed_test__v2/v7_i34/train__test/tf_hvd_apptainer300cuda126_bench_20260422/multinode_scaling_10k_20260516/4node_16gpu
+1gpu_20k_linear	walltime_and_long_baseline	new	1	1	20000	20000	linear	runs/walltime_and_long_baseline/1gpu_20k_linear
+2gpu_5k_linear	sample_matched	new	2	1	5000	5000	linear	runs/sample_matched/2gpu_5k_linear
+4gpu_2500_linear	sample_matched	new	4	1	2500	2500	linear	runs/sample_matched/4gpu_2500_linear
+4gpu_2500_sqrt	lr_sensitivity	new	4	1	2500	2500	sqrt	runs/lr_sensitivity/4gpu_2500_sqrt
+4gpu_2500_none	lr_sensitivity	new	4	1	2500	2500	none	runs/lr_sensitivity/4gpu_2500_none
+8gpu_1250_linear	sample_matched	new	8	2	1250	1250	linear	runs/sample_matched/8gpu_1250_linear
+8gpu_1250_sqrt	lr_sensitivity	new	8	2	1250	1250	sqrt	runs/lr_sensitivity/8gpu_1250_sqrt
+8gpu_1250_none	lr_sensitivity	new	8	2	1250	1250	none	runs/lr_sensitivity/8gpu_1250_none
+16gpu_625_linear	sample_matched	new	16	4	625	625	linear	runs/sample_matched/16gpu_625_linear
+8gpu_7k_linear	walltime_matched	new	8	2	7000	7000	linear	runs/walltime_matched/8gpu_7k_linear
+16gpu_5k_linear	walltime_matched	new	16	4	5000	5000	linear	runs/walltime_matched/16gpu_5k_linear

@@ -1,0 +1,16 @@
+case_id	source_case_id	group	priority	gpus	nodes	steps	decay_steps	scale_by_worker	run_dir	note
+reuse_1gpu_10k_10x	reuse_1gpu_10k	long_steps_10x	core	1	1	100000	100000	linear	runs/long_steps_10x/reuse_1gpu_10k_10x	Directly tests the current quality/cost conclusion.
+reuse_2gpu_10k_10x	reuse_2gpu_10k	long_steps_10x	secondary	2	1	100000	100000	linear	runs/long_steps_10x/reuse_2gpu_10k_10x	Useful for trend confirmation.
+reuse_4gpu_10k_10x	reuse_4gpu_10k	long_steps_10x	core	4	1	100000	100000	linear	runs/long_steps_10x/reuse_4gpu_10k_10x	Directly tests the current quality/cost conclusion.
+reuse_8gpu_10k_10x	reuse_8gpu_10k	long_steps_10x	core	8	2	100000	100000	linear	runs/long_steps_10x/reuse_8gpu_10k_10x	Directly tests the current quality/cost conclusion.
+reuse_16gpu_10k_10x	reuse_16gpu_10k	long_steps_10x	secondary	16	4	100000	100000	linear	runs/long_steps_10x/reuse_16gpu_10k_10x	Useful for trend confirmation.
+2gpu_5k_linear_10x	2gpu_5k_linear	long_steps_10x	diagnostic	2	1	50000	50000	linear	runs/long_steps_10x/2gpu_5k_linear_10x	Short 2GPU/5k was an outlier failure; keep only to test whether longer training rescues it.
+4gpu_2500_linear_10x	4gpu_2500_linear	long_steps_10x	secondary	4	1	25000	25000	linear	runs/long_steps_10x/4gpu_2500_linear_10x	Useful for trend confirmation.
+4gpu_2500_sqrt_10x	4gpu_2500_sqrt	long_steps_10x	secondary	4	1	25000	25000	sqrt	runs/long_steps_10x/4gpu_2500_sqrt_10x	Useful for trend confirmation.
+4gpu_2500_none_10x	4gpu_2500_none	long_steps_10x	diagnostic	4	1	25000	25000	none	runs/long_steps_10x/4gpu_2500_none_10x	LR none was poor in the short sweep; keep only as a control.
+8gpu_1250_linear_10x	8gpu_1250_linear	long_steps_10x	secondary	8	2	12500	12500	linear	runs/long_steps_10x/8gpu_1250_linear_10x	Useful for trend confirmation.
+8gpu_1250_sqrt_10x	8gpu_1250_sqrt	long_steps_10x	secondary	8	2	12500	12500	sqrt	runs/long_steps_10x/8gpu_1250_sqrt_10x	Useful for trend confirmation.
+8gpu_1250_none_10x	8gpu_1250_none	long_steps_10x	diagnostic	8	2	12500	12500	none	runs/long_steps_10x/8gpu_1250_none_10x	LR none was poor in the short sweep; keep only as a control.
+16gpu_625_linear_10x	16gpu_625_linear	long_steps_10x	secondary	16	4	6250	6250	linear	runs/long_steps_10x/16gpu_625_linear_10x	Useful for trend confirmation.
+8gpu_7k_linear_10x	8gpu_7k_linear	long_steps_10x	core	8	2	70000	70000	linear	runs/long_steps_10x/8gpu_7k_linear_10x	Directly tests the current quality/cost conclusion.
+16gpu_5k_linear_10x	16gpu_5k_linear	long_steps_10x	secondary	16	4	50000	50000	linear	runs/long_steps_10x/16gpu_5k_linear_10x	Useful for trend confirmation.

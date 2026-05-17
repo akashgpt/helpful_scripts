@@ -102,7 +102,21 @@ These are 1000-step runs with 4 GPU ranks and varying total allocated CPUs. Sinc
 - 16 total CPUs is the practical sweet spot for this 4-GPU TF/Horovod setup.
 - 32 total CPUs gives little additional benefit over 16 and can show more rank wall-time imbalance.
 
-Recommended default for similar Della A100 TF/Horovod runs: 4 GPUs, 4 tasks, 4 CPUs/task, 120 GB memory, 60-minute test walltime for benchmarks.
+> **Updated recommendation (2026-05-16): 2 CPUs/task is the best operating
+> point, not 4.** Re-reading the sweep on a throughput-per-CPU basis:
+> going 1 -> 2 CPU/rank cuts step time ~32% (0.031 -> 0.021 s/batch);
+> 2 -> 4 CPU/rank gains only ~4% more (0.021 -> 0.020); 4 -> 8 is
+> negligible and adds rank wall-time imbalance. So 2 CPU/task captures
+> ~95% of peak throughput at **half** the cores of the 4/task "sweet
+> spot" and a quarter of 8/task, with the cleanest rank balance (which
+> matters most for multi-GPU/multi-node *speedup* measurements) and the
+> smallest footprint (fastest to schedule on gpu-test). Prefer 2 CPU/task
+> as the default; only go to 4 if you specifically need that last few %
+> of single-run step time and have the cores to spare.
+
+Original recommended default (kept for provenance): 4 GPUs, 4 tasks, 4 CPUs/task, 120 GB memory, 60-minute test walltime for benchmarks.
+
+Current recommended default (2026-05-16): 4 GPUs, 4 tasks, **2 CPUs/task**, 120 GB memory, 60-minute test walltime. This is also the setting used by the multi-node scaling study in `multinode_scaling_10k_20260516/`.
 
 ## Quick 500-Step Sanity Checks
 
