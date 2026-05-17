@@ -1,0 +1,12 @@
+job_id	case_id	group	gpus	nodes	steps	scale_by_worker
+8360847	2gpu_5k_linear	sample_matched	2	1	5000	linear
+8360848	4gpu_2500_linear	sample_matched	4	1	2500	linear
+8360849	8gpu_1250_linear	sample_matched	8	2	1250	linear
+8360850	16gpu_625_linear	sample_matched	16	4	625	linear
+8360852	4gpu_2500_sqrt	lr_sensitivity	4	1	2500	sqrt
+8360853	4gpu_2500_none	lr_sensitivity	4	1	2500	none
+8360854	8gpu_1250_sqrt	lr_sensitivity	8	2	1250	sqrt
+8360855	8gpu_1250_none	lr_sensitivity	8	2	1250	none
+8360856	1gpu_20k_linear	walltime_and_long_baseline	1	1	20000	linear
+8360859	8gpu_7k_linear	walltime_matched	8	2	7000	linear
+8360860	16gpu_5k_linear	walltime_matched	16	4	5000	linear
