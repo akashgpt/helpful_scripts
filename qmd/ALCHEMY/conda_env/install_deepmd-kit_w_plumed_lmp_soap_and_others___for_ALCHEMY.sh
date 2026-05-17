@@ -197,6 +197,56 @@ clean_polaris_cuda_toolkit_environment() {
 }
 
 
+pin_polaris_cuda_toolkit_environment() {
+	local polaris_cuda_version=""
+	local polaris_cuda_root=""
+	local polaris_nvcc=""
+
+	# Force CUDA env to match the freshly-loaded cudatoolkit-standalone module.
+	# `module unload cudatoolkit*` does not strip stale paths that the user's
+	# calling shell may have added to PATH / LD_LIBRARY_PATH outside the
+	# module system (e.g. residue from a previous `module load
+	# cudatoolkit-standalone/12.9.1` whose env vars were exported into the
+	# current shell). Without this guard, `nvcc` resolves to the old toolkit
+	# and CMake's FindCUDAToolkit picks up the wrong include tree, even
+	# though `module list` correctly shows the newly-loaded version.
+	polaris_cuda_version="$(module --terse list 2>&1 \
+		| grep -oE '^cudatoolkit-standalone/[0-9.]+' \
+		| head -1 \
+		| sed 's|.*/||')"
+	if [[ -z "${polaris_cuda_version}" ]]; then
+		echo "WARNING: could not determine loaded cudatoolkit-standalone version; not pinning CUDA env."
+		return 0
+	fi
+
+	polaris_cuda_root="/soft/compilers/cudatoolkit/cuda-${polaris_cuda_version}"
+	if [[ ! -d "${polaris_cuda_root}" ]]; then
+		echo "WARNING: expected CUDA install path ${polaris_cuda_root} does not exist; not pinning CUDA env."
+		return 0
+	fi
+
+	echo "Pinning CUDA root to active module install path: ${polaris_cuda_root}"
+	remove_polaris_cuda_toolkit_paths_from_var PATH
+	remove_polaris_cuda_toolkit_paths_from_var LD_LIBRARY_PATH
+	export CUDA_HOME="${polaris_cuda_root}"
+	export CUDAToolkit_ROOT="${polaris_cuda_root}"
+	export CUDA_PATH="${polaris_cuda_root}"
+	export CUDATOOLKIT_HOME="${polaris_cuda_root}"
+	export PATH="${polaris_cuda_root}/bin${PATH:+:${PATH}}"
+	export LD_LIBRARY_PATH="${polaris_cuda_root}/lib64${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}"
+	hash -r
+
+	polaris_nvcc="$(command -v nvcc || true)"
+	if [[ "${polaris_nvcc}" != "${polaris_cuda_root}/bin/nvcc" ]]; then
+		echo "ERROR: nvcc still resolves outside the pinned CUDA root." >&2
+		echo "       expected: ${polaris_cuda_root}/bin/nvcc" >&2
+		echo "       actual:   ${polaris_nvcc:-not found}" >&2
+		return 1
+	fi
+	echo "Pinned CUDA nvcc: ${polaris_nvcc}"
+}
+
+
 set_cuda_toolkit_root_from_environment() {
 	local cuda_root_candidate=""
 
@@ -593,54 +643,18 @@ elif [[ "${host_id_bundle}" == *"polaris"* ]]; then
         cudatoolkit-standalone/12.9.1 \
         cudatoolkit-standalone || return 1
 
-    # Force CUDA env to match the freshly-loaded cudatoolkit-standalone module.
-    # `module unload cudatoolkit*` does not strip stale paths that the user's
-    # calling shell may have added to PATH / LD_LIBRARY_PATH outside the
-    # module system (e.g. residue from a previous `module load
-    # cudatoolkit-standalone/12.9.1` whose env vars were exported into the
-    # current shell). Without this guard, `nvcc` resolves to the old toolkit
-    # and CMake's FindCUDAToolkit picks up the wrong include tree, even
-    # though `module list` correctly shows the newly-loaded version.
-    polaris_cuda_version="$(module --terse list 2>&1 \
-        | grep -oE '^cudatoolkit-standalone/[0-9.]+' \
-        | head -1 \
-        | sed 's|.*/||')"
-    if [[ -n "${polaris_cuda_version}" ]]; then
-        polaris_cuda_root="/soft/compilers/cudatoolkit/cuda-${polaris_cuda_version}"
-        if [[ -d "${polaris_cuda_root}" ]]; then
-            echo "Pinning CUDA root to active module install path: ${polaris_cuda_root}"
-            remove_polaris_cuda_toolkit_paths_from_var PATH
-            remove_polaris_cuda_toolkit_paths_from_var LD_LIBRARY_PATH
-            export CUDA_HOME="${polaris_cuda_root}"
-            export CUDAToolkit_ROOT="${polaris_cuda_root}"
-            export CUDA_PATH="${polaris_cuda_root}"
-            export CUDATOOLKIT_HOME="${polaris_cuda_root}"
-            export PATH="${polaris_cuda_root}/bin${PATH:+:${PATH}}"
-            export LD_LIBRARY_PATH="${polaris_cuda_root}/lib64${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}"
-            # Clear bash's command-resolution cache so an old `nvcc` location
-            # cached earlier in the session is not silently reused.
-            hash -r
-            polaris_nvcc="$(command -v nvcc || true)"
-            if [[ "${polaris_nvcc}" != "${polaris_cuda_root}/bin/nvcc" ]]; then
-                echo "ERROR: nvcc still resolves outside the pinned CUDA root." >&2
-                echo "       expected: ${polaris_cuda_root}/bin/nvcc" >&2
-                echo "       actual:   ${polaris_nvcc:-not found}" >&2
-                return 1
-            fi
-            echo "Pinned CUDA nvcc: ${polaris_nvcc}"
-        else
-            echo "WARNING: expected CUDA install path ${polaris_cuda_root} does not exist; not pinning CUDA env."
-        fi
-    else
-        echo "WARNING: could not determine loaded cudatoolkit-standalone version; not pinning CUDA env."
-    fi
-    unset polaris_cuda_version polaris_cuda_root polaris_nvcc
+    pin_polaris_cuda_toolkit_environment || return 1
 
     load_first_available_module spack-pe-base || return 1
     load_first_available_module cmake || return 1
     load_first_available_module cray-fftw || return 1
     load_first_available_module conda miniforge3-python || return 1
     load_first_available_module apptainer || true
+
+    # Some later modules re-export CUDA defaults (observed: CUDA_HOME and PATH
+    # falling back to cuda-12.9.1 after conda/apptainer loads). Re-pin after
+    # all module loads so the install log, nvcc, and CMake all agree.
+    pin_polaris_cuda_toolkit_environment || return 1
 
     # Polaris compute nodes need the ALCF proxy for outbound downloads.
     # These are harmless on login nodes and avoid git/pip/wget failures in
