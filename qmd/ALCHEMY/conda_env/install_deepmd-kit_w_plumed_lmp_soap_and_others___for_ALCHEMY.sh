@@ -669,7 +669,9 @@ elif [[ "${host_id_bundle}" == *"polaris"* ]]; then
     mpi_cxx_compiler="${MPI_CXX_COMPILER:-CC}"
     build_jobs="${BUILD_JOBS:-8}"
     deepmd_cmake_extra_args+=("-DCMAKE_CUDA_ARCHITECTURES=80")
+    deepmd_cmake_extra_args+=("-DCMAKE_CUDA_FLAGS=-allow-unsupported-compiler")
     lammps_cmake_extra_args+=("-DCMAKE_CUDA_ARCHITECTURES=80")
+    lammps_cmake_extra_args+=("-DCMAKE_CUDA_FLAGS=-allow-unsupported-compiler")
 elif [[ "${host_id_bundle}" == *"tiger"* ]]; then
     echo "Run the following command for Tiger (no access to GPUs on Tiger):"
     echo "module purge && module load anaconda3/2025.12 && conda create -n ALCHEMY_env -c conda-forge -y deepmd-kit lammps horovod ase parallel dpdata"
@@ -843,7 +845,10 @@ export DP_VARIANT=cuda
 # directly; this just plugs the gap for the pip-install path.
 _deepmd_pip_cmake_args=("${cuda_cmake_args[@]}" "${deepmd_cmake_extra_args[@]}")
 if [[ ${#_deepmd_pip_cmake_args[@]} -gt 0 ]]; then
-    export CMAKE_ARGS="${_deepmd_pip_cmake_args[*]}${CMAKE_ARGS:+ ${CMAKE_ARGS}}"
+    # This script owns the DeePMD scikit-build configure arguments. Do not
+    # append an inherited CMAKE_ARGS from a failed previous run, because that
+    # silently duplicates stale CUDA pins across reruns in the same shell.
+    export CMAKE_ARGS="${_deepmd_pip_cmake_args[*]}"
     echo "Forwarding to scikit-build via CMAKE_ARGS: ${CMAKE_ARGS}"
 fi
 unset _deepmd_pip_cmake_args
