@@ -92,9 +92,9 @@
 # =============================
 conda_env_name="ALCHEMY_env" # name of the conda environment to create and install everything in
 del_existing_conda_env_and_dir=1 # 0/no: reuse an existing conda env; 1/yes: delete and recreate it
-dir_w_plumed_patches="/projects/BURROWS/akashgpt/lammp*"
+# dir_w_plumed_patches="/projects/BURROWS/akashgpt/lammp*"
 # dir_w_plumed_patches="/projects/bguf/akashgpt/lammp*"
-# dir_w_plumed_patches="/lus/grand/projects/CoreCollapseModel/akashgpt/softwares/lammp*"
+dir_w_plumed_patches="/lus/grand/projects/CoreCollapseModel/akashgpt/softwares/lammp*"
 asap_repo_url="https://github.com/akashgpt/ASAP.git" # patched ASAP (asaplib) for dscribe>=2.0 / NumPy 2.x; cloned same way as deepmd-kit
 asap_branch="ALCHEMY"
 # =============================
