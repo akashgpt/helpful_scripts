@@ -414,16 +414,28 @@ if [ "$CLUSTER" == "POLARIS" ]; then
 
   # Summarize current user's PBS jobs by running vs queued state.
   # Default excludes held/waiting jobs; use -a to include Q/H/W as pending.
+  # Use -p on Slurm clusters to report per-partition stats.
   busyness() {
     local include_all=0
-    if [ "${1:-}" == "-a" ]; then
-      include_all=1
-    elif [ -n "${1:-}" ]; then
-      echo "Usage: busyness [-a]"
-      echo "  default: count queued PBS jobs only"
-      echo "  -a:      include queued/held/waiting PBS jobs"
-      return 1
-    fi
+    local partition_mode=0
+    while [ $# -gt 0 ]; do
+      case "$1" in
+        -a)
+          include_all=1
+          ;;
+        -p)
+          partition_mode=1
+          ;;
+        *)
+          echo "Usage: busyness [-a] [-p]"
+          echo "  default: count queued PBS jobs only"
+          echo "  -a:      include queued/held/waiting PBS jobs"
+          echo "  -p:      report stats on different partitions"
+          return 1
+          ;;
+      esac
+      shift
+    done
 
     local qstat_output
     local jobs_running
@@ -436,6 +448,49 @@ if [ "$CLUSTER" == "POLARIS" ]; then
     jobs_running=$(echo "$qstat_output" | awk '$0 ~ /^[0-9]/ && $10 == "R" {count++} END {print count+0}')
     jobs_pending_all=$(echo "$qstat_output" | awk '$0 ~ /^[0-9]/ && ($10 == "Q" || $10 == "H" || $10 == "W") {count++} END {print count+0}')
     jobs_pending_filtered=$(echo "$qstat_output" | awk '$0 ~ /^[0-9]/ && $10 == "Q" {count++} END {print count+0}')
+
+    if [ "$partition_mode" -eq 1 ]; then
+      echo ""
+      echo "busy-ness ratio by partition (running/pending) | higher means potentially less busy"
+      if [ "$include_all" -eq 1 ]; then
+        echo "mode: all queued/held/waiting PBS jobs"
+      else
+        echo "mode: queued PBS jobs only; use busyness -a -p to include held/waiting jobs"
+      fi
+      echo ""
+      echo "$qstat_output" | awk -v include_all="$include_all" '
+        BEGIN {
+          printf "%-18s %8s %10s %10s %12s %12s\n", "partition", "running", "pending", "excluded", "all_pending", "busyness"
+        }
+        $0 ~ /^[0-9]/ {
+          partition = $3
+          partitions[partition] = 1
+          if ($10 == "R") {
+            running[partition]++
+          } else if ($10 == "Q" || $10 == "H" || $10 == "W") {
+            pending_all[partition]++
+            if ($10 == "Q") {
+              pending_filtered[partition]++
+            } else {
+              pending_excluded[partition]++
+            }
+          }
+        }
+        END {
+          for (partition in partitions) {
+            pending = include_all ? pending_all[partition] : pending_filtered[partition]
+            if (pending > 0) {
+              ratio = sprintf("%.2f", running[partition] / pending)
+            } else {
+              ratio = "inf"
+            }
+            printf "%-18s %8d %10d %10d %12d %12s\n", partition, running[partition], pending, pending_excluded[partition], pending_all[partition], ratio
+          }
+        }
+      ' | sort
+      echo ""
+      return 0
+    fi
 
     if [ "$include_all" -eq 1 ]; then
       jobs_pending=$jobs_pending_all
@@ -523,17 +578,84 @@ else
   # Computes CPU jobs as total minus GPU jobs, so no cluster-specific special cases needed.
   function busyness() {
     local include_all=0
-    if [ "${1:-}" == "-a" ]; then
-      include_all=1
-    elif [ -n "${1:-}" ]; then
-      echo "Usage: busyness [-a]"
-      echo "  default: exclude dependency/maintenance/QOS/held/user-limit pending reasons"
-      echo "  -a:      include all pending jobs"
-      return 1
-    fi
+    local partition_mode=0
+    while [ $# -gt 0 ]; do
+      case "$1" in
+        -a)
+          include_all=1
+          ;;
+        -p)
+          partition_mode=1
+          ;;
+        *)
+          echo "Usage: busyness [-a] [-p]"
+          echo "  default: exclude dependency/maintenance/QOS/held/user-limit pending reasons"
+          echo "  -a:      include all pending jobs"
+          echo "  -p:      report stats on different partitions"
+          return 1
+          ;;
+      esac
+      shift
+    done
 
     local sqp_output
     sqp_output=$(sqp 2>/dev/null)
+
+    if [ "$partition_mode" -eq 1 ]; then
+      local partitions_output
+      partitions_output=$(sinfo -h -o "%P" 2>/dev/null | tr "," "\n" | sed 's/\*$//' | sort -u)
+
+      local mode_label
+      if [ "$include_all" -eq 1 ]; then
+        mode_label="all pending jobs"
+      else
+        mode_label="filtered pending jobs; use busyness -a -p to include dependency/maintenance/QOS/held/user-limit reasons"
+      fi
+
+      echo ""
+      echo "busy-ness ratio by partition (running/pending) | higher means potentially less busy"
+      echo "mode: $mode_label"
+      echo ""
+      {
+        echo "$partitions_output" | awk 'NF {print "PARTITION", $1}'
+        echo "$sqp_output" | awk 'NR > 1 {print "JOB", $0}'
+      } | awk -v include_all="$include_all" '
+        BEGIN {
+          exclude_re = "(dependency|dependencyneversatisfied|reqnodenotavail|reserved for maintenance|nodes required for job are down|invalidqos|jobheldadmin|jobhelduser|qosmaxjobsperuserlimit|qosmaxcpuperuserlimit|qosmaxgresperuser|cpuperuserlimit|qosmax.*peruser|assocmax.*limit|assocgrp.*limit|begintime)"
+        }
+        $1 == "PARTITION" {
+          partition = $2
+          partitions[partition] = 1
+        }
+        $1 == "JOB" {
+          partition = $4
+          partitions[partition] = 1
+          if ($9 == "R") {
+            running[partition]++
+          } else if ($9 == "PD") {
+            pending_all[partition]++
+            if (tolower($0) !~ exclude_re) {
+              pending_filtered[partition]++
+            } else {
+              pending_excluded[partition]++
+            }
+          }
+        }
+        END {
+          for (partition in partitions) {
+            pending = include_all ? pending_all[partition] : pending_filtered[partition]
+            if (pending > 0) {
+              ratio = sprintf("%.2f", running[partition] / pending)
+            } else {
+              ratio = "inf"
+            }
+            printf "%-18s %8d %10d %10d %12d %12s\n", partition, running[partition], pending, pending_excluded[partition], pending_all[partition], ratio
+          }
+        }
+      ' | sort | awk 'BEGIN {printf "%-18s %8s %10s %10s %12s %12s\n", "partition", "running", "pending", "excluded", "all_pending", "busyness"} {print}'
+      echo ""
+      return 0
+    fi
 
     local total_running total_pending_all total_pending_filtered gpu_running gpu_pending_all gpu_pending_filtered
     total_running=$(echo "$sqp_output" | awk 'NR > 1 && $8 == "R" {count++} END {print count+0}')

@@ -22,6 +22,11 @@ High-priority reminder:
   Freeze/compress/test scripts and logs for the PT/DPA2 model-preparation path.
 - `training_variants/`
   Per-variant DeePMD training inputs, logs, and Slurm outputs.
+- `intermediate_scaling_20260517/`
+  Follow-up TensorFlow `se_e2_a` width/depth scaling work. This includes the
+  `71MgSiO3_5He` held-out validation ranking for base, `big`, fitting-depth variants,
+  and `balanced_10x`, plus in-flight `big2x`, `balanced_2x`, `big5x`, `balanced_5x`,
+  and `fit_deep5x` jobs.
 
 This folder corresponds to the `DeePMD-kit` results only. The related `LAMMPS` inference
 results were split into:
@@ -50,6 +55,20 @@ The main conclusions from the source summary are:
 In simple terms: the current DeepMD results are enough to say that PT training is slower
 than TF for `se_e2_a` here, but they are **not** enough to close out the realistic cost
 of larger `DPA-2` models. That follow-up is still pending.
+
+## 2026-05-17 `se_e2_a` Intermediate Scaling Update
+
+See [intermediate_scaling_20260517](./intermediate_scaling_20260517) for the current
+energy-focused validation and the new in-flight intermediate architecture runs.
+
+Current validation inference:
+
+- On the held-out `71MgSiO3_5He` test split, `balanced_10x` gives the best completed
+  energy RMSE/atom.
+- Width-only `big` is the cheaper runner-up.
+- Fitting-net depth-only scaling is not competitive for energy in this validation test.
+- New intermediate `2x` and `5x` width/balanced/depth runs were submitted to determine
+  whether a cheaper balanced architecture captures most of the `balanced_10x` gain.
 
 ## Packaging Notes
 

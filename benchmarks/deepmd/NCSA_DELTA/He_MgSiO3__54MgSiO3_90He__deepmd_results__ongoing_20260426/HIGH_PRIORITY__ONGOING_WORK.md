@@ -6,6 +6,11 @@ Please revisit this benchmark family before using it as final performance guidan
 
 High-priority follow-up items:
 
+- Track the 2026-05-17 intermediate `se_e2_a` scaling jobs in
+  [intermediate_scaling_20260517](./intermediate_scaling_20260517). When they finish,
+  validate them on the same `71MgSiO3_5He` held-out split and update the energy-focused
+  ranking. The key scientific question is whether `balanced_2x` or `balanced_5x` can
+  recover most of the `balanced_10x` energy improvement at lower training cost.
 - Re-run a more realistic `DPA-2` cost benchmark with the larger `big` / `big_v2`
   style architectures rather than relying on the small-batch baseline alone.
 - Revisit the source-summary recommendation to test larger batch sizes such as `4` or `8`
