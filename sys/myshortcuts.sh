@@ -673,7 +673,7 @@ else
     else
       total_pending=$total_pending_filtered
       gpu_pending=$gpu_pending_filtered
-      mode_label="filtered pending jobs; use busyness -a to include dependency/maintenance/QOS/held/user-limit reasons"
+      mode_label="filtered pending jobs; use busyness -a to include dependency/maintenance/QOS/held/user-limit reasons; -p for partition breakdown"
     fi
 
     local cpu_running=$((total_running - gpu_running))
@@ -706,6 +706,8 @@ else
     fi
     echo ""
   }
+
+
 
   # Show parent directories of given Slurm job IDs
   jobpath() {
