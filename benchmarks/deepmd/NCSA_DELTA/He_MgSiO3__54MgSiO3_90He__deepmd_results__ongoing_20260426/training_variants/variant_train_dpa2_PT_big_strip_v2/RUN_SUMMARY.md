@@ -2,24 +2,17 @@
 
 ## Curated Result
 
-- Status: failed.
-- Failure reason: filesystem input/output error while reading data.
-- Backend / descriptor: PyTorch / `dpa2`.
-- Target steps: `1000000`.
-- Last logged step: `499900` (`49.99%`).
-- Descriptor setup: `repinit=[75,150,300]; nsel=360/120; layers=6; g=192/96`.
-- Fitting net: `[720,720,720]`.
-- Systems: `255`.
+- Snapshot: `2026-05-17 23:58 CDT` from the live `training_bench` directory.
+- Status: `failed`; reason: filesystem input/output error while reading data.
+- Steps: `499900/1000000 (49.99%)`.
+- Average training time: `not available` s/batch.
+- Wall time: `not available` s.
+- Model: backend: `PT`; descriptor: `dpa2`; descriptor neurons: `repinit=[75,150,300];nsel=360/120;layers=6;g=192/96`; fitting net: `[720,720,720]`; systems: `255`.
 - L-curve rows: `5000`.
-- Force RMSE signal before failure: final `3.76`, best `1.05`, last-100 median `3.68`,
-  last-100 p10/p90 `2.52` / `4.86`.
+- Force RMSE signal: final `3.76`, best `1.05`, last-100 median `3.6799999999999997`, last-100 p10/p90 `2.52` / `4.86`.
 
 ## Lesson
 
-This corrected/expanded DPA-2 selection test did not complete because the data read path
-hit a filesystem I/O error. Treat it as a failed infrastructure/setup run, not as a
-model-quality result.
+This DPA-2 case is primarily a setup/runtime or failure-mode record, not evidence of improved predictive quality.
 
-Raw `log.train`, `lcurve.out`, `slurm-*`, generated `input_v2_compat.json`, and
-generated `out.json` were summarized here and removed from the benchmark folder.
-
+Only curated setup files and this summary are kept here. Raw `log.train`, `lcurve.out`, `slurm-*`, generated `input_v2_compat.json`, generated `out.json`, checkpoints, and model artifacts remain out of the git benchmark folder.
