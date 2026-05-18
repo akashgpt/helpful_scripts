@@ -2,25 +2,17 @@
 
 ## Curated Result
 
-- Status: partial; the run reached the target step in `lcurve.out`, but the raw log did
-  not contain a finished-training marker.
-- Backend / descriptor: PyTorch / `dpa2`.
-- Target steps: `1000000`.
-- Last logged step: `1000000` (`100.0%`).
-- Average training time: `0.1011 s/batch`.
-- Descriptor setup: `repinit=[25,50,100]; nsel=120/30; layers=6; g=64/32`.
-- Fitting net: `[240,240,240]`.
-- Systems: `255`.
+- Snapshot: `2026-05-17 23:58 CDT` from the live `training_bench` directory.
+- Status: `partial`; reason: has lcurve but no finished-training marker.
+- Steps: `1000000/1000000 (100.0%)`.
+- Average training time: `0.1011` s/batch.
+- Wall time: `not available` s.
+- Model: backend: `PT`; descriptor: `dpa2`; descriptor neurons: `repinit=[25,50,100];nsel=120/30;layers=6;g=64/32`; fitting net: `[240,240,240]`; systems: `255`.
 - L-curve rows: `10001`.
-- Force RMSE signal: final `3.49`, best `0.504`, last-100 median `3.71`,
-  last-100 p10/p90 `2.2` / `4.68`.
+- Force RMSE signal: final `3.49`, best `0.504`, last-100 median `3.71`, last-100 p10/p90 `2.2` / `4.68`.
 
 ## Lesson
 
-This baseline DPA-2 PyTorch run is a training-throughput reference, not a validated
-production model. The force-error trace is much worse than the `se_e2_a` variants in
-this benchmark family, so it mainly informs DPA-2 setup/runtime behavior.
+This DPA-2 case is primarily a setup/runtime or failure-mode record, not evidence of improved predictive quality.
 
-Raw `log.train`, `lcurve.out`, `slurm-*`, generated `input_v2_compat.json`, and
-generated `out.json` were summarized here and removed from the benchmark folder.
-
+Only curated setup files and this summary are kept here. Raw `log.train`, `lcurve.out`, `slurm-*`, generated `input_v2_compat.json`, generated `out.json`, checkpoints, and model artifacts remain out of the git benchmark folder.

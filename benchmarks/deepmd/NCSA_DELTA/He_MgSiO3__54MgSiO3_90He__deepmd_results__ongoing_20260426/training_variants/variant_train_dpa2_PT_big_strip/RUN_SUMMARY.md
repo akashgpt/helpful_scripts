@@ -2,26 +2,17 @@
 
 ## Curated Result
 
-- Status: partial; the run reached the target step in `lcurve.out`, but the raw log did
-  not contain a finished-training marker.
-- Backend / descriptor: PyTorch / `dpa2`.
-- Target steps: `1000000`.
-- Last logged step: `1000000` (`100.0%`).
-- Average training time: `0.1028 s/batch`.
-- Descriptor setup: `repinit=[75,150,300]; nsel=120/30; layers=6; g=192/96`.
-- Fitting net: `[720,720,720]`.
-- Systems: `255`.
+- Snapshot: `2026-05-17 23:58 CDT` from the live `training_bench` directory.
+- Status: `partial`; reason: has lcurve but no finished-training marker.
+- Steps: `1000000/1000000 (100.0%)`.
+- Average training time: `0.1028` s/batch.
+- Wall time: `not available` s.
+- Model: backend: `PT`; descriptor: `dpa2`; descriptor neurons: `repinit=[75,150,300];nsel=120/30;layers=6;g=192/96`; fitting net: `[720,720,720]`; systems: `255`.
 - L-curve rows: `10001`.
-- Force RMSE signal: final `3.49`, best `0.504`, last-100 median `3.71`,
-  last-100 p10/p90 `2.2` / `4.68`.
+- Force RMSE signal: final `3.49`, best `0.504`, last-100 median `3.71`, last-100 p10/p90 `2.2` / `4.68`.
 
 ## Lesson
 
-The stripped larger DPA-2 setup behaved like the other completed DPA-2 PyTorch variants
-in the logged force-error summary. It remains a useful setup record, but not evidence of
-better predictive quality.
+This DPA-2 case is primarily a setup/runtime or failure-mode record, not evidence of improved predictive quality.
 
-Raw `log.train`, `lcurve.out`, `slurm-*`, `dp_test.log`, generated
-`input_v2_compat.json`, and generated `out.json` were summarized here and removed from
-the benchmark folder.
-
+Only curated setup files and this summary are kept here. Raw `log.train`, `lcurve.out`, `slurm-*`, generated `input_v2_compat.json`, generated `out.json`, checkpoints, and model artifacts remain out of the git benchmark folder.
