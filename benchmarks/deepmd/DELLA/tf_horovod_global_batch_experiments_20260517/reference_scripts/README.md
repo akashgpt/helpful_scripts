@@ -10,11 +10,17 @@ They are included here to make the benchmark record reproducible. Do not run
 submission scripts directly from this benchmark folder. Copy/adapt them into a
 scratch working directory first, then submit from the intended run root.
 
+Pseudo-validation summarizers parse DeePMD `dp test` logs. Their metric units
+are `Energy RMSE/Natoms` in eV/atom, `Force RMSE` in eV/A, and
+`Virial RMSE/Natoms` in eV per atom. They do not convert virial to stress in
+GPa. Aggregate uncertainty is reported as explicit bootstrap percentiles:
+p0.135, p15.865, p50, p84.135, and p99.865.
+
 | Script | Purpose |
 |---|---|
 | `materialize_experiments.py` | Generated the first short-run matrix from reused baseline runs and missing experiment definitions. |
 | `materialize_10x_steps.py` | Generated the 10x-step follow-up matrix and run directories. |
 | `summarize_training_runs.py` | Parsed `lcurve.out` and timing information into `TRAINING_SUMMARY.tsv`. |
-| `summarize_pseudo_validation.py` | Parsed `dp test` logs and now reports asymmetric 1-sigma and 2-sigma bootstrap errors. |
+| `summarize_pseudo_validation.py` | Parsed `dp test` logs and reports bootstrap percentile columns. |
 | `run_pseudo_validation.sbatch` | Slurm array used for freeze/compress/test pseudo-validation. |
 | `submit_*.sh` | Historical submission helpers used from the scratch experiment root. |
