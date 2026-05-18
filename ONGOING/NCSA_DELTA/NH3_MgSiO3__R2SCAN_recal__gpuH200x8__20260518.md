@@ -54,15 +54,15 @@ n02011 (100-atom) finished earlier on A100 (`qmd_gpu`, job 18314668).
 
 ## Tooling in the working dir (`…/NH3_MgSiO3/sim_data/`)
 
-| File | Purpose |
-| --- | --- |
-| `setup_R2SCAN_GPU.sh` | (re)prepares a dir: backup → POSCAR←CONTCAR, INCAR, POTCAR(awk 1), rm KPOINTS, drop sub script |
-| `sub_vasp_gpu_h200.sh` | canonical H200 single-run script (per-dir copies exist) |
-| `rerun_failed_on_h200.sh` | one-shot sweep: resubmits **OOM-only** failures to H200; non-OOM → flagged REVIEW; won't loop |
-| `watch_and_h200.sh` | background watcher — **currently NOT running** (user stopped it) |
-| `ORIG_pre_R2SCAN/` (per dir) | backup of original INCAR/POSCAR/POTCAR/KPOINTS |
-| `.h200_jobid` (per dir) | last H200 job id submitted for that dir |
-| `move_to_h200_*.log`, `resubmit_h200_fixedbin_*.log` | old→new job-id maps |
+| File                                                 | Purpose                                                                                        |
+| ---------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| `setup_R2SCAN_GPU.sh`                                | (re)prepares a dir: backup → POSCAR←CONTCAR, INCAR, POTCAR(awk 1), rm KPOINTS, drop sub script |
+| `sub_vasp_gpu_h200.sh`                               | canonical H200 single-run script (per-dir copies exist)                                        |
+| `rerun_failed_on_h200.sh`                            | one-shot sweep: resubmits **OOM-only** failures to H200; non-OOM → flagged REVIEW; won't loop  |
+| `watch_and_h200.sh`                                  | background watcher — **currently NOT running** (user stopped it)                               |
+| `ORIG_pre_R2SCAN/` (per dir)                         | backup of original INCAR/POSCAR/POTCAR/KPOINTS                                                 |
+| `.h200_jobid` (per dir)                              | last H200 job id submitted for that dir                                                        |
+| `move_to_h200_*.log`, `resubmit_h200_fixedbin_*.log` | old→new job-id maps                                                                            |
 
 > ⚠️ Original large **OUTCAR**s were overwritten during the early failed
 > attempts (not backed up). XDATCAR/OSZICAR/analysis from the prior PBE/PS
