@@ -4,7 +4,8 @@
 **Cluster:** NCSA Delta · partition `gpuA100x4` · account `bguf-delta-gpu`
 **Working dir:** `/work/nvme/bguf/akashgpt/softwares/installing_MLMD_related_stuff/deepmd-kit__w_plumed/testing__LAMMPS__kokkos_bench/He_MgSiO3__54MgSiO3_90He/training_bench`
 **Benchmark record:** `/projects/bguf/akashgpt/run_scripts/helpful_scripts/benchmarks/deepmd/NCSA_DELTA/He_MgSiO3__54MgSiO3_90He__deepmd_results__ongoing_20260426`
-**Status as of 2026-05-18 15:20 CDT:** 1 training RUNNING · compressed-validation arrays RUNNING after conda `nounset` fix · 4 DPA-2 diagnostics PENDING · 3 intermediate trainings cleanly COMPLETED · 1 NaN failure
+**Status as of 2026-05-18 16:03 CDT:** 1 training RUNNING · compressed-validation finished except original `big` compression failure · 4 DPA-2 diagnostics PENDING · 3 intermediate trainings cleanly COMPLETED · 1 NaN failure
+**Current validation table:** `benchmarks/deepmd/NCSA_DELTA/He_MgSiO3__54MgSiO3_90He__deepmd_results__ongoing_20260426/compressed_validation_20260518/VALIDATION_RMSE_COMPARISON__71MgSiO3_5He__20260518.tsv`
 
 ---
 
@@ -87,8 +88,9 @@ Submitted compressed freeze/compress/test validation arrays:
 | `18324349` | `validation_71MgSiO3_5He__compressed_intermediates__20260518/run_validation.sbatch` | `big2x`, `balanced_2x`, `big5x`, `both_deep2x` | FAILED after no-`-t` Apptainer test still hit `loss_func` | 1 A100 GPU, 2 CPUs, 80G, 15 min per array task, max 2 concurrent |
 | `18324377` | `validation_71MgSiO3_5He__v1_i_train_test__20260517/run_validation.sbatch` | original 5 cases | FAILED before DeePMD: conda activation hit `set -u` / unset `INCLUDE` | 1 A100 GPU, 2 CPUs, 80G, 15 min per array task, max 2 concurrent |
 | `18324378` | `validation_71MgSiO3_5He__compressed_intermediates__20260518/run_validation.sbatch` | `big2x`, `balanced_2x`, `big5x`, `both_deep2x` | FAILED before DeePMD: conda activation hit `set -u` / unset `INCLUDE` | 1 A100 GPU, 2 CPUs, 80G, 15 min per array task, max 2 concurrent |
-| `18324409` | `validation_71MgSiO3_5He__v1_i_train_test__20260517/run_validation.sbatch` | original 5 cases | RUNNING; first tasks passed freeze/compress startup and reached `finished compressing` | 1 A100 GPU, 2 CPUs, 80G, 15 min per array task, max 2 concurrent |
-| `18324408` | `validation_71MgSiO3_5He__compressed_intermediates__20260518/run_validation.sbatch` | `big2x`, `balanced_2x`, `big5x`, `both_deep2x` | RUNNING; first tasks passed freeze/compress startup and reached `finished compressing` | 1 A100 GPU, 2 CPUs, 80G, 15 min per array task, max 2 concurrent |
+| `18324409` | `validation_71MgSiO3_5He__v1_i_train_test__20260517/run_validation.sbatch` | original 5 cases | `base`, `fit_deep2x`, `fit_deep10x` COMPLETED; `big` FAILED during compression; `balanced_10x` timed out during `dp test` | 1 A100 GPU, 2 CPUs, 80G, 15 min per array task, max 2 concurrent |
+| `18324408` | `validation_71MgSiO3_5He__compressed_intermediates__20260518/run_validation.sbatch` | `big2x`, `balanced_2x`, `big5x`, `both_deep2x` | COMPLETED | 1 A100 GPU, 2 CPUs, 80G, 15 min per array task, max 2 concurrent |
+| `18324747` | `validation_71MgSiO3_5He__v1_i_train_test__20260517/run_validation_balanced10x_1h.sbatch` | `balanced_10x` only | COMPLETED in `15:38` after `18324409_4` exceeded 15 min during `dp test` | 1 A100 GPU, 2 CPUs, 80G, 1h |
 
 The helper scripts first tested the ALCHEMY-style model-prep sequence:
 `dp freeze -o pv.pb`, then `dp compress -i pv.pb -o pv_comp.pb`, then
@@ -123,12 +125,37 @@ Current failure:
   does not use `-t`; it runs native `dp compress -i pv.pb -o pv_comp.pb` inside the
   training `model-compression` directory. Jobs `18324348` and `18324349` tested
   that corrected path but still used the wrong DeePMD environment.
+- New `big` failure: with the training-consistent `ALCHEMY_env`, `big` gets past
+  the old `loss_func` parser issue but fails while TensorFlow exports the
+  compressed checkpoint meta graph:
+  `google.protobuf.message.DecodeError: Error parsing message with type 'tensorflow.GraphDef'`.
+  The compressed data and index files are written, but no `model.ckpt.meta` is
+  produced under `model-compression/big/model-compression`. This is consistent
+  with the original `big` compressed graph crossing a TensorFlow/Protobuf
+  GraphDef serialization size limit. For comparison, `big5x` succeeds with a
+  compressed `model.ckpt.meta` of about `1.8G`, while original `big` is wider
+  (`descrpt [75,150,300]`, fitting `[720,720,720]`) and fails before emitting
+  its `.meta`.
+- The `big` rows in `VALIDATION_SUMMARY.tsv` are stale from prior validation
+  logs and should not be treated as compressed-validation results from
+  `18324409`; compressed `big` never reached `dp test`. It is still included
+  as a non-compressed reference row in the curated comparison TSV:
+  `compressed_validation_20260518/VALIDATION_RMSE_COMPARISON__71MgSiO3_5He__20260518.tsv`.
+- The curated comparison TSV now includes `parameter_count`. Completed compressed
+  rows are from `freeze` + `compress` + `dp test`; original `big` is comparison-only
+  because compressed export failed with a TensorFlow GraphDef/meta-graph decode error.
+- Training RMSE columns in the curated table are last-1000-step `lcurve.out` averages
+  over steps `999000-1000000` (`11` logged rows). `train_total_rmse` is a DeePMD
+  loss-scale value, not a physical-unit error metric.
+- Current energy-RMSE read from the curated table: `balanced_10x` is best among
+  completed compressed validations (`0.060336` energy RMSE/atom), while
+  `both_deep2x` is the best completed intermediate compressed result (`0.125400`).
 
 Check and summarize:
 
 ```bash
-sacct -j 18323754,18323924,18324077,18324078,18324348,18324349,18324377,18324378,18324408,18324409 --format=JobID,JobName%28,State,Elapsed,ExitCode -P
-squeue -j 18324408,18324409 -o "%i %T %j %P %D %C %b %M %R"
+sacct -j 18323754,18323924,18324077,18324078,18324348,18324349,18324377,18324378,18324408,18324409,18324747 --format=JobID,JobName%28,State,Elapsed,ExitCode -P
+squeue -j 18324747 -o "%i %T %j %P %D %C %b %M %R"
 cd /work/nvme/bguf/akashgpt/softwares/installing_MLMD_related_stuff/deepmd-kit__w_plumed/testing__LAMMPS__kokkos_bench/He_MgSiO3__54MgSiO3_90He/training_bench/validation_71MgSiO3_5He__v1_i_train_test__20260517
 tail -80 results/base/log.compress
 cd /work/nvme/bguf/akashgpt/softwares/installing_MLMD_related_stuff/deepmd-kit__w_plumed/testing__LAMMPS__kokkos_bench/He_MgSiO3__54MgSiO3_90He/training_bench/validation_71MgSiO3_5He__compressed_intermediates__20260518

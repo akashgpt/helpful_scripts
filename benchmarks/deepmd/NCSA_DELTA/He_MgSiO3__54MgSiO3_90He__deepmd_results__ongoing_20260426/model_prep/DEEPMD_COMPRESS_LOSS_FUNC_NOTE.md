@@ -120,3 +120,33 @@ For future ALCHEMY/He_MgSiO3 model-prep scripts:
 - Treat a sanitized `-t` JSON as an experimental fallback only, not the primary
   workflow.
 - Do not treat this error as a model-quality failure.
+
+## Separate `big` GraphDef Failure
+
+The original `big` TensorFlow `se_e2_a` variant later failed for a different
+reason after the environment mismatch was fixed. With `ALCHEMY_env`, compression
+passed the `loss_func` parser stage but crashed while TensorFlow exported the
+compressed checkpoint meta graph:
+
+```text
+google.protobuf.message.DecodeError: Error parsing message with type 'tensorflow.GraphDef'
+```
+
+This happened after compressed checkpoint data and index files were written, but
+before `model.ckpt.meta` was emitted. The likely cause is the compressed graph
+approaching or crossing a TensorFlow/Protobuf GraphDef serialization-size limit.
+The successful `big5x` intermediate already emits a compressed meta graph of
+about `1.8G`; the original `big` architecture is wider (`descrpt` neurons
+`[75, 150, 300]`, fitting net `[720, 720, 720]`) and plausibly exceeds the
+practical meta-graph limit with the default compression step.
+
+Practical remedies to test:
+
+- Retry original `big` with a coarser compression table, for example
+  `dp --tf compress -i pv.pb -o pv_comp.pb -s 0.02`, which should reduce table
+  and meta-graph size at the cost of a small compression-accuracy check.
+- Prefer the successfully compressed intermediate width variants (`big2x`,
+  `big5x`) unless original `big` is specifically needed.
+- The prior non-compressed `big` `dp_test` numbers may be listed as a reference
+  comparison, but mark them explicitly as `noncompressed_reference`; the
+  compressed `big` run never reached `dp test`.
