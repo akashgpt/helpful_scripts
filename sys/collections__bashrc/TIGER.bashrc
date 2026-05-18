@@ -47,14 +47,16 @@ unset rc
 # 	source /scratch/gpfs/BURROWS/akashgpt/local_copy__projects/BURROWS/akashgpt/run_scripts/helpful_scripts/sys/myshortcuts.sh ${verbose}
 if [ -f /projects/BURROWS/akashgpt/run_scripts/helpful_scripts/sys/myshortcuts.sh ] && [ ! -z "$PS1" ]; then
 	source /projects/BURROWS/akashgpt/run_scripts/helpful_scripts/sys/myshortcuts.sh ${verbose}
+elif [ -f /scratch/gpfs/BURROWS/akashgpt/local_copy__projects/BURROWS/akashgpt/run_scripts/helpful_scripts/sys/myshortcuts.sh ] && [ ! -z "$PS1" ]; then
+	source /scratch/gpfs/BURROWS/akashgpt/local_copy__projects/BURROWS/akashgpt/run_scripts/helpful_scripts/sys/myshortcuts.sh ${verbose}
 fi
 
 # cp -r 
 
 #adding VASP to path
 # export VASP_EXEC="/scratch/gpfs/BURROWS/akashgpt/softwares/vasp.6.3.2/bin"
-export VASP_EXEC="/scratch/gpfs/BURROWS/akashgpt/softwares/vasp.6.4.3/bin"
-export PATH=$PATH:$VASP_EXEC
+# export VASP_EXEC="/scratch/gpfs/BURROWS/akashgpt/softwares/vasp.6.4.3/bin"
+# export PATH=$PATH:$VASP_EXEC
 
 
 #
