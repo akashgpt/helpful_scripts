@@ -21,6 +21,7 @@
 
 - When suggesting commands, workflows, scripts, or implementation patterns, check known repos first.
 - For ALCHEMY tasks: check `ALCHEMY__dev` first, then `ALCHEMY__main`.
+- For MLDP tasks: treat `mldp` as part of the ALCHEMY repo, not a standalone repo. Check `ALCHEMY__dev` first, then `ALCHEMY__main`, under `TRAIN*/ANALYSIS/mldp`.
 - For planet evolution tasks: check `PLANET_EVO__main`.
 - For generic utility/shell/workflow tasks: check `HELPFUL_SCRIPTS` first, then `https://github.com/akashgpt/helpful_scripts`.
 - There is no single global order across unrelated project domains.
@@ -62,6 +63,14 @@
 - Do not archive raw scheduler logs, full training logs, checkpoints, frozen/compressed models, generated duplicate input/output JSONs, or large data artifacts in benchmark folders unless the user explicitly asks for that artifact. Summarize any useful information from those files into markdown or TSV files instead.
 - Copy/adapt benchmark scripts into working directories as needed, but avoid overwriting benchmark records unless the user explicitly asks to update them.
 
+## Ongoing Job Tracking (crash resilience)
+
+- Whenever you submit work that will not finish near-instantly — any `sbatch`/Slurm job, background process, or remote job we will wait on for more than ~1 minute — immediately create or update a tracking note under `$HELP_SCRIPTS/ONGOING/<CLUSTER>/`. `<CLUSTER>` is the cluster subfolder (`NCSA_DELTA` | `DELLA` | `STELLAR` | `TIGER` | `POLARIS`); create it if missing.
+- Purpose: session-crash / context-loss resilience. If a session is lost, this note is the single source of truth for what was running and how to resume — never rely on conversation memory for in-flight jobs.
+- Capture concisely but completely enough to resume cold: working directory; what was submitted and why; job IDs (and old→new across resubmits); key config/parameters; partition/binary; how to check status and how to resume; a dated status snapshot; relevant tooling/scripts; and the next step once done. Name it `<system>__<purpose>__<partition>__YYYYMMDD.md`.
+- Keep it updated as state materially changes (resubmits, partition/binary changes, completions).
+- Clean up only with explicit user confirmation: do NOT remove an `ONGOING/` note autonomously. When the work appears complete, tell the user and ask them to confirm the task is finished and the note can be cleared; only then delete it (or move it out of `ONGOING/`). `$HELP_SCRIPTS/ONGOING/` should hold only genuinely in-flight work, but removal is always user-gated — never automatic.
+
 ## Cross-cluster SSH Access (Princeton: stellar / tiger / della)
 
 **Hosts & aliases.** `stellar`, `tiger`, and `della` should be treated as direct SSH aliases in `~/.ssh/config`. When already logged into one Princeton cluster, hop to another with the simple alias form, e.g. `ssh tiger '<cmd>'`, `ssh stellar '<cmd>'`, or `ssh della '<cmd>'`.
@@ -69,6 +78,7 @@
 **Observed Princeton-to-Princeton behavior.** When running on one Princeton cluster and SSH-ing to another Princeton cluster, the simple alias-based hop above has been observed to work directly and does not require an extra DUO prompt in this setup. Prefer trying the direct alias first before assuming any warm-session or re-authentication workaround is needed.
 
 **Path invariant (relied on across clusters).**
+
 - User scratch root: `/scratch/gpfs/BURROWS/akashgpt/` — same absolute path on stellar, tiger, and della.
 - User home: `/home/ag5805/` — same on all three.
 - Paths under scratch/home can therefore be constructed identically regardless of which cluster is the target.
@@ -76,11 +86,13 @@
 **Data is NOT mirrored.** Identical top-level folder names across clusters do NOT imply identical contents or layout. Always diff before assuming overlap.
 
 **Auth / failure notes.**
+
 - For Princeton-cluster-to-Princeton-cluster hops, do not assume DUO is required; direct alias-based `ssh tiger` / `ssh stellar` / `ssh della` may work immediately.
 - If a cluster hostname changes (e.g. after a rebuild), expect a `REMOTE HOST IDENTIFICATION HAS CHANGED` warning. Do NOT edit `~/.ssh/known_hosts` silently — surface it and let the user decide.
 - If a direct alias hop still fails, then debug the specific SSH error that actually appears rather than defaulting to a “session not warm” explanation.
 
 **Recommended `~/.ssh/config` stanza for reusable non-interactive access:**
+
 ```
 Host <alias>
     User ag5805
@@ -89,9 +101,11 @@ Host <alias>
     ControlPath ~/.ssh/cm-%r@%h:%p
     ControlPersist 8h
 ```
+
 If ControlMaster is configured, reused sockets are still helpful, but they should be treated as an optimization rather than a requirement for Princeton-cluster-to-Princeton-cluster hops.
 
 **Inventory / overlap-diff pattern.**
+
 ```bash
 # Dump a listing from each cluster, including remote ones via ssh.
 # %y = file type (d/f/l), %p = path. Use -maxdepth N to control depth.
@@ -107,9 +121,11 @@ comm -13 /tmp/inv_stellar.txt /tmp/inv_tiger.txt   # only on tiger
 ```
 
 **Quick reachability check (use before driving remote work):**
+
 ```bash
 ssh -o ConnectTimeout=10 <host> 'hostname; id -un' 2>&1 | head -5
 ```
+
 If this fails, inspect the actual SSH error message first. Do not immediately assume DUO or warm-session issues when hopping between Princeton clusters.
 
 ## GitHub Repository Index (`akashgpt`)
@@ -123,10 +139,10 @@ Source endpoint:
 | Repo            | URL                                         | Type     | Primary language | Last updated (UTC)   |
 | --------------- | ------------------------------------------- | -------- | ---------------- | -------------------- |
 | helpful_scripts | https://github.com/akashgpt/helpful_scripts | Original | Python           | 2026-02-13T21:32:40Z |
-| mldp            | https://github.com/akashgpt/mldp            | Fork     | Python           | 2024-11-15T23:43:57Z |
 | eos             | https://github.com/akashgpt/eos             | Fork     | Unspecified      | 2024-10-29T18:21:19Z |
 | chems           | https://github.com/akashgpt/chems           | Fork     | Unspecified      | 2023-10-06T01:30:55Z |
 
 ## Notes
 
 - This index covers public repos visible via the GitHub API for user `akashgpt`.
+- `mldp` is no longer tracked as a standalone repository. Treat it as ALCHEMY-internal code located under `TRAIN*/ANALYSIS/mldp` in the ALCHEMY repo.

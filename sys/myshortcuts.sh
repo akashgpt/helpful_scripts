@@ -621,7 +621,7 @@ else
         echo "$sqp_output" | awk 'NR > 1 {print "JOB", $0}'
       } | awk -v include_all="$include_all" '
         BEGIN {
-          exclude_re = "(dependency|dependencyneversatisfied|reqnodenotavail|reserved for maintenance|nodes required for job are down|invalidqos|jobheldadmin|jobhelduser|qosmaxjobsperuserlimit|qosmaxcpuperuserlimit|qosmaxgresperuser|cpuperuserlimit|qosmax.*peruser|assocmax.*limit|assocgrp.*limit|begintime)"
+          exclude_re = "(dependency|dependencyneversatisfied|reqnodenotavail|reserved for maintenance|nodes required for job are down|invalidqos|jobheldadmin|jobhelduser|qosmaxjobsperuserlimit|qosgrpbillingminutes|jobhelduser|qosmaxcpuperuserlimit|qosmaxgresperuser|cpuperuserlimit|qosmax.*peruser|assocmax.*limit|assocgrp.*limit|begintime)"
         }
         $1 == "PARTITION" {
           partition = $2
@@ -660,10 +660,10 @@ else
     local total_running total_pending_all total_pending_filtered gpu_running gpu_pending_all gpu_pending_filtered
     total_running=$(echo "$sqp_output" | awk 'NR > 1 && $8 == "R" {count++} END {print count+0}')
     total_pending_all=$(echo "$sqp_output" | awk 'NR > 1 && $8 == "PD" {count++} END {print count+0}')
-    total_pending_filtered=$(echo "$sqp_output" | awk 'NR > 1 && $8 == "PD" && tolower($0) !~ /(dependency|dependencyneversatisfied|reqnodenotavail|reserved for maintenance|nodes required for job are down|invalidqos|jobheldadmin|jobhelduser|qosmaxjobsperuserlimit|qosmaxcpuperuserlimit|qosmaxgresperuser|cpuperuserlimit|qosmax.*peruser|assocmax.*limit|assocgrp.*limit|begintime)/ {count++} END {print count+0}')
+    total_pending_filtered=$(echo "$sqp_output" | awk 'NR > 1 && $8 == "PD" && tolower($0) !~ /(dependency|dependencyneversatisfied|reqnodenotavail|reserved for maintenance|nodes required for job are down|invalidqos|jobheldadmin|jobhelduser|qosmaxjobsperuserlimit|qosgrpbillingminutes|jobhelduser|qosmaxcpuperuserlimit|qosmaxgresperuser|cpuperuserlimit|qosmax.*peruser|assocmax.*limit|assocgrp.*limit|begintime)/ {count++} END {print count+0}')
     gpu_running=$(echo "$sqp_output" | awk 'NR > 1 && $8 == "R" && (tolower($3) ~ /gpu/ || tolower($12) ~ /gpu/) {count++} END {print count+0}')
     gpu_pending_all=$(echo "$sqp_output" | awk 'NR > 1 && $8 == "PD" && (tolower($3) ~ /gpu/ || tolower($12) ~ /gpu/) {count++} END {print count+0}')
-    gpu_pending_filtered=$(echo "$sqp_output" | awk 'NR > 1 && $8 == "PD" && tolower($0) !~ /(dependency|dependencyneversatisfied|reqnodenotavail|reserved for maintenance|nodes required for job are down|invalidqos|jobheldadmin|jobhelduser|qosmaxjobsperuserlimit|qosmaxcpuperuserlimit|qosmaxgresperuser|cpuperuserlimit|qosmax.*peruser|assocmax.*limit|assocgrp.*limit|begintime)/ && (tolower($3) ~ /gpu/ || tolower($12) ~ /gpu/) {count++} END {print count+0}')
+    gpu_pending_filtered=$(echo "$sqp_output" | awk 'NR > 1 && $8 == "PD" && tolower($0) !~ /(dependency|dependencyneversatisfied|reqnodenotavail|reserved for maintenance|nodes required for job are down|invalidqos|jobheldadmin|jobhelduser|qosmaxjobsperuserlimit|qosgrpbillingminutes|jobhelduser|qosmaxcpuperuserlimit|qosmaxgresperuser|cpuperuserlimit|qosmax.*peruser|assocmax.*limit|assocgrp.*limit|begintime)/ && (tolower($3) ~ /gpu/ || tolower($12) ~ /gpu/) {count++} END {print count+0}')
 
     local total_pending gpu_pending mode_label
     if [ "$include_all" -eq 1 ]; then
