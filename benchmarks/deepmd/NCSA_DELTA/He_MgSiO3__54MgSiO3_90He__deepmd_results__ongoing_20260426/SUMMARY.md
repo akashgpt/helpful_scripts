@@ -19,9 +19,9 @@ High-priority reminder:
 - `shared/`
   Training JSON files for the main `se_e2_a` and `DPA-2` variants.
 - `model_prep/`
-  Freeze/compress/test scripts and logs for the PT/DPA2 model-preparation path.
+  Freeze/compress/test scripts plus distilled PT/DPA2 model-preparation summaries.
 - `training_variants/`
-  Per-variant DeePMD training inputs, logs, and Slurm outputs.
+  Per-variant DeePMD training inputs, submission scripts, and a distilled run summary.
 - `intermediate_scaling_20260517/`
   Follow-up TensorFlow `se_e2_a` width/depth scaling work. This includes the
   `71MgSiO3_5He` held-out validation ranking for base, `big`, fitting-depth variants,
@@ -73,7 +73,8 @@ Current validation inference:
 ## Packaging Notes
 
 - Large training checkpoints were intentionally omitted so this benchmark copy stays
-  focused on benchmark logic, logs, and reproducibility metadata.
-- The key scripts, JSON inputs, preparation logs, and Slurm outputs were preserved.
-- The moderate-size `model_dpa2.pth` and `dpa2_ckpt-26000.pt` artifacts were kept because
-  they directly document the DPA-2 freeze/test path discussed in this benchmark family.
+  focused on benchmark logic, setup files, summaries, and reproducibility metadata.
+- The key scripts, JSON inputs, and compact markdown/TSV summaries were preserved.
+- Raw Slurm outputs, full training logs, generated duplicate JSONs, and model artifacts
+  such as `model_dpa2.pth` / `dpa2_ckpt-26000.pt` are intentionally not kept in this git
+  benchmark copy. Their useful lessons should be distilled into markdown or TSV summaries.

@@ -48,14 +48,17 @@ for the 2x trainings to complete.
   Variant architecture manifest copied from the live run directory.
 - `reference_results/VALIDATION_SUMMARY__71MgSiO3_5He.tsv`
   Full validation summary copied from the validation workspace.
-- `reference_inputs/shared/`
-  Shared DeePMD JSON input files for the new intermediate variants.
 - `reference_scripts/setup_submit_intermediate_se_e2_a.py`
-  Script used to generate and submit the intermediate jobs.
+  Script used to generate and submit the intermediate jobs. This is kept instead of
+  archiving duplicate full JSON inputs.
 - `reference_scripts/calc_energy_rmse_sigma.py`
   Bootstrap script used for asymmetric energy RMSE error bars.
 - `reference_scripts/submission_scripts/`
   Submitted Slurm scripts for the five intermediate runs.
+
+Full `input.json`, `input_v2_compat.json`, `log.train`, Slurm output logs, checkpoints,
+and frozen/compressed models are intentionally not archived here. Any useful information
+from those files should be summarized into `RESULTS_SO_FAR.md` or compact TSV tables.
 
 ## Current Scientific Read
 
