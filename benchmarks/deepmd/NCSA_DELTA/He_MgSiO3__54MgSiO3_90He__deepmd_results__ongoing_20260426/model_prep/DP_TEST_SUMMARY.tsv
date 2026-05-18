@@ -1,0 +1,5 @@
+variant	energy_RMSE_eV	energy_RMSE_per_atom_eV	force_RMSE_eV_per_A	virial_RMSE_eV	virial_RMSE_per_atom_eV	source_note
+variant_train_dpa2_PT	7.786450e+01	4.806451e-01	2.640264e+00	4.193154e+01	2.588367e-01	raw dp_test_results.txt distilled before removing raw log
+variant_train_dpa2_PT_big	2.244341e+01	1.385396e-01	2.640264e+00	4.193154e+01	2.588367e-01	raw dp_test_results.txt distilled before removing raw log
+variant_train_dpa2_PT_big_strip	4.976943e+01	3.072187e-01	2.640264e+00	4.193154e+01	2.588367e-01	raw dp_test_results.txt distilled before removing raw log
+variant_train_se_e2_a_PT	1.644789e+00	1.015302e-02	4.112893e-01	4.635975e+00	2.861713e-02	raw dp_test_results.txt distilled before removing raw log

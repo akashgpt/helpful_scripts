@@ -1,0 +1,6 @@
+case_id	job_id	stage	dependency_type	dependency_jobs	state_snapshot_2026-05-17_19-30_CDT	architecture_family	notes
+big2x	18313921	2x	none	none	RUNNING	width_only	Corrected resubmission; prior wrapper-only failures did not start DeePMD training.
+balanced_2x	18313922	2x	none	none	RUNNING	balanced_width_depth	Corrected resubmission; prior wrapper-only failures did not start DeePMD training.
+big5x	18313923	5x	after	18313921:18313922	RUNNING	width_only	Dependency released after both 2x jobs started, not after they finished.
+balanced_5x	18313924	5x	after	18313921:18313922	RUNNING	balanced_width_depth	Dependency released after both 2x jobs started, not after they finished.
+fit_deep5x	18313925	5x	after	18313921:18313922	RUNNING	fitting_depth_only	Dependency released after both 2x jobs started, not after they finished.
