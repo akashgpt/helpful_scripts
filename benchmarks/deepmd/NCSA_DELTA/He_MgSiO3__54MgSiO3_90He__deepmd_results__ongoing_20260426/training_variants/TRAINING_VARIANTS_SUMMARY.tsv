@@ -5,15 +5,19 @@ variant_train_dpa2_PT_big_deep_v2	staged	script/config only; no training output	
 variant_train_dpa2_PT_big_strip	partial	has lcurve but no finished-training marker	PT	dpa2	1000000	1000000	100.0	0.1028			repinit=[75,150,300];nsel=120/30;layers=6;g=192/96	[720,720,720]	255	10001	3.49	0.504	3.71	2.2	4.68
 variant_train_dpa2_PT_big_strip_v2	failed	filesystem input/output error while reading data	PT	dpa2	1000000	499900	49.99				repinit=[75,150,300];nsel=360/120;layers=6;g=192/96	[720,720,720]	255	5000	3.76	1.05	3.6799999999999997	2.52	4.86
 variant_train_dpa2_PT_big_v2	failed	PyTorch dataloader bus error / shm pressure	PT	dpa2	1000000	556100	55.61				repinit=[75,150,300];nsel=360/120;layers=6;g=192/96	[720,720,720]	255	5562	2.85	1.05	3.76	2.27	5.07
+variant_train_dpa2_PT_current_auto_200k	unknown	no recognizable result marker	PT	dpa2	200000						repinit=[25,50,100];nsel=auto:1.1/auto:1.1;layers=6;g=64/32	[240,240,240]	255	0					
+variant_train_dpa2_PT_doc_medium_auto_currentloss_200k	unknown	no recognizable result marker	PT	dpa2	200000						repinit=[25,50,100];nsel=auto:1.1/auto:1.1;layers=6;g=128/32	[240,240,240]	255	0					
+variant_train_dpa2_PT_doc_medium_auto_no3body_200k	unknown	no recognizable result marker	PT	dpa2	200000						repinit=[25,50,100];nsel=auto:1.1/auto:1.1;layers=6;g=128/32	[240,240,240]	255	0					
+variant_train_dpa2_PT_doc_medium_auto_novirial_200k	unknown	no recognizable result marker	PT	dpa2	200000						repinit=[25,50,100];nsel=auto:1.1/auto:1.1;layers=6;g=128/32	[240,240,240]	255	0					
 variant_train_dpa2_PT_v2	failed	PyTorch dataloader bus error / shm pressure	PT	dpa2	1000000	972800	97.28				repinit=[25,50,100];nsel=360/120;layers=6;g=64/32	[240,240,240]	255	9729	3.29	0.504	3.5549999999999997	2.23	4.6
 variant_train_se_e2_a_PT	partial	has lcurve but no finished-training marker	PT	se_e2_a	1000000	1000000	100.0	0.1024		2.665665	[25,50,100]	[240,240,240]	255	10001	0.598	0.088	0.352	0.259	0.598
 variant_train_se_e2_a_TF	complete	finished training	TF	se_e2_a	1000000	1000000	100.0	0.0386	39474.074	2.665665	[25,50,100]	[240,240,240]	255	10001	0.36	0.108	0.3485	0.213	0.608
 variant_train_se_e2_a_TF_balanced_10x	complete	finished training	TF	se_e2_a	1000000	1000000	100.0	0.163	166047.392	26.804305	[60,120,240,240,240,240]	[620,620,620,620,620,620]	255	10001	0.371	0.113	0.373	0.239	0.663
-variant_train_se_e2_a_TF_balanced_2x	partial	has lcurve but did not reach configured steps	TF	se_e2_a	1000000	297900	29.79				[30,60,120,120]	[320,320,320,320]	255	2980	0.481	0.111	0.3585	0.238	0.627
-variant_train_se_e2_a_TF_balanced_5x	partial	has lcurve but did not reach configured steps	TF	se_e2_a	1000000	164900	16.49				[45,90,180,180,180]	[480,480,480,480,480]	255	1650	0.349	0.136	0.37	0.244	0.648
+variant_train_se_e2_a_TF_balanced_2x	partial	has lcurve but did not reach configured steps	TF	se_e2_a	1000000	948000	94.8				[30,60,120,120]	[320,320,320,320]	255	9481	0.377	0.0997	0.3385	0.248	0.598
+variant_train_se_e2_a_TF_balanced_5x	partial	has lcurve but did not reach configured steps	TF	se_e2_a	1000000	529100	52.91				[45,90,180,180,180]	[480,480,480,480,480]	255	5292	0.128	0.109	0.3525	0.254	0.494
 variant_train_se_e2_a_TF_big	complete	finished training	TF	se_e2_a	1000000	1000000	100.0	0.0805	82379.072	23.91	[75,150,300]	[720,720,720]	255	10001	0.391	0.117	0.3815	0.237	0.672
-variant_train_se_e2_a_TF_big2x	partial	has lcurve but did not reach configured steps	TF	se_e2_a	1000000	341000	34.1				[35,70,140]	[340,340,340]	255	3411	0.338	0.111	0.369	0.25	0.53
-variant_train_se_e2_a_TF_big5x	partial	has lcurve but did not reach configured steps	TF	se_e2_a	1000000	262800	26.28				[56,112,224]	[540,540,540]	255	2629	0.407	0.135	0.3605	0.226	0.61
+variant_train_se_e2_a_TF_big2x	complete	finished training	TF	se_e2_a	1000000	1000000	100.0	0.0475	48488.051		[35,70,140]	[340,340,340]	255	10001	0.366	0.099	0.348	0.208	0.599
+variant_train_se_e2_a_TF_big5x	partial	has lcurve but did not reach configured steps	TF	se_e2_a	1000000	840500	84.05				[56,112,224]	[540,540,540]	255	8406	0.575	0.113	0.36	0.266	0.557
 variant_train_se_e2_a_TF_big_deep	staged	script/config only; no training output	TF											0					
 variant_train_se_e2_a_TF_both_deep10x	failed	TensorFlow/DeepMD out-of-memory	TF	se_e2_a	1000000	563200	56.32			26.553265	[25,50,100,100,100,100,100,100,...;n=47]	[240,240,240,240,240,240,240,240,...;n=47]	255	5633	1.28	0.39	0.8985000000000001	0.627	1.27
 variant_train_se_e2_a_TF_both_deep2x	complete	finished training	TF	se_e2_a	1000000	1000000	100.0	0.0994	100974.538	5.380165	[25,50,100,100,100,100,100,100]	[240,240,240,240,240,240,240,240]	255	10001	0.459	0.151	0.4505	0.269	0.708
@@ -22,4 +26,4 @@ variant_train_se_e2_a_TF_desc_deep10x	failed	TensorFlow/DeepMD out-of-memory	TF	
 variant_train_se_e2_a_TF_desc_deep2x	failed	NaN detected during training	TF	se_e2_a	1000000	527900	52.79			5.443165	[25,50,100,100,100,100,100,100,...;n=14]	[240,240,240]	255	5280	0.262	0.109	0.3665	0.257	0.595
 variant_train_se_e2_a_TF_fit_deep10x	complete	finished training	TF	se_e2_a	1000000	1000000	100.0	0.1003	103929.023	26.768865	[25,50,100]	[240,240,240,240,240,240,240,240,...;n=86]	255	10001	0.375	0.116	0.356	0.218	0.601
 variant_train_se_e2_a_TF_fit_deep2x	complete	finished training	TF	se_e2_a	1000000	1000000	100.0	0.0449	46042.455	5.279265	[25,50,100]	[240,240,240,240,240,240,240,240,...;n=12]	255	10001	0.351	0.105	0.344	0.212	0.595
-variant_train_se_e2_a_TF_fit_deep5x	partial	has lcurve but did not reach configured steps	TF	se_e2_a	1000000	234100	23.41				[25,50,100]	[240,240,240,240,240,240,240,240,...;n=40]	255	2342	0.357	0.127	0.364	0.261	0.668
+variant_train_se_e2_a_TF_fit_deep5x	failed	NaN detected during training	TF	se_e2_a	1000000	283900	28.39				[25,50,100]	[240,240,240,240,240,240,240,240,...;n=40]	255	2840	0.434	0.127	0.3975	0.268	0.636

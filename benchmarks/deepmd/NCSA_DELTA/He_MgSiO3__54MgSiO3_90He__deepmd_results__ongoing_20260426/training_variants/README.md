@@ -3,7 +3,7 @@
 This folder records the DeePMD training-variant benchmarks for the
 `54MgSiO3_90He` system on NCSA Delta.
 
-The curated record now mirrors all `24` live `variant_train_*` folders present in:
+The curated record now mirrors all live `variant_train_*` folders present in:
 
 `/work/nvme/bguf/akashgpt/softwares/installing_MLMD_related_stuff/deepmd-kit__w_plumed/testing__LAMMPS__kokkos_bench/He_MgSiO3__54MgSiO3_90He/training_bench`
 
@@ -13,6 +13,10 @@ The files kept here are:
   late-training force-error statistics extracted from the raw training logs.
 - `TRAINING_VARIANTS_ANALYSIS.md`: compact grouped table of completed and incomplete
   runs.
+- `DPA2_DIAGNOSIS.md`: diagnosis of why the DPA-2 runs are not competitive in this
+  benchmark record and what corrected diagnostic should be run next.
+- `DPA2_DIAGNOSTIC_SUITE_20260518.tsv`: new 200k-step DPA-2 diagnostic suite submitted
+  after checking DeePMD docs and DPA-2 literature.
 - `*/input.json`: the original DeepMD training input for each variant.
 - `*/sub.sh`: the submission script used for each variant.
 - `*/RUN_SUMMARY.md`: per-folder curated summary of status, timing/error signal,
