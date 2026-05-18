@@ -27,6 +27,10 @@ High-priority reminder:
   `71MgSiO3_5He` held-out validation ranking for base, `big`, fitting-depth variants,
   and `balanced_10x`, plus in-flight `big2x`, `balanced_2x`, `big5x`, `balanced_5x`,
   and `fit_deep5x` jobs.
+- `compressed_validation_20260518/`
+  Curated `71MgSiO3_5He` validation comparison table with `parameter_count`,
+  compressed `freeze` + `compress` + `dp test` results, and the noncompressed `big`
+  reference row kept because compressed export failed.
 
 This folder corresponds to the `DeePMD-kit` results only. The related `LAMMPS` inference
 results were split into:
