@@ -1,0 +1,6 @@
+rank	model	params	E_RMSE_per_atom_eV	minus_1sigma	plus_1sigma	minus_3sigma	plus_3sigma	training_GPU_time	nframes	notes
+1	balanced_10x	26.80M	0.060336	0.001987	0.001752	0.005753	0.005367	46h07m	125	best held-out energy RMSE; balanced width+depth scaling
+2	big	23.91M	0.102139	0.003013	0.002629	0.009012	0.008146	22h53m	125	best cheaper completed model; width-only scaling
+3	fit_deep2x	5.28M	0.241183	0.003114	0.002942	0.009412	0.008930	12h47m	125	fitting-depth-only 2x
+4	fit_deep10x	26.77M	0.266868	0.003078	0.002908	0.009120	0.008865	28h52m	125	fitting-depth-only 10x; worse energy than fit_deep2x and big
+5	base	2.67M	0.383706	0.004058	0.003861	0.012287	0.011730	10h58m	125	base se_e2_a TF

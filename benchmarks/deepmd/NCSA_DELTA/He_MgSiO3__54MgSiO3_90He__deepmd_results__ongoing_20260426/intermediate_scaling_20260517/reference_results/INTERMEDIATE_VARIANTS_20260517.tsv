@@ -1,0 +1,6 @@
+case_id	stage	run_dir	shared_json	desc_neuron	fit_neuron
+big2x	2x	variant_train_se_e2_a_TF_big2x	train_se_e2_a_big2x.json	[35, 70, 140]	[340, 340, 340]
+balanced_2x	2x	variant_train_se_e2_a_TF_balanced_2x	train_se_e2_a_balanced_2x.json	[30, 60, 120, 120]	[320, 320, 320, 320]
+big5x	5x	variant_train_se_e2_a_TF_big5x	train_se_e2_a_big5x.json	[56, 112, 224]	[540, 540, 540]
+balanced_5x	5x	variant_train_se_e2_a_TF_balanced_5x	train_se_e2_a_balanced_5x.json	[45, 90, 180, 180, 180]	[480, 480, 480, 480, 480]
+fit_deep5x	5x	variant_train_se_e2_a_TF_fit_deep5x	train_se_e2_a_fit_deep5x.json	[25, 50, 100]	[240, 240, 240, 240, 240, 240, 240, 240, 240, 240, 240, 240, 240, 240, 240, 240, 240, 240, 240, 240, 240, 240, 240, 240, 240, 240, 240, 240, 240, 240, 240, 240, 240, 240, 240, 240, 240, 240, 240, 240]

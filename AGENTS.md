@@ -58,7 +58,9 @@
   - DeePMD: `benchmarks/deepmd/<cluster>/` including GPU benchmark scripts and representative inputs.
   - LAMMPS/PLUMED: `benchmarks/lammps/<cluster>/` where available.
 - For NCSA Delta VASP work, prefer `$HELP_SCRIPTS/benchmarks/vasp/NCSA_DELTA` for known-good compilation notes, submission templates, GPU/CPU scaling observations, and convergence artifacts before creating new scripts.
-- Treat benchmark folders as reference material: copy/adapt scripts into working directories as needed, but avoid overwriting benchmark records unless the user explicitly asks to update them.
+- Treat benchmark folders as curated reference material, not dump folders. They should contain a compact record of tests performed, result summaries, data/work-directory locations, conclusions/inferences, and setup files that worked or failed, such as submission scripts, DeepMD JSON templates, LAMMPS input files, or VASP input templates.
+- Do not archive raw scheduler logs, full training logs, checkpoints, frozen/compressed models, generated duplicate input/output JSONs, or large data artifacts in benchmark folders unless the user explicitly asks for that artifact. Summarize any useful information from those files into markdown or TSV files instead.
+- Copy/adapt benchmark scripts into working directories as needed, but avoid overwriting benchmark records unless the user explicitly asks to update them.
 
 ## Cross-cluster SSH Access (Princeton: stellar / tiger / della)
 

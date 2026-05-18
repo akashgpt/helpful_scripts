@@ -73,6 +73,18 @@ def parse_args() -> argparse.Namespace:
 	parser = argparse.ArgumentParser(description="Summarize pseudo-validation dp test logs.")
 	parser.add_argument("--root", type=Path, default=DEFAULT_ROOT, help="Global-batch experiment root.")
 	parser.add_argument(
+		"--matrix",
+		type=Path,
+		default=None,
+		help="Experiment matrix TSV. Defaults to <root>/EXPERIMENT_MATRIX.tsv.",
+	)
+	parser.add_argument(
+		"--validation-root",
+		type=Path,
+		default=None,
+		help="Pseudo-validation root. Defaults to <root>/pseudo_validation_20260517.",
+	)
+	parser.add_argument(
 		"--output",
 		type=Path,
 		default=None,
@@ -288,9 +300,10 @@ def main() -> None:
 	"""Write per-system and aggregate pseudo-validation summaries."""
 	args = parse_args()
 	root: Path = args.root
-	validation_root = root / "pseudo_validation_20260517"
+	validation_root = args.validation_root or root / "pseudo_validation_20260517"
+	matrix_path = args.matrix or root / "EXPERIMENT_MATRIX.tsv"
 	output_path = args.output or validation_root / "PSEUDO_VALIDATION_SUMMARY.tsv"
-	cases = read_cases(root / "EXPERIMENT_MATRIX.tsv")
+	cases = read_cases(matrix_path)
 	systems = read_systems(validation_root / "PSEUDO_VALIDATION_SYSTEMS.tsv")
 	rows: list[dict[str, str]] = []
 	aggregate_inputs: dict[tuple[str, str, str], list[tuple[TestMetrics, int]]] = {}
