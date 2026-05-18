@@ -4,7 +4,7 @@
 **Cluster:** NCSA Delta · partition `gpuA100x4` · account `bguf-delta-gpu`
 **Working dir:** `/work/nvme/bguf/akashgpt/softwares/installing_MLMD_related_stuff/deepmd-kit__w_plumed/testing__LAMMPS__kokkos_bench/He_MgSiO3__54MgSiO3_90He/training_bench`
 **Benchmark record:** `/projects/bguf/akashgpt/run_scripts/helpful_scripts/benchmarks/deepmd/NCSA_DELTA/He_MgSiO3__54MgSiO3_90He__deepmd_results__ongoing_20260426`
-**Status as of 2026-05-18 14:52 CDT:** 1 training RUNNING · 1 compressed-validation array PENDING · 4 DPA-2 diagnostics PENDING · 3 intermediate trainings cleanly COMPLETED · 1 NaN failure
+**Status as of 2026-05-18 15:20 CDT:** 1 training RUNNING · compressed-validation arrays RUNNING after conda `nounset` fix · 4 DPA-2 diagnostics PENDING · 3 intermediate trainings cleanly COMPLETED · 1 NaN failure
 
 ---
 
@@ -75,23 +75,64 @@ Curated benchmark records:
 
 ### Compressed validation on held-out `71MgSiO3_5He`
 
-Submitted compressed freeze/compress/test validation array:
+Submitted compressed freeze/compress/test validation arrays:
 
-| Job ID | Script | State at submit check | Resources |
-| --- | --- | --- | --- |
-| `18323754` | `validation_71MgSiO3_5He__v1_i_train_test__20260517/run_validation.sbatch` | PENDING as `18323754_[0-4%2]` | 1 A100 GPU, 2 CPUs, 80G, 15 min per array task, max 2 concurrent |
+| Job ID | Script | Scope | Final state | Resources |
+| --- | --- | --- | --- | --- |
+| `18323754` | `validation_71MgSiO3_5He__v1_i_train_test__20260517/run_validation.sbatch` | original 5 cases | FAILED during `dp compress` | 1 A100 GPU, 2 CPUs, 80G, 15 min per array task, max 2 concurrent |
+| `18323924` | `validation_71MgSiO3_5He__compressed_intermediates__20260518/run_validation.sbatch` | intermediate cases | CANCELED after hold; pre-fix submission | 1 A100 GPU, 2 CPUs, 80G, 15 min per array task, max 2 concurrent |
+| `18324077` | `validation_71MgSiO3_5He__v1_i_train_test__20260517/run_validation.sbatch` | original 5 cases | FAILED during `dp compress` | 1 A100 GPU, 2 CPUs, 80G, 15 min per array task, max 2 concurrent |
+| `18324078` | `validation_71MgSiO3_5He__compressed_intermediates__20260518/run_validation.sbatch` | `big2x`, `balanced_2x`, `big5x`, `both_deep2x` | FAILED during `dp compress` | 1 A100 GPU, 2 CPUs, 80G, 15 min per array task, max 2 concurrent |
+| `18324348` | `validation_71MgSiO3_5He__v1_i_train_test__20260517/run_validation.sbatch` | original 5 cases | FAILED/CANCELED after no-`-t` Apptainer test still hit `loss_func` | 1 A100 GPU, 2 CPUs, 80G, 15 min per array task, max 2 concurrent |
+| `18324349` | `validation_71MgSiO3_5He__compressed_intermediates__20260518/run_validation.sbatch` | `big2x`, `balanced_2x`, `big5x`, `both_deep2x` | FAILED after no-`-t` Apptainer test still hit `loss_func` | 1 A100 GPU, 2 CPUs, 80G, 15 min per array task, max 2 concurrent |
+| `18324377` | `validation_71MgSiO3_5He__v1_i_train_test__20260517/run_validation.sbatch` | original 5 cases | FAILED before DeePMD: conda activation hit `set -u` / unset `INCLUDE` | 1 A100 GPU, 2 CPUs, 80G, 15 min per array task, max 2 concurrent |
+| `18324378` | `validation_71MgSiO3_5He__compressed_intermediates__20260518/run_validation.sbatch` | `big2x`, `balanced_2x`, `big5x`, `both_deep2x` | FAILED before DeePMD: conda activation hit `set -u` / unset `INCLUDE` | 1 A100 GPU, 2 CPUs, 80G, 15 min per array task, max 2 concurrent |
+| `18324409` | `validation_71MgSiO3_5He__v1_i_train_test__20260517/run_validation.sbatch` | original 5 cases | RUNNING; first tasks passed freeze/compress startup and reached `finished compressing` | 1 A100 GPU, 2 CPUs, 80G, 15 min per array task, max 2 concurrent |
+| `18324408` | `validation_71MgSiO3_5He__compressed_intermediates__20260518/run_validation.sbatch` | `big2x`, `balanced_2x`, `big5x`, `both_deep2x` | RUNNING; first tasks passed freeze/compress startup and reached `finished compressing` | 1 A100 GPU, 2 CPUs, 80G, 15 min per array task, max 2 concurrent |
 
-The helper script was patched to use the ALCHEMY-style model-prep sequence:
-`dp freeze -o pv.pb`, then `dp compress -i pv.pb -o pv_comp.pb -t myinput.json`,
-then `dp test -m pv_comp.pb`.
+The helper scripts first tested the ALCHEMY-style model-prep sequence:
+`dp freeze -o pv.pb`, then `dp compress -i pv.pb -o pv_comp.pb`, then
+`dp test -m pv_comp.pb`. Jobs `18324348` and `18324349` still failed with the
+same `loss_func` strict-parser error when run through the older Apptainer image,
+so remaining tasks were canceled.
+
+The current working diagnosis is an environment mismatch:
+
+- Successful qmd_data compression trained and compressed with the Apptainer image
+  reporting DeePMD `v3.1.3` commit `b2c8511e`; those generated `out.json` files
+  contain no `loss_func`.
+- These benchmark TF variants were trained with `ALCHEMY_env`, reporting DeePMD
+  `v3.1.3-29-gefc27cf7`; their generated `out.json` files contain
+  `loss.loss_func`.
+- Compression with the older Apptainer image rejects the newer checkpoint/frozen
+  graph metadata. The helper scripts have therefore been patched to load the same
+  module stack and `conda activate ALCHEMY_env`, then run `dp --tf freeze`,
+  `dp --tf compress`, and `dp --tf test`.
+
+Current failure:
+
+- First failure mode: `dp compress` rejected legacy `loss.loss_func` in the
+  training JSON.
+- Follow-up patch generates `myinput.compress.json` without `loss_func`, and those
+  files are clean on disk.
+- The resubmitted arrays still failed with the same `loss_func` strict-parser error.
+  This likely means `dp compress` is reading training-script metadata embedded in the
+  frozen `pv.pb` files, or freeze is embedding normalized metadata with `loss_func`.
+- No compressed validation numbers are available from these arrays.
+- Follow-up diagnosis showed that successful ALCHEMY He/MgSiO3 training compression
+  does not use `-t`; it runs native `dp compress -i pv.pb -o pv_comp.pb` inside the
+  training `model-compression` directory. Jobs `18324348` and `18324349` tested
+  that corrected path but still used the wrong DeePMD environment.
 
 Check and summarize:
 
 ```bash
-squeue -j 18323754 -o "%i %T %j %P %D %C %b %M %R"
-sacct -j 18323754 --format=JobID,JobName%28,State,Elapsed,ExitCode -P
+sacct -j 18323754,18323924,18324077,18324078,18324348,18324349,18324377,18324378,18324408,18324409 --format=JobID,JobName%28,State,Elapsed,ExitCode -P
+squeue -j 18324408,18324409 -o "%i %T %j %P %D %C %b %M %R"
 cd /work/nvme/bguf/akashgpt/softwares/installing_MLMD_related_stuff/deepmd-kit__w_plumed/testing__LAMMPS__kokkos_bench/He_MgSiO3__54MgSiO3_90He/training_bench/validation_71MgSiO3_5He__v1_i_train_test__20260517
-python summarize_validation.py
+tail -80 results/base/log.compress
+cd /work/nvme/bguf/akashgpt/softwares/installing_MLMD_related_stuff/deepmd-kit__w_plumed/testing__LAMMPS__kokkos_bench/He_MgSiO3__54MgSiO3_90He/training_bench/validation_71MgSiO3_5He__compressed_intermediates__20260518
+tail -80 results/big2x/log.compress
 ```
 
 ---

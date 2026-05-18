@@ -25,9 +25,9 @@ files that were previously stored in this benchmark folder.
   `mkdir: cannot create directory 'model-compression': Permission denied`.
 - PT freeze succeeded and saved `model.pth`.
 - PT compress ran after freeze and reported tabulation lower/upper boundaries.
-- TF `dp compress` can fail if the training JSON includes the legacy generated
+- TF `dp compress` can fail if the strict parser sees the legacy generated
   key `loss.loss_func`; see `DEEPMD_COMPRESS_LOSS_FUNC_NOTE.md` for the
-  sanitized-input workaround used in the 2026-05-18 compressed validation pass.
+  2026-05-18 validation-array failure and the ALCHEMY-style compression rule.
 - First DPA-2 freeze attempt failed with `FileNotFoundError: checkpoint`.
 - DPA-2 freeze v2 succeeded and saved a frozen model to the live working tree:
   `/work/nvme/bguf/akashgpt/softwares/installing_MLMD_related_stuff/deepmd-kit__w_plumed/testing__LAMMPS__kokkos_bench/He_MgSiO3__54MgSiO3_90He/shared/model_dpa2.pth`.

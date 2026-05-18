@@ -52,10 +52,10 @@ mode.
 This is a metadata/parser compatibility issue, not evidence that the checkpoint
 or frozen model is bad.
 
-## Workaround Used
+## Important Update
 
-For compression, generate a compression-only copy of the input JSON and remove
-the legacy key:
+The first attempted workaround was to generate a compression-only copy of the
+input JSON and remove the legacy key:
 
 ```bash
 python -c 'import json, sys
@@ -70,16 +70,53 @@ with open(output_path, "w", encoding="utf-8") as handle:
 dp compress -i pv.pb -o pv_comp.pb -t myinput.compress.json
 ```
 
-The original training input should remain untouched. Use the sanitized
-`myinput.compress.json` only for compression.
+That was not sufficient for the validation-array workflow submitted on
+2026-05-18. Even when `myinput.compress.json` contained no `loss_func`,
+`dp compress` still failed with the same strict-parser error. This indicates
+that, in this DeePMD/container path, the parser may be reading normalized
+training metadata from the frozen graph or generated checkpoint metadata rather
+than only the JSON passed with `-t`.
+
+By contrast, the working ALCHEMY/He_MgSiO3 training jobs use this simpler
+post-training flow inside the real training `model-compression` directory:
+
+```bash
+cd model-compression
+dp freeze -o pv.pb
+dp compress -i pv.pb -o pv_comp.pb
+```
+
+They do not pass `-t`. DeePMD then generates/uses its own
+`compress.json` and `input_v2_compat.json` in the compression directory. The
+checked successful He_MgSiO3 examples under
+`/work/nvme/bguf/akashgpt/qmd_data/He_MgSiO3/sim_data_ML/v1_i1/train` and
+`/work/nvme/bguf/akashgpt/qmd_data/He_MgSiO3/sim_data_ML/v1_i2/train` have no
+`loss_func` in those generated compression inputs and produced `pv_comp.pb`.
+
+The second difference is the DeePMD executable. The successful qmd_data jobs
+trained and compressed with the Apptainer image reporting DeePMD `v3.1.3`
+commit `b2c8511e`. The benchmark variants in
+`testing__LAMMPS__kokkos_bench/.../training_bench/variant_train_se_e2_a_TF*`
+were trained in `ALCHEMY_env`, which reported DeePMD `v3.1.3-29-gefc27cf7`.
+Those newer generated `out.json` files include `loss.loss_func`, and compression
+with the older Apptainer image rejects that metadata. Therefore the practical
+compatibility rule is: freeze, compress, and test these benchmark TF models with
+the same DeePMD environment used for training, or retrain/regenerate metadata
+with the target compression environment.
 
 ## Practical Rule
 
 For future ALCHEMY/He_MgSiO3 model-prep scripts:
 
 - Freeze from the trained checkpoint as usual.
-- Compress with a strict-parser-compatible training JSON.
-- If `dp compress` reports `undefined key loss_func`, remove only
-  `loss.loss_func` from a copy of the JSON and retry compression.
+- Prefer the ALCHEMY-style native compression path: run `dp freeze` and
+  `dp compress -i pv.pb -o pv_comp.pb` inside the checkpoint-containing
+  `model-compression` directory, without `-t`.
+- Keep DeePMD versions consistent across train/freeze/compress/test. For these
+  benchmark TF variants, use `ALCHEMY_env`, because that is the environment that
+  created the checkpoint metadata.
+- Avoid reusing old frozen `pv.pb` files after a failed compression attempt;
+  regenerate the frozen model in a clean compression directory.
+- Treat a sanitized `-t` JSON as an experimental fallback only, not the primary
+  workflow.
 - Do not treat this error as a model-quality failure.
-
