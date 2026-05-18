@@ -1,0 +1,6 @@
+variant	shared_json	job_name	job_id	steps	purpose
+variant_train_dpa2_PT_current_auto_200k	train_dpa2_current_auto_200k.json	dpa2_cur_auto	18320018	200000	old DPA-2 architecture with auto neighbor selection
+variant_train_dpa2_PT_doc_medium_auto_currentloss_200k	train_dpa2_doc_medium_auto_currentloss_200k.json	dpa2_doc_cur	18320019	200000	official-medium-style DPA-2 with current energy/force/virial loss
+variant_train_dpa2_PT_doc_medium_auto_novirial_200k	train_dpa2_doc_medium_auto_novirial_200k.json	dpa2_doc_nov	18320016	200000	official-medium-style DPA-2 with no virial loss
+variant_train_dpa2_PT_doc_medium_auto_no3body_200k	train_dpa2_doc_medium_auto_no3body_200k.json	dpa2_doc_no3	18320017	200000	official-medium-style DPA-2 without the three-body repinit block
+
