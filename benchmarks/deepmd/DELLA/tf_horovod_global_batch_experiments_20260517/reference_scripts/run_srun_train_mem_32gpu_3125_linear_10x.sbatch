@@ -1,7 +1,7 @@
 #!/bin/bash
 # 10x-step follow-up generated from an existing validated launcher.
 # Source template: 16gpu_625_linear_10x
-# New case: 8node_32gpu_3125_linear_10x
+# New case: 32gpu_3125_linear_10x
 # New steps: 3125; decay_steps: 3125
 # Note: honors 10k/32*10x step scaling on 8 x 4 A100 nodes.
 #SBATCH --account=jiedeng
@@ -15,7 +15,7 @@
 #SBATCH --time=01:00:00
 
 # DeePMD TF/Horovod multi-node global-batch experiment.
-# Case: 8node_32gpu_3125_linear_10x
+# Case: 32gpu_3125_linear_10x
 # Nodes x GPUs/node: 8 x 4 = 32
 # Steps: 3125, decay_steps: 3125, scale_by_worker: linear
 
@@ -37,7 +37,7 @@ export XLA_FLAGS=--xla_gpu_cuda_data_dir=/opt/deepmd-kit
 export NCCL_DEBUG=WARN
 
 echo "JOB_START $(date --iso-8601=seconds)"
-echo "CASE 8node_32gpu_3125_linear_10x"
+echo "CASE 32gpu_3125_linear_10x"
 echo "STEP_SCALING 10k_div_32_times_10x physical_gpus_32 steps_3125"
 echo "NODES ${SLURM_NNODES}  NTASKS ${nproc}  NODELIST ${SLURM_JOB_NODELIST}"
 echo "IMAGE ${image}"

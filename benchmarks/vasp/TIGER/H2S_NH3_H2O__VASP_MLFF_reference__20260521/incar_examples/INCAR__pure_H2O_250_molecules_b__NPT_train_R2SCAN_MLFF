@@ -1,0 +1,59 @@
+Start parameter for this Run:
+  NWRITE    =  2;  LPETIM=F      write-flag & timer
+  ISTART    =  0                 job   : 0-new  1-cont  2-samecut
+  LWAVE     =  .FALSE.
+  LCHARG    =  .FALSE.
+
+
+Cluster dependent:
+  NPAR      =  14
+  # NBANDS    =  768              Usually VASP good at guessing this unless highly dissociated system (may underestimate)
+
+
+Electronic Relaxation
+  ENCUT     =  500.00 EV
+  NELM      =  150;
+  EDIFF     =  1E-04              stopping-criterion for ELM
+  MAXMIX    =  100
+  LMAXMIX   =  2
+  METAGGA   =  R2SCAN
+  LASPH     =  .TRUE.
+
+
+Ionic Relaxation
+  NSW       =  1000000            number of steps for IOM
+  NBLOCK    =  1; KBLOCK = 1      inner block; outer block
+  ISYM      =  0
+  ISIF      =  3
+
+NPT Relaxation
+  MDALGO    =  3                  # using Langevin thermostat
+  LATTICE_CONSTRAINTS = .FALSE. .FALSE. .TRUE. # controls which lattice parameters may change
+  LANGEVIN_GAMMA = 10.0 10.0 # Langevin friction coefficient for three atomic species; typically ~ sqrt(1/mu)
+  LANGEVIN_GAMMA_L = 10.0         # Langevin friction coefficient for lattice degrees of freedom
+  PSTRESS   = 200                 # Pressure in kbar; 10 kbar = 1 GPa
+
+Ionic Relaxation 2
+  POTIM     =  0.25                time-step for ion-motion
+  TEBEG     =  3000               initial temperature
+  TEEND     =  3000               final temperature
+  SMASS     =  0.00               Nose mass-parameter (am)
+
+
+DOS related values:
+  ISMEAR    =  -1
+  SIGMA     = 0.258520            broadening in eV -4-tet -1-fermi 0-gaus
+
+
+Electronic Relaxation 2
+  ALGO      =  N
+  LREAL     =  A
+
+
+Machine Learning
+  ML_LMLFF  = .TRUE.
+  ML_MODE   = train
+  ML_MB     = 4000
+  ML_MCONF  = 600
+  ML_NMDINT = 50
+  ML_CTIFOR = 1.4E-01
