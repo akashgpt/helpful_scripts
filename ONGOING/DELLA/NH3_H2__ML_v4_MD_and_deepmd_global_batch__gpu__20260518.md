@@ -40,7 +40,7 @@ At snapshot time all tracked jobs were pending. No matching local non-Slurm back
 | `8205331` | ML v4 MD | `gpu` | `PD` | `04:00:00` | 1 | `Priority` | `/scratch/gpfs/BURROWS/akashgpt/qmd_data/NH3_H2/sim_data_ML_v4/v8_i22/md/ZONE_6/90H2_10NH3` |
 | `8205332` | ML v4 MD | `gpu` | `PD` | `04:00:00` | 1 | `Priority` | `/scratch/gpfs/BURROWS/akashgpt/qmd_data/NH3_H2/sim_data_ML_v4/v8_i22/md/ZONE_7/90H2_10NH3` |
 | `8375105` | DeepMD global batch | `gpu` | `PD` | `01:30:00` | 4 | `Priority` | `/scratch/gpfs/BURROWS/akashgpt/qmd_data/NH3_H2/sim_data_ML_v3__plumed_test__v2/v7_i34/train__test/tf_hvd_apptainer300cuda126_bench_20260422/global_batch_experiments_20260517/runs/long_steps_10x_fresh_90min/reuse_16gpu_10k_10x_90min` |
-| `8381309` | DeepMD global batch | `gputest` | `PD` | `01:00:00` | 8 | `Nodes required for job are DOWN, DRAINED or reserved for jobs in higher priority partitions` | `/scratch/gpfs/BURROWS/akashgpt/qmd_data/NH3_H2/sim_data_ML_v3__plumed_test__v2/v7_i34/train__test/tf_hvd_apptainer300cuda126_bench_20260422/global_batch_experiments_20260517/runs/long_steps_10x/8node_32gpu_3125_linear_10x` |
+| `8381309` | DeepMD global batch | `gputest` | `PD` | `01:00:00` | 8 | `Nodes required for job are DOWN, DRAINED or reserved for jobs in higher priority partitions` | `/scratch/gpfs/BURROWS/akashgpt/qmd_data/NH3_H2/sim_data_ML_v3__plumed_test__v2/v7_i34/train__test/tf_hvd_apptainer300cuda126_bench_20260422/global_batch_experiments_20260517/runs/long_steps_10x/32gpu_3125_linear_10x` |
 
 ## ML v4 MD details
 
@@ -92,7 +92,7 @@ Active path family:
 Tracked queued jobs:
 
 - `8375105`: `long_steps_10x_fresh_90min/reuse_16gpu_10k_10x_90min`, job name `dpgb16g_100k_90m`, `gpu`, 4 nodes, 16 A100 GPUs, 90 minutes.
-- `8381309`: `long_steps_10x/8node_32gpu_3125_linear_10x`, job name `dpgb10x_32g_3125_lin`, `gputest`, 8 nodes, 32 A100 GPUs, 60 minutes.
+- `8381309`: `long_steps_10x/32gpu_3125_linear_10x`, job name `dpgb10x_32g_3125_lin`, `gputest`, 8 nodes, 32 A100 GPUs, 60 minutes.
 
 Both use:
 
@@ -133,3 +133,375 @@ squeue -u ag5805
 3. For failed or timed-out jobs, use `scontrol show jobid=<jobid>` and the relevant `slurm-<jobid>.out` file to decide whether to resubmit, change partition, shorten/extend walltime, or alter node count.
 
 4. Keep this note in `ONGOING/DELLA` until the jobs are confirmed complete. Do not remove it without explicit confirmation.
+
+## Reassessment - 2026-05-21 07:10 EDT
+
+Current Della queue snapshot from `squeue -u ag5805`:
+
+| Job ID | Name | State | Partition | Runtime / limit | Nodes | Working directory | Assessment |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| `8375105` | `dpgb16g_100k_90m` | `PENDING`, reason `Priority` | `gpu` | `0:00 / 01:30:00` | 4 | `/scratch/gpfs/BURROWS/akashgpt/qmd_data/NH3_H2/sim_data_ML_v3__plumed_test__v2/v7_i34/train__test/tf_hvd_apptainer300cuda126_bench_20260422/global_batch_experiments_20260517/runs/long_steps_10x_fresh_90min/reuse_16gpu_10k_10x_90min` | Still queued; no output files beyond setup files yet. |
+| `8533968` | `ML_v8_i24` | `RUNNING` | `gpu` | `~3:17 / 12:00:00` | 1 | `/scratch/gpfs/BURROWS/akashgpt/qmd_data/NH3_H2/sim_data_ML_v4/v8_i24/train` | Active DeepMD training; `lcurve.out` and `slurm-8533968.out` are growing. Latest checked step was `310000`, with checkpoint saved at `2026-05-21 07:10:14 EDT`. |
+
+Accounting for the older ML v4 MD jobs that were originally tracked here shows all ten completed cleanly on 2026-05-19 with `ExitCode=0:0`: `8205299`, `8205302`, `8205305`, `8205314`, `8205319`, `8205321`, `8205322`, `8205326`, `8205331`, `8205332`.
+
+Accounting for `8381309` (`dpgb10x_32g_3125_lin`) now shows `COMPLETED`, elapsed `00:07:11`, `ExitCode=0:0`, on 2026-05-20. It is no longer queued.
+
+Current next checks:
+
+```bash
+squeue -j 8375105,8533968
+sacct -j 8375105,8533968 --format=JobID,JobName,Partition,State,Elapsed,Start,End,ExitCode
+tail -8 /scratch/gpfs/BURROWS/akashgpt/qmd_data/NH3_H2/sim_data_ML_v4/v8_i24/train/lcurve.out
+```
+
+Keep this note in `ONGOING/DELLA` because job `8375105` is still pending and `8533968` is running.
+
+## Update - 2026-05-21 07:23 EDT
+
+Submitted two independent-repeat diagnostics for the previously failed/unstable `8gpu_7k_linear_10x` case to test model-quality variation with random initialization/training seed.
+
+| Job ID | Case | State at submission check | Seed fields changed | Working directory |
+| --- | --- | --- | --- | --- |
+| `8545809` | `8gpu_7k_linear_10x_seed2` | `PENDING` on `gputest`, reason `(None)` | `model.descriptor.seed = 2`, `model.fitting_net.seed = 2`, `training.seed = 2` | `/scratch/gpfs/BURROWS/akashgpt/qmd_data/NH3_H2/sim_data_ML_v3__plumed_test__v2/v7_i34/train__test/tf_hvd_apptainer300cuda126_bench_20260422/global_batch_experiments_20260517/runs/long_steps_10x/8gpu_7k_linear_10x_seed2` |
+| `8545808` | `8gpu_7k_linear_10x_seed3` | `PENDING` on `gputest`, reason `(None)` | `model.descriptor.seed = 3`, `model.fitting_net.seed = 3`, `training.seed = 3` | `/scratch/gpfs/BURROWS/akashgpt/qmd_data/NH3_H2/sim_data_ML_v3__plumed_test__v2/v7_i34/train__test/tf_hvd_apptainer300cuda126_bench_20260422/global_batch_experiments_20260517/runs/long_steps_10x/8gpu_7k_linear_10x_seed3` |
+
+Both repeats copy only setup files from `8gpu_7k_linear_10x`; old checkpoints/logs were not copied. Resource shape matches the original: `2` Della GPU nodes, `4` A100 GPUs/node, `8` total ranks, `70000` steps, `linear` scale-by-worker, `01:00:00` walltime.
+
+Check with:
+
+```bash
+squeue -j 8545809,8545808
+sacct -j 8545809,8545808 --format=JobID,JobName,Partition,State,Elapsed,Start,End,ExitCode
+```
+
+After completion, compare final and best-checkpoint `lcurve.out` behavior against the original `8gpu_7k_linear_10x`, then freeze/compress and pseudo-validate if either repeat looks promising.
+
+## Update - 2026-05-21 07:24 EDT
+
+Submitted freeze/compress/pseudo-validation for the completed 32-GPU diagnostic `32gpu_3125_linear_10x`.
+
+| Job ID | Job name | State at submission check | Purpose | Working directory | Output root |
+| --- | --- | --- | --- | --- | --- |
+| `8545874_0` | `dpgb32g_pseudoval` | `PENDING` on `gputest`, reason `(None)` | Freeze latest checkpoint, compress model, and run `dp test` over the existing pseudo-validation systems. | `/scratch/gpfs/BURROWS/akashgpt/qmd_data/NH3_H2/sim_data_ML_v3__plumed_test__v2/v7_i34/train__test/tf_hvd_apptainer300cuda126_bench_20260422/global_batch_experiments_20260517` | `/scratch/gpfs/BURROWS/akashgpt/qmd_data/NH3_H2/sim_data_ML_v3__plumed_test__v2/v7_i34/train__test/tf_hvd_apptainer300cuda126_bench_20260422/global_batch_experiments_20260517/pseudo_validation_32gpu_20260521` |
+
+Created helper files:
+
+- `EXPERIMENT_MATRIX_32GPU_COMPLETED_FOR_PSEUDOVAL.tsv`
+- `run_pseudo_validation_32gpu.sbatch`
+
+The job follows the existing `run_pseudo_validation_10x.sbatch` route, but with one array task for `32gpu_3125_linear_10x`. It freezes the latest checkpoint by default (`model.ckpt-3125`). If this final-checkpoint pseudo-validation is mediocre, a follow-up should freeze/check the better lcurve point near step `2280`.
+
+Check with:
+
+```bash
+squeue -j 8545874
+sacct -j 8545874 --format=JobID,JobName,Partition,State,Elapsed,Start,End,ExitCode
+ls -lh /scratch/gpfs/BURROWS/akashgpt/qmd_data/NH3_H2/sim_data_ML_v3__plumed_test__v2/v7_i34/train__test/tf_hvd_apptainer300cuda126_bench_20260422/global_batch_experiments_20260517/pseudo_validation_32gpu_20260521/results/32gpu_3125_linear_10x
+```
+
+## Update - 2026-05-21 07:34 EDT
+
+Current check while reassessing the training-loss trends:
+
+| Job ID | Job name | State | Runtime / limit | Notes |
+| --- | --- | --- | --- | --- |
+| `8545808` | `dpgb10x_8g_70k_s3` | `RUNNING` on `gputest` | `~10:30 / 01:00:00` | `8gpu_7k_linear_10x_seed3` has started on `della-l09g[5,7]`; early `lcurve.out` already shows the same late-degradation pattern as the original failed case, but the job is still active. |
+| `8545809` | `dpgb10x_8g_70k_s2` | `PENDING` on `gputest` | `0:00 / 01:00:00` | Waiting with reason `Priority`. |
+| `8545874_0` | `dpgb32g_pseudoval` | `RUNNING` on `gputest` | `~08:59 / 01:00:00` | 32-GPU freeze/compress/pseudo-validation is active. |
+
+Check commands remain:
+
+```bash
+squeue -j 8545808,8545809,8545874
+sacct -j 8545808,8545809,8545874 --format=JobID,JobName,Partition,State,Elapsed,ExitCode,Start,End
+```
+
+## Update - 2026-05-21 07:54 EDT
+
+32-GPU pseudo-validation job `8545874_0` completed cleanly (`COMPLETED`, `ExitCode=0:0`, elapsed `00:19:48`). Summary written to:
+
+```bash
+/scratch/gpfs/BURROWS/akashgpt/qmd_data/NH3_H2/sim_data_ML_v3__plumed_test__v2/v7_i34/train__test/tf_hvd_apptainer300cuda126_bench_20260422/global_batch_experiments_20260517/pseudo_validation_32gpu_20260521/PSEUDO_VALIDATION_SUMMARY.tsv
+```
+
+Aggregate final-checkpoint result for `32gpu_3125_linear_10x` over 2547 pseudo-validation frames:
+
+| Metric | Value |
+| --- | ---: |
+| Energy RMSE/atom | `0.22219831` eV/atom |
+| Force RMSE | `0.90859673` eV/A |
+| Virial RMSE/Natoms | `0.21269677` eV/atom |
+
+Interpretation: the 32GPU final checkpoint is not catastrophic, but it is worse than the leading 1/2/4/8/16GPU 10x models by energy, force, and virial. Training lcurve best was around step `2280`, while this validation used the latest checkpoint (`model.ckpt-3125`). Consider validating nearby saved checkpoints (`2000` and/or `3000`) if a better 32GPU checkpoint is desired.
+
+## Update - 2026-05-21 07:59 EDT
+
+Submitted best-training-total checkpoint freeze/compress/pseudo-validation for all completed 10x MLPs plus the 32GPU extra case. Existing final-checkpoint compressed models and pseudo-validation stats are intentionally left untouched. This pass writes to a new validation root.
+
+| Item | Value |
+| --- | --- |
+| Slurm job array | `8546762` |
+| Job name | `dpgb10x_bestval` |
+| Partition/QOS | `gputest` / `gpu-test` |
+| Array shape | `0-15%4` |
+| Cases | 16 = 15 completed 10x models + `32gpu_3125_linear_10x` |
+| Matrix | `/scratch/gpfs/BURROWS/akashgpt/qmd_data/NH3_H2/sim_data_ML_v3__plumed_test__v2/v7_i34/train__test/tf_hvd_apptainer300cuda126_bench_20260422/global_batch_experiments_20260517/EXPERIMENT_MATRIX_10x_BEST_TRAIN_TOTAL_FOR_PSEUDOVAL.tsv` |
+| Script | `/scratch/gpfs/BURROWS/akashgpt/qmd_data/NH3_H2/sim_data_ML_v3__plumed_test__v2/v7_i34/train__test/tf_hvd_apptainer300cuda126_bench_20260422/global_batch_experiments_20260517/run_pseudo_validation_10x_best_train_total.sbatch` |
+| Output root | `/scratch/gpfs/BURROWS/akashgpt/qmd_data/NH3_H2/sim_data_ML_v3__plumed_test__v2/v7_i34/train__test/tf_hvd_apptainer300cuda126_bench_20260422/global_batch_experiments_20260517/pseudo_validation_10x_best_train_total_20260521` |
+
+Selection rule: for each case, choose the saved checkpoint with the lowest total training RMSE in `lcurve.out`. If the true lcurve minimum is between saved checkpoints, use the best available saved checkpoint and record both values in the matrix. Example: 32GPU true lcurve best is step `2280`, but selected saved checkpoint is `2000`.
+
+Initial queue snapshot: `8546762_0` and `8546762_1` running on `della-i12g1`; `8546762_[2-15]` pending with reason `QOSMaxJobsPerUserLimit`.
+
+Check with:
+
+```bash
+squeue -j 8546762
+sacct -j 8546762 --format=JobID,JobName,Partition,State,Elapsed,ExitCode,Start,End
+```
+
+After completion, summarize with:
+
+```bash
+python /scratch/gpfs/BURROWS/akashgpt/qmd_data/NH3_H2/sim_data_ML_v3__plumed_test__v2/v7_i34/train__test/tf_hvd_apptainer300cuda126_bench_20260422/global_batch_experiments_20260517/scripts/summarize_pseudo_validation_any.py --root /scratch/gpfs/BURROWS/akashgpt/qmd_data/NH3_H2/sim_data_ML_v3__plumed_test__v2/v7_i34/train__test/tf_hvd_apptainer300cuda126_bench_20260422/global_batch_experiments_20260517 --matrix /scratch/gpfs/BURROWS/akashgpt/qmd_data/NH3_H2/sim_data_ML_v3__plumed_test__v2/v7_i34/train__test/tf_hvd_apptainer300cuda126_bench_20260422/global_batch_experiments_20260517/EXPERIMENT_MATRIX_10x_BEST_TRAIN_TOTAL_FOR_PSEUDOVAL.tsv --validation-root /scratch/gpfs/BURROWS/akashgpt/qmd_data/NH3_H2/sim_data_ML_v3__plumed_test__v2/v7_i34/train__test/tf_hvd_apptainer300cuda126_bench_20260422/global_batch_experiments_20260517/pseudo_validation_10x_best_train_total_20260521 --output /scratch/gpfs/BURROWS/akashgpt/qmd_data/NH3_H2/sim_data_ML_v3__plumed_test__v2/v7_i34/train__test/tf_hvd_apptainer300cuda126_bench_20260422/global_batch_experiments_20260517/pseudo_validation_10x_best_train_total_20260521/PSEUDO_VALIDATION_SUMMARY.tsv
+```
+
+## Update - 2026-05-21 best-checkpoint pseudo-validation completed
+
+Job array `8546762` completed all 16 tasks cleanly (`ExitCode=0:0`). Summary and comparison files:
+
+```bash
+/scratch/gpfs/BURROWS/akashgpt/qmd_data/NH3_H2/sim_data_ML_v3__plumed_test__v2/v7_i34/train__test/tf_hvd_apptainer300cuda126_bench_20260422/global_batch_experiments_20260517/pseudo_validation_10x_best_train_total_20260521/PSEUDO_VALIDATION_SUMMARY.tsv
+/scratch/gpfs/BURROWS/akashgpt/qmd_data/NH3_H2/sim_data_ML_v3__plumed_test__v2/v7_i34/train__test/tf_hvd_apptainer300cuda126_bench_20260422/global_batch_experiments_20260517/pseudo_validation_10x_best_train_total_20260521/BEST_VS_FINAL_COMPARISON.tsv
+```
+
+Headline results:
+
+- Best-saved-train-total checkpoint improved energy in `5/16`, force in `3/16`, virial in `5/16` cases.
+- Biggest change: `4gpu_2500_sqrt_10x` improved from final-checkpoint E/F/V `4.303055/3.767129/5.121701` to best-checkpoint `0.177478/0.757913/0.075724`, making it competitive by energy but still behind the top force group.
+- `reuse_1gpu_10k_10x` improved slightly: E `0.183390 -> 0.181580`, F `0.692176 -> 0.686267`.
+- `32gpu_3125_linear_10x` improved energy modestly: E `0.222198 -> 0.217466`, but force/virial slightly worsened (`0.908597 -> 0.911729`, `0.212697 -> 0.214329`); still worse than the leading 1/2/4/8/16GPU cases.
+- Most final-checkpoint rankings remain unchanged; validation-based checkpoint selection helps specific unstable cases but does not generally make large-GPU schedules superior.
+
+## Update - 2026-05-21 seed-repeat analysis
+
+The two repeat jobs for `8gpu_7k_linear_10x` completed cleanly:
+
+| Job ID | Case | State | Elapsed | ExitCode |
+| --- | --- | --- | --- | --- |
+| `8545809` | `8gpu_7k_linear_10x_seed2` | `COMPLETED` | `00:34:25` | `0:0` |
+| `8545808` | `8gpu_7k_linear_10x_seed3` | `COMPLETED` | `00:34:50` | `0:0` |
+
+Training-curve comparison:
+
+| Case | Exact best step | Exact best total | Best saved step | Best saved total | Final total | Final E/F/V |
+| --- | ---: | ---: | ---: | ---: | ---: | --- |
+| `8gpu_7k_linear_10x` | `11330` | `2.42` | `50000` | `361` | `396` | `17.7 / 4.76 / 3.8` |
+| `8gpu_7k_linear_10x_seed2` | `7250` | `3.59` | `60000` | `11.5` | `37` | `0.581 / 2.21 / 1.58` |
+| `8gpu_7k_linear_10x_seed3` | `4930` | `5.04` | `50000` | `519` | `635` | `28.5 / 3.8 / 8.35` |
+
+Interpretation: there is real seed sensitivity. Seed2 is much less catastrophic than the original at the saved/final checkpoints, while seed3 is worse. But all three runs have their true low-loss region early (`~5k-11k` steps), before the first saved checkpoint at `30000`. The schedule is unstable after the early optimum; seed variation changes how bad the late degradation gets, but does not make this 8GPU/70k schedule robust. Future repeats should use a much shorter `save_freq` or intentional validation/early-stop behavior if this schedule is explored further.
+
+## Update - 2026-05-21 100k none-scaling runs submitted
+
+Submitted three fresh DeePMD training jobs to test whether the apparently stable `none` learning-rate worker scaling remains stable to `100000` steps.
+
+Root:
+
+```bash
+/scratch/gpfs/BURROWS/akashgpt/qmd_data/NH3_H2/sim_data_ML_v3__plumed_test__v2/v7_i34/train__test/tf_hvd_apptainer300cuda126_bench_20260422/global_batch_experiments_20260517/runs/none_100k
+```
+
+Key settings for all three:
+
+- `training.numb_steps = 100000`
+- `learning_rate.decay_steps = 100000`
+- `learning_rate.scale_by_worker = none`
+- `training.save_freq = 100`
+
+Submitted jobs:
+
+| Job ID | Case | GPUs | Nodes | Time limit | Initial status snapshot |
+| --- | --- | ---: | ---: | --- | --- |
+| `8560447` | `4gpu_100k_none` | 4 | 1 | `01:00:00` | `RUNNING` on `della-l06g12` at submission check |
+| `8560446` | `8gpu_100k_none` | 8 | 2 | `02:00:00` | `PENDING` |
+| `8560448` | `16gpu_100k_none` | 16 | 4 | `02:00:00` | `PENDING` |
+
+Check status:
+
+```bash
+squeue -j 8560446,8560447,8560448 -o '%i %.18j %.8T %.10M %.9l %.6D %R'
+sacct -j 8560446,8560447,8560448 --format=JobID,JobName,Partition,State,Elapsed,ExitCode,Start,End
+```
+
+Once complete, inspect `lcurve.out` in each case folder, plot with the ALCHEMY `plots_mod.py` helper, then run freeze/compress/pseudo-validation for final and probably best-total checkpoints.
+
+### Adjustment - 2026-05-21 8GPU none diagnostic walltime shortened
+
+Per diagnostic intent, updated live job `8560446` (`8gpu_100k_none`) from `02:00:00` to `01:00:00` using `scontrol update`, and updated its `run_srun_train_mem.sbatch` accordingly. It is acceptable if this run stops before 100k steps; the goal is to diagnose whether `scale_by_worker = none` avoids the early/late training-loss blowup, even if it reaches only roughly `80k-90k` steps.
+
+### Adjustment - 2026-05-21 8GPU none diagnostic relaunched
+
+The in-place-updated 8GPU job was cancelled and relaunched so the queue entry is fresh with the intended 1-hour request.
+
+| Old job | New job | Case | Change |
+| --- | --- | --- | --- |
+| `8560446` | `8561215` | `8gpu_100k_none` | cancelled pending job and relaunched with `#SBATCH --time=01:00:00` |
+
+Current check command:
+
+```bash
+squeue -j 8560447,8561215,8560448 -o '%i %.18j %.8T %.10M %.9l %.6D %R'
+sacct -j 8560446,8561215 --format=JobID,JobName,State,Elapsed,Timelimit,ExitCode
+```
+
+## Update - 2026-05-21 8GPU linear warmup diagnostic submitted
+
+Submitted a fresh warmup test for the previously unstable `8gpu_7k_linear_10x` schedule.
+
+Case root:
+
+```bash
+/scratch/gpfs/BURROWS/akashgpt/qmd_data/NH3_H2/sim_data_ML_v3__plumed_test__v2/v7_i34/train__test/tf_hvd_apptainer300cuda126_bench_20260422/global_batch_experiments_20260517/runs/warmup_tests/8gpu_7k_linear_10x_warmup5k
+```
+
+Job:
+
+| Job ID | Case | GPUs | Nodes | Time limit | Initial status |
+| --- | --- | ---: | ---: | --- | --- |
+| `8562968` | `8gpu_7k_linear_10x_warmup5k` | 8 | 2 | `01:00:00` | `PENDING` |
+
+Key settings:
+
+- `training.numb_steps = 70000`
+- `learning_rate.decay_steps = 70000`
+- `learning_rate.scale_by_worker = linear`
+- `learning_rate.warmup_steps = 5000`
+- `learning_rate.warmup_start_factor = 0.0`
+- `training.save_freq = 100`
+
+Purpose: test whether a 5k-step LR warmup prevents the loss blowup seen in `8gpu_7k_linear_10x`, while preserving dense checkpoints around the early low-loss region.
+
+Check status:
+
+```bash
+squeue -j 8562968 -o '%i %.18j %.8T %.10M %.9l %.6D %R'
+sacct -j 8562968 --format=JobID,JobName,State,Elapsed,Timelimit,ExitCode,Start,End
+```
+
+## Update - 2026-05-21 4GPU 100k none completed
+
+Job `8560447` (`4gpu_100k_none`) completed cleanly in `00:50:15` (`ExitCode=0:0`). Key training-curve result:
+
+| Case | Best step | Best total | Best E/F/V | Final total | Final E/F/V | Final/best |
+| --- | ---: | ---: | --- | ---: | --- | ---: |
+| `4gpu_100k_none` | `89330` | `0.316` | `0.00143 / 0.223 / 0.00725` | `1.10` | `0.0188 / 0.612 / 0.0318` | `3.48` |
+
+Comparison: this essentially matches the best 4GPU 100k linear/reuse training behavior (`reuse_4gpu_10k_10x`: best total `0.303`, final `0.997`) while improving substantially over the shorter `4gpu_2500_none_10x` (`best=0.566`, final `1.89`). It does not show the catastrophic blowups seen in bad 8GPU/linear schedules.
+
+Important checkpoint caveat: although `save_freq=100`, DeePMD keeps only `max_ckpt_keep=5` by default. The true best step `89330` is visible in `lcurve.out` but its checkpoint was deleted; only the final few checkpoints remain. Future dense-checkpoint diagnostics should set `training.max_ckpt_keep` high enough, or use a targeted checkpoint-copy/watch script if preserving every 100-step checkpoint is too expensive.
+
+## Update - 2026-05-21 none-100k final-checkpoint validation submitted
+
+Submitted pseudo-validation for completed none-scaling 100k runs. This validates final retained checkpoints because the lcurve-best checkpoints were not kept under DeePMD's default `max_ckpt_keep=5`.
+
+Validation job array: `8569764`
+
+Matrix:
+
+```bash
+/scratch/gpfs/BURROWS/akashgpt/qmd_data/NH3_H2/sim_data_ML_v3__plumed_test__v2/v7_i34/train__test/tf_hvd_apptainer300cuda126_bench_20260422/global_batch_experiments_20260517/EXPERIMENT_MATRIX_NONE_100K_FINAL_FOR_PSEUDOVAL.tsv
+```
+
+Validation root:
+
+```bash
+/scratch/gpfs/BURROWS/akashgpt/qmd_data/NH3_H2/sim_data_ML_v3__plumed_test__v2/v7_i34/train__test/tf_hvd_apptainer300cuda126_bench_20260422/global_batch_experiments_20260517/pseudo_validation_none_100k_final_20260521
+```
+
+Cases:
+
+| Array index | Case | Checkpoint |
+| ---: | --- | --- |
+| `0` | `4gpu_100k_none` | `model.ckpt-100000` |
+| `1` | `8gpu_100k_none` | `model.ckpt-100000` |
+
+Check status:
+
+```bash
+squeue -j 8569764 -o '%i %.22j %.8T %.10M %.9l %.6D %R'
+sacct -j 8569764 --format=JobID,JobName,State,Elapsed,Timelimit,ExitCode,Start,End
+```
+
+After completion, summarize with:
+
+```bash
+python /scratch/gpfs/BURROWS/akashgpt/qmd_data/NH3_H2/sim_data_ML_v3__plumed_test__v2/v7_i34/train__test/tf_hvd_apptainer300cuda126_bench_20260422/global_batch_experiments_20260517/scripts/summarize_pseudo_validation_any.py --root /scratch/gpfs/BURROWS/akashgpt/qmd_data/NH3_H2/sim_data_ML_v3__plumed_test__v2/v7_i34/train__test/tf_hvd_apptainer300cuda126_bench_20260422/global_batch_experiments_20260517 --matrix /scratch/gpfs/BURROWS/akashgpt/qmd_data/NH3_H2/sim_data_ML_v3__plumed_test__v2/v7_i34/train__test/tf_hvd_apptainer300cuda126_bench_20260422/global_batch_experiments_20260517/EXPERIMENT_MATRIX_NONE_100K_FINAL_FOR_PSEUDOVAL.tsv --validation-root /scratch/gpfs/BURROWS/akashgpt/qmd_data/NH3_H2/sim_data_ML_v3__plumed_test__v2/v7_i34/train__test/tf_hvd_apptainer300cuda126_bench_20260422/global_batch_experiments_20260517/pseudo_validation_none_100k_final_20260521 --output /scratch/gpfs/BURROWS/akashgpt/qmd_data/NH3_H2/sim_data_ML_v3__plumed_test__v2/v7_i34/train__test/tf_hvd_apptainer300cuda126_bench_20260422/global_batch_experiments_20260517/pseudo_validation_none_100k_final_20260521/PSEUDO_VALIDATION_SUMMARY.tsv
+```
+
+## Update - 2026-05-21 none-100k final-checkpoint validation completed
+
+Validation array `8569764` completed cleanly for both retained final checkpoints.
+
+Aggregate pseudo-validation over 2547 frames:
+
+| Case | Checkpoint | Energy RMSE/atom | Force RMSE | Virial RMSE/atom |
+| --- | ---: | ---: | ---: | ---: |
+| `4gpu_100k_none` | `100000` | `0.17495026` | `0.58141612` | `0.048947926` |
+| `8gpu_100k_none` | `100000` | `17.914549` | `3.3463369` | `0.63368278` |
+
+Summary file:
+
+```bash
+/scratch/gpfs/BURROWS/akashgpt/qmd_data/NH3_H2/sim_data_ML_v3__plumed_test__v2/v7_i34/train__test/tf_hvd_apptainer300cuda126_bench_20260422/global_batch_experiments_20260517/pseudo_validation_none_100k_final_20260521/PSEUDO_VALIDATION_SUMMARY.tsv
+```
+
+Interpretation: `4gpu_100k_none` is now the strongest validated case in this benchmark set by force and virial, and narrowly best by energy among the clean 10x-like runs. It beats `reuse_4gpu_10k_10x` on all three aggregate metrics. `8gpu_100k_none` confirms that removing LR worker scaling alone does not cure the high-GPU long-run instability; its final checkpoint is catastrophically bad by energy and force, consistent with its final training lcurve values.
+
+Caveat: these are final-checkpoint validations only. The true lcurve-best checkpoints were not retained because DeePMD defaulted to `max_ckpt_keep=5`. Future dense-checkpoint runs should set `training.max_ckpt_keep` high enough, or explicitly preserve selected checkpoints.
+
+Remaining active/pending related jobs: `8560448` (`16gpu_100k_none`) was cancelled by request after the 4GPU and 8GPU none validations completed; `8562968` (`8gpu_7k_linear_10x_warmup5k`) failed quickly, consistent with `warmup_steps` being PyTorch-only in this DeepMD 3.0.0 path while this workflow uses TensorFlow/Horovod.
+
+
+## Update - 2026-05-21 19:30 EDT
+
+Submitted DeePMD PyTorch backend repeats for the no-LR-scaling diagnostics.
+These runs use `ALCHEMY_env__PT`, `dp --pt train`, `scale_by_worker = none`,
+`save_freq = 100`, and 1-hour walltime. The original TF/Horovod runs and
+compressed-model outputs are left untouched.
+
+### PT fixed-100k `none` runs
+
+| Job ID | Job name | GPUs | Nodes | Steps | Working directory |
+| --- | --- | ---: | ---: | ---: | --- |
+| `8573109` | `pt1g_100k_none` | 1 | 1 | 100000 | `/scratch/gpfs/BURROWS/akashgpt/qmd_data/NH3_H2/sim_data_ML_v3__plumed_test__v2/v7_i34/train__test/tf_hvd_apptainer300cuda126_bench_20260422/global_batch_experiments_20260517/runs/pt_none_100k/1gpu_100k_none_pt` |
+| `8573110` | `pt4g_100k_none` | 4 | 1 | 100000 | `/scratch/gpfs/BURROWS/akashgpt/qmd_data/NH3_H2/sim_data_ML_v3__plumed_test__v2/v7_i34/train__test/tf_hvd_apptainer300cuda126_bench_20260422/global_batch_experiments_20260517/runs/pt_none_100k/4gpu_100k_none_pt` |
+| `8573111` | `pt8g_100k_none` | 8 | 2 | 100000 | `/scratch/gpfs/BURROWS/akashgpt/qmd_data/NH3_H2/sim_data_ML_v3__plumed_test__v2/v7_i34/train__test/tf_hvd_apptainer300cuda126_bench_20260422/global_batch_experiments_20260517/runs/pt_none_100k/8gpu_100k_none_pt` |
+| `8573112` | `pt16g_100k_none` | 16 | 4 | 100000 | `/scratch/gpfs/BURROWS/akashgpt/qmd_data/NH3_H2/sim_data_ML_v3__plumed_test__v2/v7_i34/train__test/tf_hvd_apptainer300cuda126_bench_20260422/global_batch_experiments_20260517/runs/pt_none_100k/16gpu_100k_none_pt` |
+
+### PT step-scaled `none` runs
+
+These keep total sample exposure roughly matched by setting steps and LR
+decay steps to `100000 / n_gpus`.
+
+| Job ID | Job name | GPUs | Nodes | Steps / decay_steps | Working directory |
+| --- | --- | ---: | ---: | ---: | --- |
+| `8573159` | `ptss1g_100000` | 1 | 1 | 100000 | `/scratch/gpfs/BURROWS/akashgpt/qmd_data/NH3_H2/sim_data_ML_v3__plumed_test__v2/v7_i34/train__test/tf_hvd_apptainer300cuda126_bench_20260422/global_batch_experiments_20260517/runs/pt_step_scaled_none/1gpu_100k_stepscaled_none_pt` |
+| `8573160` | `ptss4g_25000` | 4 | 1 | 25000 | `/scratch/gpfs/BURROWS/akashgpt/qmd_data/NH3_H2/sim_data_ML_v3__plumed_test__v2/v7_i34/train__test/tf_hvd_apptainer300cuda126_bench_20260422/global_batch_experiments_20260517/runs/pt_step_scaled_none/4gpu_25k_stepscaled_none_pt` |
+| `8573161` | `ptss8g_12500` | 8 | 2 | 12500 | `/scratch/gpfs/BURROWS/akashgpt/qmd_data/NH3_H2/sim_data_ML_v3__plumed_test__v2/v7_i34/train__test/tf_hvd_apptainer300cuda126_bench_20260422/global_batch_experiments_20260517/runs/pt_step_scaled_none/8gpu_12500_stepscaled_none_pt` |
+| `8573162` | `ptss16g_6250` | 16 | 4 | 6250 | `/scratch/gpfs/BURROWS/akashgpt/qmd_data/NH3_H2/sim_data_ML_v3__plumed_test__v2/v7_i34/train__test/tf_hvd_apptainer300cuda126_bench_20260422/global_batch_experiments_20260517/runs/pt_step_scaled_none/16gpu_6250_stepscaled_none_pt` |
+
+Current submission snapshot: all eight are `PENDING` on `gputest` with
+1-hour limits and pending reason `(None)`.
+
+Check with:
+
+```bash
+squeue -j 8573109,8573110,8573111,8573112,8573159,8573160,8573161,8573162
+sacct -j 8573109,8573110,8573111,8573112,8573159,8573160,8573161,8573162 --format=JobID,JobName,Partition,State,Elapsed,Start,End,ExitCode
+```
+
+After completion, compare PT fixed-100k vs PT step-scaled curves against the
+TF/Horovod `none_100k` and `long_steps_10x` controls, then run freeze/compress
+and pseudo-validation for the non-pathological checkpoints.

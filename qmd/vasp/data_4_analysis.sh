@@ -39,7 +39,10 @@ run_data_4_analysis_autodetect() {
 		return 1
 	fi
 
-	if grep -aq "free  energy ML TOTEN\|MLFF:" "$outcar_path"; then
+	# VASP 6 may print "MLFF:" in the normal timing table even when
+	# machine-learned force fields are disabled. Use the ML energy line as
+	# the OUTCAR signature for the MLFF analysis workflow.
+	if grep -aq "free  energy ML TOTEN" "$outcar_path"; then
 		analysis_mode="mlff"
 		target_script="data_4_analysis__MLFF.sh"
 	else

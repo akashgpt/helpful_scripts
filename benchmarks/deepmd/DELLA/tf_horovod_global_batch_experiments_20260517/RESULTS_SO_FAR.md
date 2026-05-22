@@ -284,7 +284,7 @@ still pending at this update:
 | Job ID | Case | Purpose |
 |---:|---|---|
 | 8375105 | `dpgb16g_100k_90m` | Fresh 16GPU/100k/90m diagnostic. |
-| 8381309 | `8node_32gpu_3125_linear_10x` | Extra 8-node/32GPU wall-time diagnostic, linear scaling, 3125 steps = 100000/32. |
+| 8381309 | `32gpu_3125_linear_10x` | Extra 8-node/32GPU wall-time diagnostic, linear scaling, 3125 steps = 100000/32. |
 
 When either run finishes:
 

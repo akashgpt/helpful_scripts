@@ -1,2 +1,2 @@
 job_id	case_id	group	status	gpus	nodes	steps	decay_steps	scale_by_worker	run_dir	note
-8381309	8node_32gpu_3125_linear_10x	long_steps_10x_extra	pending	32	8	3125	3125	linear	runs/long_steps_10x/8node_32gpu_3125_linear_10x	Extra wall-time-focused 32GPU diagnostic; equivalent global-batch sample exposure to 1GPU/100k using physical 32-GPU scaling.
+8381309	32gpu_3125_linear_10x	long_steps_10x_extra	pending	32	8	3125	3125	linear	runs/long_steps_10x/32gpu_3125_linear_10x	Extra wall-time-focused 32GPU diagnostic; equivalent global-batch sample exposure to 1GPU/100k using physical 32-GPU scaling.

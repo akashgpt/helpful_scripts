@@ -49,7 +49,9 @@ validate_standard_md_outcar() {
 
 	standard_outcar_is_non_md=0
 
-	mlff_count=$(grep -c "free  energy ML TOTEN\|MLFF:" "$outcar_path" || true)
+	# VASP 6 may print "MLFF:" in the normal timing table even for standard DFT/MD.
+	# Only the ML energy line should exclude the standard analysis workflow.
+	mlff_count=$(grep -c "free  energy ML TOTEN" "$outcar_path" || true)
 
 	if [[ "$mlff_count" -gt 0 ]]; then
 		echo "Error: $outcar_path looks like an MLFF OUTCAR, not a standard MD OUTCAR."
