@@ -153,4 +153,8 @@ ssh stellar 'sacct -j 2777680,2777681 --format=JobID,JobName,Partition,QOS,State
 ssh stellar 'tail -5 /scratch/gpfs/BURROWS/akashgpt/qmd_data/NH3_H2/sim_data_ML_v4/VALIDATION_RUNS/H2_NH3/108_H2_108_NH3/DFT/33_GPa/OSZICAR'
 ```
 
-Keep this note in `ONGOING/DELLA` because Stellar job `2777680` is still running and is part of the validation follow-up.
+Keep this note in `ONGOING/DELLA` for the local Della-side 108-case validation history. Remote follow-up should be refreshed only when explicitly requested.
+
+## Update - 2026-05-22 23:27 EDT
+
+Della has no active scheduler jobs tied to the original 108-case LAMMPS validation note in the current local queue snapshot. Remote follow-up status was not refreshed here because generic `ONGOING/` updates should only touch the local cluster unless explicitly requested.

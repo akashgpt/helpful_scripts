@@ -27,6 +27,17 @@ Scratch experiment root:
 | `reference_results/EXTRA_PENDING_32GPU_20260517.tsv` | Extra pending 8-node/32GPU diagnostic submitted after the completed 10x matrix. |
 | `reference_results/PSEUDO_VALIDATION_SYSTEMS.tsv` | Pseudo-validation systems used for `dp test`. |
 | `reference_results/ANALYSIS_SUMMARY.md` | Scratch-side analysis note at the time of archiving. |
+| `reference_results/TF_NONE_DECAY10K_DIAGNOSTIC_SUMMARY_20260524.tsv` | Curated 4GPU TF `none` seed-repeat plus 8GPU/16GPU decay10k diagnostic summary; no raw logs or checkpoints. |
+| `reference_results/PT_TF_VALIDATION_REFERENCE_20260523.tsv` | Combined TF/PT validation reference table, sorted for model selection by validation energy RMSE per atom. |
+| `reference_results/PT_VALIDATION_REFERENCE_20260523.tsv` | PT-only validation reference slice. |
+| `reference_results/TF_VALIDATION_REFERENCE_20260523.tsv` | TF-only validation reference slice. |
+| `reference_results/PT_100K_TRAINING_EVOLUTION_ROLLING_MEDIAN_MEAN_20260523.png` | PT 100k aggregate training-curve plot for optimizer-health diagnostics. |
+| `reference_results/TF_REPRESENTATIVE_LONG_TRAINING_EVOLUTION_ROLLING_MEDIAN_MEAN_20260523.png` | TF representative long-training aggregate plot for optimizer-health diagnostics. |
+| `reference_results/TF_NONE_REPRESENTATIVE_LONG_TRAINING_EVOLUTION_ROLLING_MEDIAN_MEAN_20260523.png` | TF representative `none`-schedule plot using the 1GPU baseline plus available 4GPU/8GPU TF `none` curves. |
+| `reference_results/TF_VS_PT_1GPU_4GPU_TRAINING_EVOLUTION_ROLLING_MEDIAN_MEAN_20260523.png` | TF-vs-PT 1GPU/4GPU training-curve comparison plot, with schedule-comparability caveats. |
+| `reference_results/TF_VS_PT_NONE_1GPU_4GPU_TRAINING_EVOLUTION_ROLLING_MEDIAN_MEAN_20260523.png` | Explicit TF-vs-PT `none`-schedule 1GPU/4GPU comparison; TF 1GPU is the shared one-worker baseline. |
+| `reference_results/TF_LINEAR_VS_NONE_1GPU_4GPU_TRAINING_EVOLUTION_ROLLING_MEDIAN_MEAN_20260523.png` | TF-only 1GPU baseline and 4GPU `linear`/`none` comparison showing the stable 4GPU `none` curve and the late drift in the comparable 4GPU `linear` curve. |
+| TF multi-GPU scaling default | Given the evidence so far, 4GPU TF/PT with `scale_by_worker = none` remains the recommended production-style default; seed02-seed05 4GPU TF `none` repeats reached 100k without catastrophic blowup, 8GPU decay10k is promising, and 16GPU decay10k still failed. |
 | `reference_scripts/` | Reference copies of materialization, summarization, submission, and pseudo-validation scripts. |
 
 ## Metric Conventions
@@ -293,3 +304,40 @@ When either run finishes:
 3. run the same pseudo-validation set;
 4. compare RMSEs with explicit bootstrap percentile columns;
 5. decide whether it changes the large-GPU conclusion.
+
+
+## TF `none` Seed and Decay10k Diagnostic Update
+
+Snapshot time: 2026-05-24
+
+The newest TF `none` diagnostics support the 4GPU-centered recommendation but
+do not justify moving the default to larger GPU counts. The 4GPU seed-repeat
+runs `seed02__final`, `seed03__final`, `seed04__final`, and `seed05__final`
+all reached 100000 steps without catastrophic blowup. Their raw final training
+rows remain noisy, but the late training behavior was stable enough for a
+production-style benchmark read, and their aggregate pseudo-validation metrics
+cluster tightly: validation energy RMSE/atom 0.17305292-0.17605704 eV/atom,
+force RMSE 0.57159301-0.60205868 eV/A, and virial RMSE/Natoms
+0.045853057-0.048237282 eV/atom. This is evidence so far, not a theorem about
+all datasets or schedules.
+
+The 8GPU decay10k diagnostic shows that the old 8GPU TF `none` failure was
+strongly learning-rate-schedule dependent. The old `8gpu_100k_none__final`
+run had final training total RMSE 421 and validation energy RMSE/atom
+17.914549 eV/atom. Changing only `decay_steps` from 100000 to 10000 produced
+`8gpu_100k_none_decay10k__final`, which completed 100000 steps with final
+training total RMSE 1.09 and validation RMSEs 0.15664999 eV/atom for energy,
+0.45800901 eV/A for force, and 0.031369228 eV/atom for virial.
+
+The 16GPU companion prevents overgeneralizing that result.
+`16gpu_100k_none_decay10k` timed out at step 77270 with training already blown
+up: final training total RMSE 1.65e3, energy RMSE 14.2 eV/atom, force RMSE
+15.6 eV/A, and virial RMSE 73.8 eV/atom. No final pseudo-validation was run.
+
+Current recommendation: keep 4GPU TF/PT with `scale_by_worker = none` as the
+recommended default for this NH3/H2 Della benchmark family. Treat 8GPU TF
+`none` with `decay_steps = 10000` as a promising follow-up candidate, and
+treat 16GPU as not production-ready until a schedule passes training stability,
+pseudo-validation, and downstream MD checks. See
+`reference_results/TF_NONE_DECAY10K_DIAGNOSTIC_SUMMARY_20260524.tsv` for the
+curated TSV record.
