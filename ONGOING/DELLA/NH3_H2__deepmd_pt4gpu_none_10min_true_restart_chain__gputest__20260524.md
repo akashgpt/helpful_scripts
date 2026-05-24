@@ -2,12 +2,13 @@
 
 ## Status Snapshot
 
-- Date: 2026-05-24 11:54 EDT
+- Date: 2026-05-24 12:18 EDT
 - Cluster: Della
 - Slurm partition/QOS: `gputest`
-- Current job ID: `8699042`
+- Current job ID: `8699821`
 - Supersedes: cancelled 15-minute PT chain job `8698985`
 - Run directory: `/scratch/gpfs/BURROWS/akashgpt/qmd_data/NH3_H2/sim_data_ML_v3__plumed_test__v2/v7_i34/train__test/tf_hvd_apptainer300cuda126_bench_20260422/global_batch_experiments_20260517/runs/interrupt_restart_chain_20260524/pt4g_100k_none_10min_chain`
+- Status: first slice `8699042` finished/resubmitted; second slice `8699821` is running. Latest plotted snapshot reached step `28970` with final recorded train total `3.58`.
 
 ## Purpose
 
@@ -30,7 +31,7 @@ Test DeePMD PyTorch restart behavior with 10-minute interrupted-job slices for t
 ## How To Check
 
 ```bash
-squeue -j 8699042
+squeue -j 8699821
 cd /scratch/gpfs/BURROWS/akashgpt/qmd_data/NH3_H2/sim_data_ML_v3__plumed_test__v2/v7_i34/train__test/tf_hvd_apptainer300cuda126_bench_20260422/global_batch_experiments_20260517/runs/interrupt_restart_chain_20260524/pt4g_100k_none_10min_chain
 tail -n 5 lcurve.out
 cat checkpoint
