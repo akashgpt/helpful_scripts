@@ -62,6 +62,7 @@
 - Treat benchmark folders as curated reference material, not dump folders. They should contain a compact record of tests performed, result summaries, data/work-directory locations, conclusions/inferences, and setup files that worked or failed, such as submission scripts, DeepMD JSON templates, LAMMPS input files, or VASP input templates.
 - Do not archive raw scheduler logs, full training logs, checkpoints, frozen/compressed models, generated duplicate input/output JSONs, or large data artifacts in benchmark folders unless the user explicitly asks for that artifact. Summarize any useful information from those files into markdown or TSV files instead.
 - Copy/adapt benchmark scripts into working directories as needed, but avoid overwriting benchmark records unless the user explicitly asks to update them.
+- Keep plots and visualizations in benchmark folders when and where possible -- these can be valuable for understanding and communicating results.
 
 ## Ongoing Job Tracking (crash resilience)
 
@@ -69,6 +70,7 @@
 - Purpose: session-crash / context-loss resilience. If a session is lost, this note is the single source of truth for what was running and how to resume — never rely on conversation memory for in-flight jobs.
 - Capture concisely but completely enough to resume cold: working directory; what was submitted and why; job IDs (and old→new across resubmits); key config/parameters; partition/binary; how to check status and how to resume; a dated status snapshot; relevant tooling/scripts; and the next step once done. Name it `<system>__<purpose>__<partition>__YYYYMMDD.md`.
 - Keep it updated as state materially changes (resubmits, partition/binary changes, completions).
+- When asked to update or refresh `ONGOING/` generally, only update notes for the local cluster you are currently on, unless the user explicitly asks for remote/cross-cluster status. Do not SSH to other clusters or edit their `ONGOING/<CLUSTER>/` notes as part of a generic update request.
 - Clean up only with explicit user confirmation: do NOT remove an `ONGOING/` note autonomously. When the work appears complete, tell the user and ask them to confirm the task is finished and the note can be cleared; only then delete it (or move it out of `ONGOING/`). `$HELP_SCRIPTS/ONGOING/` should hold only genuinely in-flight work, but removal is always user-gated — never automatic.
 
 ## Cross-cluster SSH Access (Princeton: stellar / tiger / della)

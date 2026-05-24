@@ -3,10 +3,10 @@
 Date: 2026-05-17
 
 Status: reference snapshot. The first short-run/reused-run matrix and the
-completed 10x-step follow-up matrix have both been pseudo-validated. Separate
-fresh 16GPU/100k/90m and 8-node/32GPU/3125-step diagnostic jobs were still
-pending at the latest snapshot, but they are not part of the completed 10x
-matrix archived here.
+completed 10x-step follow-up matrix have both been pseudo-validated. The later
+TF/PT validation and training-curve notes include the 2026-05-23 reference
+tables, and the 2026-05-24 curated diagnostic summary records the newer 4GPU
+seed-repeat and 8GPU/16GPU TF `none` decay10k learning-rate-schedule checks.
 
 Current result snapshot:
 
@@ -173,3 +173,107 @@ and 16GPU/6.25k linear are the useful large-batch experiments. Update-matched
 or walltime-matched large-GPU long-step schedules need validation-based
 checkpoint selection and probably a redesigned learning-rate schedule before
 they should be treated as production candidates.
+
+## TF/PT Training-Curve and Validation Update, 2026-05-23
+
+The later TF/PT reference tables and training-curve plots keep the practical
+recommendation centered near 4 GPUs. Given the current amount of training data
+and the benchmark evidence archived here, 4-GPU TF and 4-GPU PT are the best
+practical region right now: they are strong enough in validation RMSE to be
+production candidates, while avoiding the extra instability and GPU-hour cost
+seen in several larger-GPU schedules.
+
+The training curves suggest that TF improves training metrics faster than PT
+early on, especially relative to the 1-GPU comparison. PT is not simply worse,
+though: with enough optimizer steps, the PT curves catch or merge toward
+comparable late-training quality. This is an optimizer-health observation, not
+a model-selection rule. Validation RMSE remains the selection criterion;
+training curves are diagnostics for convergence, drift, and schedule health.
+
+Operationally, the 4-GPU evidence supports the hypothesis that production
+training may often need fewer optimizer steps than the corresponding 1-GPU
+run, possibly around half or quarter in favorable cases. Treat that as an
+inference to validate with held-out/pseudo-validation RMSE for each new
+dataset and schedule, not as a guaranteed scaling law. The useful scientific
+question is whether the shorter 4-GPU run preserves validation energy/force
+quality and downstream MD stability, not whether the training loss alone falls
+quickly.
+
+For TF multi-GPU production-style runs in this benchmark family, use `none`
+worker scaling by default unless a test explicitly asks for `linear`, `sqrt`,
+or another scaling choice. Given the evidence so far, `none` is clearly more
+stable than `linear` and `sqrt` for the TF multi-GPU cases tested here. The
+original 4GPU/100k `none` run stayed stable, and the seed02-seed05 4GPU
+`none` repeats all reached 100k without catastrophic blowup. The raw final
+rows are noisy, but their late training behavior and pseudo-validation metrics
+are consistent enough to support 4GPU TF `none` as the current default region.
+This is empirical benchmark evidence, not a theorem. It remains specific to
+the present NH3/H2 data and Della DeePMD setup; revisit it when a new dataset,
+optimizer schedule, or validation result justifies doing so.
+
+There is also a comparability caveat. The exact TF and PT curves are not all
+perfectly matched in schedule and data family. This matters most for the TF
+1GPU representative curve, which is a linear-scaling long run rather than the
+same fixed-100k `none` design used for the PT 1GPU/4GPU curves and the TF
+4GPU curve. Use the TF-vs-PT plots to compare optimizer behavior, but use the
+validation tables for production ranking.
+
+Relevant archived artifacts:
+
+- TF `none` seed-repeat and decay10k diagnostic summary:
+  `reference_results/TF_NONE_DECAY10K_DIAGNOSTIC_SUMMARY_20260524.tsv`
+- PT aggregate training plot:
+  `reference_results/PT_100K_TRAINING_EVOLUTION_ROLLING_MEDIAN_MEAN_20260523.png`
+- PT aggregate summary table:
+  `reference_results/PT_100K_TRAINING_EVOLUTION_SUMMARY_20260523.tsv`
+- TF aggregate training plot:
+  `reference_results/TF_REPRESENTATIVE_LONG_TRAINING_EVOLUTION_ROLLING_MEDIAN_MEAN_20260523.png`
+- TF aggregate summary table:
+  `reference_results/TF_REPRESENTATIVE_LONG_TRAINING_EVOLUTION_SUMMARY_20260523.tsv`
+- TF representative `none` training plot:
+  `reference_results/TF_NONE_REPRESENTATIVE_LONG_TRAINING_EVOLUTION_ROLLING_MEDIAN_MEAN_20260523.png`
+- TF-vs-PT 1/4 GPU plot:
+  `reference_results/TF_VS_PT_1GPU_4GPU_TRAINING_EVOLUTION_ROLLING_MEDIAN_MEAN_20260523.png`
+- TF-vs-PT 1/4 GPU summary table:
+  `reference_results/TF_VS_PT_1GPU_4GPU_TRAINING_EVOLUTION_SUMMARY_20260523.tsv`
+- Validation summary tables:
+  `reference_results/PT_TF_VALIDATION_REFERENCE_20260523.tsv`,
+  `reference_results/PT_VALIDATION_REFERENCE_20260523.tsv`, and
+  `reference_results/TF_VALIDATION_REFERENCE_20260523.tsv`
+- Companion validation note:
+  `reference_results/PT_TF_VALIDATION_REFERENCE_20260523.md`
+
+
+## TF `none` Seed and Decay10k Diagnostic Update, 2026-05-24
+
+The 2026-05-24 diagnostics add two useful checks to the 4GPU-centered
+recommendation. First, the 4GPU TF `scale_by_worker = none` seed repeats
+`seed02` through `seed05` all reached 100k steps without catastrophic blowup.
+Their final training rows are noisy, but the late training behavior and
+pseudo-validation aggregates are fairly consistent: validation energy
+RMSE/atom spans 0.17305292-0.17605704 eV/atom and force RMSE spans
+0.57159301-0.60205868 eV/A. This supports 4GPU TF `none` as a stable practical
+region for the present NH3/H2 benchmark, while still being evidence so far
+rather than a general theorem.
+
+Second, the new 8GPU and 16GPU decay10k diagnostics show that learning-rate
+schedule tuning helps, but not universally. The old `8gpu_100k_none__final`
+run was a real blowup: final training total RMSE 421 and validation energy
+RMSE/atom 17.914549 eV/atom. Repeating the same 8GPU TF/Horovod `none` 100k
+design with only `decay_steps` changed from 100000 to 10000 removed that
+failure. The `8gpu_100k_none_decay10k__final` run reached step 100000 with
+final training total RMSE 1.09 and pseudo-validation RMSEs 0.15664999 eV/atom
+for energy, 0.45800901 eV/A for force, and 0.031369228 eV/atom for virial.
+
+The companion `16gpu_100k_none_decay10k` run did not share that success. It
+timed out at the 1-hour wall limit after step 77270, with final training total
+RMSE 1.65e3, energy RMSE 14.2 eV/atom, force RMSE 15.6 eV/A, and virial RMSE
+73.8 eV/atom. Because the training loss had already blown up badly, no final
+pseudo-validation was launched for that case.
+
+The practical recommendation therefore stays conservative: for NH3/H2 DeePMD
+production-style training on this Della TF/PT setup, default to 4GPU TF/PT with
+`scale_by_worker = none`. Treat 8GPU TF `none` with `decay_steps = 10000` as a
+promising diagnostic or follow-up candidate, not as the new default, and avoid
+16GPU TF/PT production runs until a more reliable schedule is demonstrated by
+training stability, pseudo-validation RMSE, and downstream MD behavior.

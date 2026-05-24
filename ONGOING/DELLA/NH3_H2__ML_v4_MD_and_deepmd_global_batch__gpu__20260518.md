@@ -505,3 +505,178 @@ sacct -j 8573109,8573110,8573111,8573112,8573159,8573160,8573161,8573162 --forma
 After completion, compare PT fixed-100k vs PT step-scaled curves against the
 TF/Horovod `none_100k` and `long_steps_10x` controls, then run freeze/compress
 and pseudo-validation for the non-pathological checkpoints.
+
+
+## Update - 2026-05-22 10:14 EDT
+
+The first PT submissions from 2026-05-21 failed immediately before training.
+Root cause was the Slurm launcher using `set -u` while the
+`ALCHEMY_env__PT` conda activation hook references unset path variables
+(`PKG_CONFIG_PATH`, etc.). The failure happened in 1--9 seconds, so no
+training curves were produced.
+
+Patched all eight PT launchers to temporarily disable nounset only around
+`conda activate ALCHEMY_env__PT`, then re-enable it before training.
+
+Old failed jobs:
+
+```bash
+8573109,8573110,8573111,8573112,8573159,8573160,8573161,8573162
+```
+
+Fresh relaunches:
+
+| Job ID | Job name | Case family | GPUs | Nodes | Steps |
+| --- | --- | --- | ---: | ---: | ---: |
+| `8611536` | `pt1g_100k_none` | fixed-100k PT none | 1 | 1 | 100000 |
+| `8611537` | `pt4g_100k_none` | fixed-100k PT none | 4 | 1 | 100000 |
+| `8611538` | `pt8g_100k_none` | fixed-100k PT none | 8 | 2 | 100000 |
+| `8611539` | `pt16g_100k_none` | fixed-100k PT none | 16 | 4 | 100000 |
+| `8611540` | `ptss1g_100000` | step-scaled PT none | 1 | 1 | 100000 |
+| `8611541` | `ptss4g_25000` | step-scaled PT none | 4 | 1 | 25000 |
+| `8611542` | `ptss8g_12500` | step-scaled PT none | 8 | 2 | 12500 |
+| `8611543` | `ptss16g_6250` | step-scaled PT none | 16 | 4 | 6250 |
+
+Current snapshot after relaunch: all eight are `PENDING` on `gputest` with
+1-hour limits and pending reason `(None)`.
+
+Check with:
+
+```bash
+squeue -j 8611536,8611537,8611538,8611539,8611540,8611541,8611542,8611543
+sacct -j 8611536,8611537,8611538,8611539,8611540,8611541,8611542,8611543 --format=JobID,JobName,Partition,State,Elapsed,Start,End,ExitCode
+```
+
+## Update - 2026-05-22 PT launchers benchmark-aligned and relaunched
+
+The second PT relaunches (`8611536`--`8611543`) also failed, but this time they reached DeePMD startup and the first checkpoint save. Root cause was:
+
+```text
+RuntimeError: Parent directory model-compression does not exist.
+```
+
+This was a launcher/materialization issue, not evidence about PT training quality. The existing successful PT benchmark records in:
+
+```bash
+benchmarks/deepmd/DELLA/deepmd_pt_vs_tf_20260406/
+```
+
+use the same `save_ckpt = model-compression/model.ckpt` pattern, and their completed scratch run directories already contain `model-compression/`. The new PT directories lacked that parent directory. The earlier nounset problem was also a deviation from the known-good PT sbatch files, which do not use `set -u` around conda activation.
+
+Fixes applied to all eight live PT launchers:
+
+- create `model-compression/` before `dp --pt train`;
+- use `set -eo pipefail` rather than `set -euo pipefail`;
+- keep `ALCHEMY_env__PT`, the known module stack, and the benchmark PT DDP launch pattern (`python -m torch.distributed.run ... dp --pt train`).
+
+The partial startup `lcurve.out` files from the failed `86115xx` jobs were renamed to `lcurve.failed_861_startup.out` before relaunch, so the new runs start with clean training curves.
+
+Fresh relaunches:
+
+| Job ID | Job name | Case family | GPUs | Nodes | Steps | Working directory |
+| --- | --- | --- | ---: | ---: | ---: | --- |
+| `8615991` | `pt1g_100k_none` | fixed-100k PT none | 1 | 1 | 100000 | `/scratch/gpfs/BURROWS/akashgpt/qmd_data/NH3_H2/sim_data_ML_v3__plumed_test__v2/v7_i34/train__test/tf_hvd_apptainer300cuda126_bench_20260422/global_batch_experiments_20260517/runs/pt_none_100k/1gpu_100k_none_pt` |
+| `8615992` | `pt4g_100k_none` | fixed-100k PT none | 4 | 1 | 100000 | `/scratch/gpfs/BURROWS/akashgpt/qmd_data/NH3_H2/sim_data_ML_v3__plumed_test__v2/v7_i34/train__test/tf_hvd_apptainer300cuda126_bench_20260422/global_batch_experiments_20260517/runs/pt_none_100k/4gpu_100k_none_pt` |
+| `8615993` | `pt8g_100k_none` | fixed-100k PT none | 8 | 2 | 100000 | `/scratch/gpfs/BURROWS/akashgpt/qmd_data/NH3_H2/sim_data_ML_v3__plumed_test__v2/v7_i34/train__test/tf_hvd_apptainer300cuda126_bench_20260422/global_batch_experiments_20260517/runs/pt_none_100k/8gpu_100k_none_pt` |
+| `8615994` | `pt16g_100k_none` | fixed-100k PT none | 16 | 4 | 100000 | `/scratch/gpfs/BURROWS/akashgpt/qmd_data/NH3_H2/sim_data_ML_v3__plumed_test__v2/v7_i34/train__test/tf_hvd_apptainer300cuda126_bench_20260422/global_batch_experiments_20260517/runs/pt_none_100k/16gpu_100k_none_pt` |
+| `8615995` | `ptss1g_100000` | step-scaled PT none | 1 | 1 | 100000 | `/scratch/gpfs/BURROWS/akashgpt/qmd_data/NH3_H2/sim_data_ML_v3__plumed_test__v2/v7_i34/train__test/tf_hvd_apptainer300cuda126_bench_20260422/global_batch_experiments_20260517/runs/pt_step_scaled_none/1gpu_100k_stepscaled_none_pt` |
+| `8615996` | `ptss4g_25000` | step-scaled PT none | 4 | 1 | 25000 | `/scratch/gpfs/BURROWS/akashgpt/qmd_data/NH3_H2/sim_data_ML_v3__plumed_test__v2/v7_i34/train__test/tf_hvd_apptainer300cuda126_bench_20260422/global_batch_experiments_20260517/runs/pt_step_scaled_none/4gpu_25k_stepscaled_none_pt` |
+| `8615998` | `ptss8g_12500` | step-scaled PT none | 8 | 2 | 12500 | `/scratch/gpfs/BURROWS/akashgpt/qmd_data/NH3_H2/sim_data_ML_v3__plumed_test__v2/v7_i34/train__test/tf_hvd_apptainer300cuda126_bench_20260422/global_batch_experiments_20260517/runs/pt_step_scaled_none/8gpu_12500_stepscaled_none_pt` |
+| `8615997` | `ptss16g_6250` | step-scaled PT none | 16 | 4 | 6250 | `/scratch/gpfs/BURROWS/akashgpt/qmd_data/NH3_H2/sim_data_ML_v3__plumed_test__v2/v7_i34/train__test/tf_hvd_apptainer300cuda126_bench_20260422/global_batch_experiments_20260517/runs/pt_step_scaled_none/16gpu_6250_stepscaled_none_pt` |
+
+Current snapshot after relaunch: all eight are `PENDING` on `gputest` with 1-hour limits and pending reason `(None)`.
+
+Immediate monitoring target: once any job starts, confirm it gets past the batch-100 checkpoint and writes `model-compression/model.ckpt-100.pt` or a later `.pt` checkpoint.
+
+Check with:
+
+```bash
+squeue -j 8615991,8615992,8615993,8615994,8615995,8615996,8615998,8615997
+sacct -j 8615991,8615992,8615993,8615994,8615995,8615996,8615998,8615997 --format=JobID,JobName,Partition,State,Elapsed,Start,End,ExitCode
+```
+
+### Final status snapshot for PT none reruns: 2026-05-22 evening
+
+All eight relaunched PT jobs left the queue. Six reached the configured final training step and wrote the final checkpoint; two fixed-100k multi-node jobs were killed by the 1-hour walltime after producing usable partial checkpoints.
+
+| Job ID | Job name | Result | Last lcurve step | Target step | Final checkpoint | Notes |
+| --- | --- | --- | ---: | ---: | --- | --- |
+| `8615991` | `pt1g_100k_none` | completed | 100000 | 100000 | `model-compression/model.ckpt-100000.pt` | clean `JOB_END`; `sacct` `COMPLETED 0:0` |
+| `8615992` | `pt4g_100k_none` | completed | 100000 | 100000 | `model-compression/model.ckpt-100000.pt` | clean `JOB_END`; `sacct` `COMPLETED 0:0` |
+| `8615993` | `pt8g_100k_none` | timed out | 85630 | 100000 | `model-compression/model.ckpt-85600.pt` | killed by walltime; not a training crash |
+| `8615994` | `pt16g_100k_none` | timed out | 80550 | 100000 | `model-compression/model.ckpt-80500.pt` | killed by walltime; not a training crash |
+| `8615995` | `ptss1g_100000` | completed | 100000 | 100000 | `model-compression/model.ckpt-100000.pt` | clean `JOB_END`; `sacct` `COMPLETED 0:0` |
+| `8615996` | `ptss4g_25000` | completed | 25000 | 25000 | `model-compression/model.ckpt-25000.pt` | clean final checkpoint; `sacct` `COMPLETED 0:0` |
+| `8615998` | `ptss8g_12500` | completed | 12500 | 12500 | `model-compression/model.ckpt-12500.pt` | clean final checkpoint; `sacct` `COMPLETED 0:0` |
+| `8615997` | `ptss16g_6250` | completed | 6250 | 6250 | `model-compression/model.ckpt-6250.pt` | clean `JOB_END`; `sacct` `COMPLETED 0:0` |
+
+Conclusion: the fixed-100k 8-GPU and 16-GPU PT runs need a longer walltime or a restart-from-checkpoint continuation if we require the 100k endpoint. The step-scaled PT matrix completed correctly.
+
+
+## Update - 2026-05-22 23:23 EDT
+
+Submitted freeze/compress/pseudo-validation for the PyTorch none-scaling runs and for the missing TensorFlow 100k best-saved checkpoints.
+
+| Job ID | Job name | Array | Purpose | Output root |
+| --- | --- | --- | --- | --- |
+| `8626495` | `dpgb_pt_none_val` | `0-15%4` | For each PT none run, freeze/compress/test both the final saved potential and the best saved checkpoint by total training RMSE. Includes fixed-100k PT and step-scaled PT cases. | `/scratch/gpfs/BURROWS/akashgpt/qmd_data/NH3_H2/sim_data_ML_v3__plumed_test__v2/v7_i34/train__test/tf_hvd_apptainer300cuda126_bench_20260422/global_batch_experiments_20260517/pseudo_validation_pt_none_final_best_20260522` |
+| `8626496` | `dpgb_tf100k_best` | `0-1%4` | For the completed TF `none_100k` runs, freeze/compress/test the best saved checkpoint not already covered by the final-checkpoint pass. | `/scratch/gpfs/BURROWS/akashgpt/qmd_data/NH3_H2/sim_data_ML_v3__plumed_test__v2/v7_i34/train__test/tf_hvd_apptainer300cuda126_bench_20260422/global_batch_experiments_20260517/pseudo_validation_tf_none_100k_best_20260522` |
+
+Prepared files:
+
+```bash
+/scratch/gpfs/BURROWS/akashgpt/qmd_data/NH3_H2/sim_data_ML_v3__plumed_test__v2/v7_i34/train__test/tf_hvd_apptainer300cuda126_bench_20260422/global_batch_experiments_20260517/EXPERIMENT_MATRIX_PT_NONE_FINAL_BEST_FOR_PSEUDOVAL.tsv
+/scratch/gpfs/BURROWS/akashgpt/qmd_data/NH3_H2/sim_data_ML_v3__plumed_test__v2/v7_i34/train__test/tf_hvd_apptainer300cuda126_bench_20260422/global_batch_experiments_20260517/EXPERIMENT_MATRIX_TF_NONE_100K_BEST_FOR_PSEUDOVAL.tsv
+/scratch/gpfs/BURROWS/akashgpt/qmd_data/NH3_H2/sim_data_ML_v3__plumed_test__v2/v7_i34/train__test/tf_hvd_apptainer300cuda126_bench_20260422/global_batch_experiments_20260517/run_pseudo_validation_pt_none_final_best.sbatch
+/scratch/gpfs/BURROWS/akashgpt/qmd_data/NH3_H2/sim_data_ML_v3__plumed_test__v2/v7_i34/train__test/tf_hvd_apptainer300cuda126_bench_20260422/global_batch_experiments_20260517/run_pseudo_validation_tf_none_100k_best.sbatch
+```
+
+Notes:
+
+- PT validation uses the native `dp --pt freeze`, `dp --pt compress`, and `dp --pt test` route. A local smoke test confirmed freeze, compress, and `dp --pt test` work on `4gpu_100k_none_pt`.
+- TF final-checkpoint validation for `4gpu_100k_none` and `8gpu_100k_none` already exists under `pseudo_validation_none_100k_final_20260521`; this new TF job covers only the best saved checkpoints.
+- `16gpu_100k_none` is scaffold-only right now: no `lcurve.out` and no checkpoints, so no TF final/best validation can be run for it yet.
+- For TF `8gpu_100k_none`, the true lcurve minimum near step `9580` is not available as a checkpoint; the selected "best" checkpoint is therefore the best saved checkpoint among the available late checkpoints.
+
+Check with:
+
+```bash
+squeue -j 8626495,8626496
+sacct -j 8626495,8626496 --format=JobID,JobName%30,State,ExitCode,Elapsed,Start,End
+```
+
+## Update - 2026-05-22 23:27 EDT
+
+Current Della queue refresh:
+
+- `8626495` (`dpgb_pt_none_val`) is active for PT final/best validation. Array tasks `_0`, `_1`, and `_2` are running on `gputest`; `_3-15` are pending because of `QOSMaxJobsPerUserLimit`.
+- `8626496` (`dpgb_tf100k_best`) is still pending for TF 100k best-checkpoint validation; array tasks `_0` and `_1` are held by the same `gputest` user job limit.
+- Validation output roots remain:
+  - PT: `/scratch/gpfs/BURROWS/akashgpt/qmd_data/NH3_H2/sim_data_ML_v3__plumed_test__v2/v7_i34/train__test/tf_hvd_apptainer300cuda126_bench_20260422/global_batch_experiments_20260517/pseudo_validation_pt_none_final_best_20260522`
+  - TF: `/scratch/gpfs/BURROWS/akashgpt/qmd_data/NH3_H2/sim_data_ML_v3__plumed_test__v2/v7_i34/train__test/tf_hvd_apptainer300cuda126_bench_20260422/global_batch_experiments_20260517/pseudo_validation_tf_none_100k_best_20260522`
+- `8375105` (`dpgb16g_100k_90m`) is still pending on the `gpu` partition for `Priority`.
+- A new `v8_i25` MD batch is queued on the `gpu` partition: many one-node jobs named `MD_ZONE_*_177949*`, all currently pending for `Priority` with 4 hour limits. Example checked job: `8622849`, workdir `/scratch/gpfs/BURROWS/akashgpt/qmd_data/NH3_H2/sim_data_ML_v4/v8_i25/md/ZONE_1/90H2_10NH3`, planned start shown as `2026-05-23T03:05:23`.
+
+Quick checks:
+
+```bash
+squeue -u ag5805 -o "%.18i %.9P %.36j %.8u %.2t %.10M %.10l %.6D %.40R"
+sacct -j 8626495,8626496 --format=JobID,JobName%30,State,ExitCode,Elapsed,Timelimit,Submit,Start,End -P
+```
+
+Next steps when arrays finish: parse PT/TF validation TSVs, compare final vs best checkpoints, and add the new PT curves/results to the existing 10x/none benchmark summaries.
+
+## Update - 2026-05-23 01:05 EDT
+
+PT/TF pseudo-validation arrays completed cleanly:
+
+- `8626495` (`dpgb_pt_none_val`): all array tasks `_0-15` completed with Slurm exit `0:0`.
+- `8626496` (`dpgb_tf100k_best`): both array tasks `_0-1` completed with Slurm exit `0:0`.
+- No relaunch was needed; Slurm logs did not match `Traceback`, `ERROR`, `FAILED`, `TIMEOUT`, or `CANCELLED` during the post-run check.
+
+Result artifacts:
+
+- Aggregate TSV: `/scratch/gpfs/BURROWS/akashgpt/qmd_data/NH3_H2/sim_data_ML_v3__plumed_test__v2/v7_i34/train__test/tf_hvd_apptainer300cuda126_bench_20260422/global_batch_experiments_20260517/PT_TF_NONE_VALIDATION_SUMMARY_20260523.tsv`
+- Analysis markdown: `/scratch/gpfs/BURROWS/akashgpt/qmd_data/NH3_H2/sim_data_ML_v3__plumed_test__v2/v7_i34/train__test/tf_hvd_apptainer300cuda126_bench_20260422/global_batch_experiments_20260517/PT_TF_NONE_VALIDATION_ANALYSIS_20260523.md`
+
+Key outcome: PT fixed-100k none-scaling is stable across 1/4/8/16 GPUs; TF 4-GPU best-total is comparable to PT 4-GPU, but TF 8-GPU best-total is unusable and matches the training-loss blowup. Step-scaled PT runs worsen as optimizer steps are reduced with GPU count. Best-training-total checkpoints do not reliably improve validation over final checkpoints.

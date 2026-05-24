@@ -1,0 +1,5 @@
+run	first_step	last_step	n_lcurve_rows	final_total	best_total	best_total_step	last10pct_median_total	final_energy	best_energy	best_energy_step	last10pct_median_energy	final_force	best_force	best_force_step	last10pct_median_force	final_virial_stress	best_virial_stress	best_virial_stress_step	last10pct_median_virial_stress
+1gpu	1	100000	10001	1.05	0.417	98040	1.08	0.0269	1.28e-06	23500	0.0172	0.512	0.184	44100	0.618	0.0292	0.00243	38630	0.0272
+4gpu	1	100000	10001	0.863	0.337	90140	0.922	0.0212	2.41e-06	70830	0.0154	0.389	0.155	39410	0.514	0.0247	0.00315	86300	0.0232
+8gpu	1	85630	8564	0.521	0.374	77850	0.922	0.00897	6.45e-06	24530	0.0148	0.276	0.148	32810	0.501	0.0147	0.00168	55220	0.0218
+16gpu	1	80550	8056	0.854	0.293	75590	0.917	0.0217	5.26e-06	75980	0.0139	0.486	0.149	32540	0.481	0.0119	0.00267	59420	0.0219
