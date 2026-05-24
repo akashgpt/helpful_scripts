@@ -233,6 +233,8 @@ validation tables for production ranking.
 
 Relevant archived artifacts:
 
+- Training-curve plot recipes and restart-stitched plot template:
+  `reference_results/TRAINING_CURVE_PLOT_TEMPLATES_20260524.md`
 - TF `none` seed-repeat and decay10k diagnostic summary:
   `reference_results/TF_NONE_DECAY10K_DIAGNOSTIC_SUMMARY_20260524.tsv`
 - PT aggregate training plot:

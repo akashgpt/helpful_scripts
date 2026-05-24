@@ -2,6 +2,8 @@
 
 ## Standard instructions for coding and related tasks:
 
+- Keep code minimal and clean as much as possible, while still being complete and functional.
+- Make sure to add comments and explanations to the code, especially for non-trivial logic or domain-specific details, so that it is understandable to others (including your future self).
 - Prefer simplicity and clarity in code and explanations, while still being thorough and complete.
 - Always write type lists for all functions and similar constructs but not simple variables.
 - Always write Google-style docstrings for functions and other code elements.
