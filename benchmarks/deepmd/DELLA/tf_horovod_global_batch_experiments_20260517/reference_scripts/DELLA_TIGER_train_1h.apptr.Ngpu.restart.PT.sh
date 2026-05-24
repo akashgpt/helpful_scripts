@@ -68,22 +68,49 @@ TRAIN_RANKS=$(( NODE_COUNT * GPUS_PER_NODE ))
 MASTER_ADDR="$(scontrol show hostnames "${SLURM_JOB_NODELIST:-$(hostname)}" | head -n 1)"
 MASTER_PORT="${ALCHEMY_MASTER_PORT:-$((29500 + RANDOM % 1000))}"
 
-# Load the Della/Tiger module and conda runtime needed before calling dp/srun.
+# Load a site-specific module stack before calling dp/srun/Apptainer.
 load_runtime() {
+	local host_name=""
+	host_name="$(hostname -f 2>/dev/null || hostname)"
+
 	set +u
-	if command -v module >/dev/null 2>&1; then
-		module purge >/dev/null 2>&1 || true
-		module load gcc-toolset/14 >/dev/null 2>&1 || true
-		module load openmpi/gcc/4.1.6 >/dev/null 2>&1 || true
-		module load cudatoolkit/12.8 >/dev/null 2>&1 || true
-		module load fftw/gcc/openmpi-4.1.6/3.3.10 >/dev/null 2>&1 || true
-		module load anaconda3/2025.12 >/dev/null 2>&1 || true
-	fi
+	module purge
+	case "${host_name}" in
+		*della*|*tiger*)
+			echo "Loading DeePMD runtime modules for Della/Tiger (${host_name})"
+			module load gcc-toolset/14
+			module load openmpi/gcc/4.1.6
+			module load cudatoolkit/12.8
+			module load fftw/gcc/openmpi-4.1.6/3.3.10
+			module load anaconda3/2025.12
+			;;
+		*stellar*)
+			echo "Loading DeePMD runtime modules for Stellar (${host_name})"
+			module load gcc-toolset/10
+			module load openmpi/gcc/4.1.6
+			module load cudatoolkit/12.4
+			module load fftw/gcc/openmpi-4.1.6/3.3.10
+			module load anaconda3/2025.12
+			;;
+		*delta*)
+			echo "Loading DeePMD runtime modules for NCSA Delta (${host_name})"
+			module load PrgEnv-gnu
+			module load gcc-native/13.2
+			module load cray-mpich
+			module load cudatoolkit/25.3_12.8
+			module load fftw/3.3.10-gcc13.3.1
+			module load miniforge3-python
+			export MPICH_GPU_SUPPORT_ENABLED="${MPICH_GPU_SUPPORT_ENABLED:-1}"
+			;;
+		*)
+			echo "Warning: unknown host ${host_name}; using current/default module environment."
+			module load anaconda3/2025.12
+			module load apptainer
+			;;
+	esac
 	# Activate the DeePMD environment after scheduler/site modules are available.
-	if command -v conda >/dev/null 2>&1; then
-		eval "$(conda shell.bash hook 2>/dev/null || true)"
-		conda activate "${ALCHEMY_CONDA_ENV:-ALCHEMY_env__PT}" >/dev/null 2>&1 || true
-	fi
+	eval "$(conda shell.bash hook)"
+	conda activate "${ALCHEMY_CONDA_ENV:-ALCHEMY_env__PT}"
 	set -u
 }
 

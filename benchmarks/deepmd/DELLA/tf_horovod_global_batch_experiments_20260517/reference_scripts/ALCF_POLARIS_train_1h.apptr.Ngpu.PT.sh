@@ -112,7 +112,7 @@ training_finished_in_log() {
 }
 
 # Choose a restart checkpoint numerically, preferring the second-latest checkpoint when available.
-latest_checkpoint_prefix() {
+select_restart_checkpoint() {
 	local selected
 	selected=$(python - <<'PY'
 from pathlib import Path
@@ -128,6 +128,30 @@ checkpoints.sort()
 if len(checkpoints) >= 2:
 	print("model-compression/" + checkpoints[-2][1])
 elif len(checkpoints) == 1:
+	print("model-compression/" + checkpoints[-1][1])
+PY
+)
+	if [ -z "${selected}" ]; then
+		return 1
+	fi
+	printf "%s\n" "${selected}"
+}
+
+# Choose the newest checkpoint for final freeze/compress after DeePMD finished cleanly.
+select_final_checkpoint() {
+	local selected
+	selected=$(python - <<'PY'
+from pathlib import Path
+import re
+
+checkpoints = []
+for path in Path("model-compression").glob("model.ckpt-*.pt"):
+	match = re.fullmatch(r"model\.ckpt-(\d+)\.pt", path.name)
+	if match is not None:
+		checkpoints.append((int(match.group(1)), path.name))
+
+checkpoints.sort()
+if checkpoints:
 	print("model-compression/" + checkpoints[-1][1])
 PY
 )
@@ -192,7 +216,7 @@ mkdir -p model-compression
 
 # Build the DeePMD train command, restarting from the selected checkpoint if one exists.
 current_step="$(latest_step)"
-if restart_prefix=$(latest_checkpoint_prefix); then
+if restart_prefix=$(select_restart_checkpoint); then
 	validate_restart_prefix "${restart_prefix}" "${current_step}"
 	echo "TRAIN_MODE restart ${restart_prefix}"
 	train_args=(dp --pt train myinput.json --restart "${restart_prefix}")
@@ -243,7 +267,7 @@ echo "DeePMD reported finished training. Starting freeze + compress at $(date)"
 echo "=========================================="
 
 # Freeze/compress only after DeePMD reports clean training completion.
-final_ckpt="$(latest_checkpoint_prefix || true)"
+final_ckpt="$(select_final_checkpoint || true)"
 if [ -z "${final_ckpt}" ]; then
 	echo "No PT checkpoint found for freeze/compress." >&2
 	exit 1
