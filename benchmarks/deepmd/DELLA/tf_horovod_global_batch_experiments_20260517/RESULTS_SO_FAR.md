@@ -38,7 +38,11 @@ Scratch experiment root:
 | `reference_results/TF_VS_PT_NONE_1GPU_4GPU_TRAINING_EVOLUTION_ROLLING_MEDIAN_MEAN_20260523.png` | Explicit TF-vs-PT `none`-schedule 1GPU/4GPU comparison; TF 1GPU is the shared one-worker baseline. |
 | `reference_results/TF_LINEAR_VS_NONE_1GPU_4GPU_TRAINING_EVOLUTION_ROLLING_MEDIAN_MEAN_20260523.png` | TF-only 1GPU baseline and 4GPU `linear`/`none` comparison showing the stable 4GPU `none` curve and the late drift in the comparable 4GPU `linear` curve. |
 | TF multi-GPU scaling default | Given the evidence so far, 4GPU TF/PT with `scale_by_worker = none` remains the recommended production-style default; seed02-seed05 4GPU TF `none` repeats reached 100k without catastrophic blowup, 8GPU decay10k is promising, and 16GPU decay10k still failed. |
-| `reference_scripts/` | Reference copies of materialization, summarization, submission, and pseudo-validation scripts. |
+| `reference_scripts/` | Reference copies of materialization, summarization, submission, pseudo-validation, and restart-template scripts. |
+| `reference_scripts/DELLA_TIGER_train_1h.apptr.Ngpu.{TF,PT}.sh` | Della/Tiger production 1-to-N-GPU TF/PT single-slice training templates; Level 2 owns chained resubmission and freeze/compress finalization. |
+| `reference_scripts/ALCF_POLARIS_train_1h.apptr.Ngpu.{TF,PT}.sh` | Polaris production multi-GPU TF/PT single-slice training templates with the same Level-2-owned chaining model. |
+| `reference_scripts/DELLA_TIGER_train_1h.apptr.Ngpu.restart.{TF,PT}.sh` | Self-resubmitting Della/Tiger checkpoint-restart references retained to document same-script `sbatch` chaining, health gates, numeric checkpoint selection, and rollback guards. |
+| `reference_scripts/ALCF_POLARIS_train_1h.apptr.Ngpu.restart.{TF,PT}.sh` | Self-resubmitting Polaris checkpoint-restart references retained to document same-script `qsub` chaining and the same safety logic. |
 
 ## Metric Conventions
 

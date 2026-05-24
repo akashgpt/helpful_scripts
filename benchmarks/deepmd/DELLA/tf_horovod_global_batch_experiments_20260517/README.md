@@ -81,6 +81,19 @@ The generator marked every case in the scratch matrices and wrote per-run
 `myinput.json`, Slurm scripts, and `RUN_INFO.md` files. This benchmark folder
 keeps only reference copies of matrices, summaries, and scripts.
 
+## Restart Template Notes, 2026-05-24
+
+The production Della/Tiger train templates are now 1-to-N-GPU safe: changing `#SBATCH --gres=gpu:a100:4` to `#SBATCH --gres=gpu:a100:1` makes the runtime launch one rank per node. The production templates archived in `reference_scripts/` are named without `restart`:
+
+```text
+DELLA_TIGER_train_1h.apptr.Ngpu.TF.sh
+DELLA_TIGER_train_1h.apptr.Ngpu.PT.sh
+ALCF_POLARIS_train_1h.apptr.Ngpu.TF.sh
+ALCF_POLARIS_train_1h.apptr.Ngpu.PT.sh
+```
+
+The corresponding `.restart.{TF,PT}.sh` copies are kept in `reference_scripts/` as self-resubmitting checkpoint-restart references. They resubmit the same script with `sbatch`/`qsub` until the target step is reached, with duplicate-submit markers, max-chain limits, health gates, numeric checkpoint selection, and rollback guards. Chain state is recorded in `CHAIN_ATTEMPTS.txt`, `CHAIN_HISTORY.tsv`, per-job `.resubmitted_*` markers, and `HEALTH_GATE.tsv` when the health gate is evaluated. The production `train_1h.apptr.Ngpu.{TF,PT}.sh` scripts are not self-resubmitting; in the ALCHEMY pipeline, `TRAIN_MLMD_LEVEL_2.sh` owns chained resubmission and freeze/compress finalization. Neither production nor restart-reference scripts pass `--skip-neighbor-stat`. Restart checkpoint selection is deliberately numeric: TF selects from `model-compression/model.ckpt-*.index` and PT selects from `model-compression/model.ckpt-*.pt`, then chooses the second-highest checkpoint step when available. A rollback guard refuses a restart if the selected checkpoint is unexpectedly far behind the last recorded `lcurve.out` step. This guard was added after a PT chained-restart test reached step 19980 but accidentally restarted from `model.ckpt-9800.pt` because a string/filename ordering path was used in an intermediate test script.
+
 ## Usage
 
 Preview what will be created:

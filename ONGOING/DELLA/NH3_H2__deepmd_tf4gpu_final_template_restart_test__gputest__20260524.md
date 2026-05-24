@@ -2,11 +2,12 @@
 
 ## Status Snapshot
 
-- Date: 2026-05-24 13:00 EDT
+- Date: 2026-05-24 14:00 EDT
 - Cluster: Della
 - Slurm partition/QOS: `gputest`
-- Current job ID: `8702974`
+- Current job ID: `8706739`
 - Run directory: `/scratch/gpfs/BURROWS/akashgpt/qmd_data/NH3_H2/sim_data_ML_v3__plumed_test__v2/v7_i34/train__test/tf_hvd_apptainer300cuda126_bench_20260422/global_batch_experiments_20260517/runs/template_restart_tests_20260524/tf4g_100k_none_final_template_15min_hvd`
+- Status: slices `8702974`, `8704113`, and `8705739` hit their time limits and resubmitted cleanly; current slice is `8706739`. Latest chain row: `CHAIN_RESUBMITTED reason=pre_walltime_signal current_job=8705739 next_job=8706739 step=74130 target=100000 attempts=3`. New slice `8706739` is running with `TIME_LIMIT=15:00`.
 
 ## Purpose
 
@@ -30,7 +31,7 @@ This test uses the known 4GPU `none` input, with the copied script walltime chan
 ## How To Check
 
 ```bash
-squeue -j 8702974
+squeue -j 8706739
 cd /scratch/gpfs/BURROWS/akashgpt/qmd_data/NH3_H2/sim_data_ML_v3__plumed_test__v2/v7_i34/train__test/tf_hvd_apptainer300cuda126_bench_20260422/global_batch_experiments_20260517/runs/template_restart_tests_20260524/tf4g_100k_none_final_template_15min_hvd
 tail -n 5 lcurve.out
 cat CHAIN_ATTEMPTS.txt
