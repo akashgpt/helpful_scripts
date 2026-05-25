@@ -94,6 +94,17 @@ ALCF_POLARIS_train_1h.apptr.Ngpu.PT.sh
 
 The corresponding `.restart.{TF,PT}.sh` copies are kept in `reference_scripts/` as self-resubmitting checkpoint-restart references. They resubmit the same script with `sbatch`/`qsub` until the target step is reached, with duplicate-submit markers, max-chain limits, health gates, numeric checkpoint selection, and rollback guards. Chain state is recorded in `CHAIN_ATTEMPTS.txt`, `CHAIN_HISTORY.tsv`, per-job `.resubmitted_*` markers, and `HEALTH_GATE.tsv` when the health gate is evaluated. The production `train_1h.apptr.Ngpu.{TF,PT}.sh` scripts are not self-resubmitting; in the ALCHEMY pipeline, `TRAIN_MLMD_LEVEL_2.sh` owns chained resubmission and freeze/compress finalization. Neither production nor restart-reference scripts pass `--skip-neighbor-stat`. Restart checkpoint selection is deliberately numeric: TF selects from `model-compression/model.ckpt-*.index` and PT selects from `model-compression/model.ckpt-*.pt`, then chooses the second-highest checkpoint step when available. A rollback guard refuses a restart if the selected checkpoint is unexpectedly far behind the last recorded `lcurve.out` step. This guard was added after a PT chained-restart test reached step 19980 but accidentally restarted from `model.ckpt-9800.pt` because a string/filename ordering path was used in an intermediate test script.
 
+The 2026-05-24 restart diagnostics are summarized in:
+
+```text
+reference_results/CHECKPOINT_RESTART_TESTS_ANALYSIS_20260524.md
+reference_results/CHECKPOINT_RESTART_TESTS_TRAINING_EVOLUTION_ROLLING_MEAN_20260524.png
+reference_results/CHECKPOINT_RESTART_TESTS_TRAINING_EVOLUTION_ROLLING_MEAN_FIRST20K_20260524.png
+reference_results/CHECKPOINT_RESTART_TESTS_PLOTTED_20260524.tsv
+```
+
+Those tests support the TF 4GPU `none` restart path: the final-template run reached 100000 steps after repeated 15-minute slices, printed DeePMD `finished training`, and produced `pv.pb`/`pv_comp.pb`. The PT restart chains did not reproduce the clean 4GPU PT baseline: even the fixed v2 healthgate/second-latest run reached 100000 steps and finalized but ended with a high total training loss (`7.51`). Treat PT chained restart as unresolved and prefer uninterrupted PT runs until this drift is understood. In these PT tests, `save_freq = 100` produced 1000 checkpoints (`model.ckpt-100.pt` through `model.ckpt-100000.pt`); the ALCHEMY scripts rely on the input JSON for checkpoint frequency, so production inputs with only one checkpoint will not benefit from the second-latest checkpoint safeguard.
+
 ## Usage
 
 Preview what will be created:
@@ -235,6 +246,8 @@ Relevant archived artifacts:
 
 - Training-curve plot recipes and restart-stitched plot template:
   `reference_results/TRAINING_CURVE_PLOT_TEMPLATES_20260524.md`
+- Checkpoint-restart tests with LR panel:
+  `reference_results/CHECKPOINT_RESTART_TESTS_ANALYSIS_20260524.md`
 - TF `none` seed-repeat and decay10k diagnostic summary:
   `reference_results/TF_NONE_DECAY10K_DIAGNOSTIC_SUMMARY_20260524.tsv`
 - PT aggregate training plot:
