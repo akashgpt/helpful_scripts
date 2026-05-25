@@ -2,12 +2,12 @@
 
 ## Status Snapshot
 
-- Date: 2026-05-24 14:00 EDT
+- Date: 2026-05-24 14:29 EDT
 - Cluster: Della
 - Slurm partition/QOS: `gputest`
-- Current job ID: `8706739`
+- Last job ID: `8707294`
 - Run directory: `/scratch/gpfs/BURROWS/akashgpt/qmd_data/NH3_H2/sim_data_ML_v3__plumed_test__v2/v7_i34/train__test/tf_hvd_apptainer300cuda126_bench_20260422/global_batch_experiments_20260517/runs/template_restart_tests_20260524/tf4g_100k_none_final_template_15min_hvd`
-- Status: slices `8702974`, `8704113`, and `8705739` hit their time limits and resubmitted cleanly; current slice is `8706739`. Latest chain row: `CHAIN_RESUBMITTED reason=pre_walltime_signal current_job=8705739 next_job=8706739 step=74130 target=100000 attempts=3`. New slice `8706739` is running with `TIME_LIMIT=15:00`.
+- Status: completed target step `100000` in final slice `8707294`; no `tf_tpl_hvd15m` job remains in `squeue`. Slices `8702974`, `8704113`, `8705739`, and `8706739` hit their time limits and resubmitted cleanly before `8707294` finished the remaining work. The final slice printed `finished training`, ran freeze/compress, and produced `model-compression/pv.pb` plus `model-compression/pv_comp.pb`. Final lcurve row: train total `0.877`, train E `0.00155`, train F `0.484`, train V `0.0307`, LR `1.0e-08`; last-10%-of-rows median values were total `0.903`, E `0.0148`, F `0.507`, V `0.0233`.
 
 ## Purpose
 
@@ -31,7 +31,7 @@ This test uses the known 4GPU `none` input, with the copied script walltime chan
 ## How To Check
 
 ```bash
-squeue -j 8706739
+sacct -j 8707294 --format=JobID,JobName%30,State,ExitCode,Elapsed,Start,End -P
 cd /scratch/gpfs/BURROWS/akashgpt/qmd_data/NH3_H2/sim_data_ML_v3__plumed_test__v2/v7_i34/train__test/tf_hvd_apptainer300cuda126_bench_20260422/global_batch_experiments_20260517/runs/template_restart_tests_20260524/tf4g_100k_none_final_template_15min_hvd
 tail -n 5 lcurve.out
 cat CHAIN_ATTEMPTS.txt
@@ -43,6 +43,6 @@ If the job resubmits, use the newest `next_job=` value in `CHAIN_HISTORY.tsv`.
 
 ## Next Step Once Done
 
-Confirm whether the copied final template runs and resubmits correctly. If it reaches 100k, compare against the other restart-chain diagnostics and keep the template as the canonical Della/Tiger TF restart helper.
+The copied final template ran, resubmitted, reached 100k, and finalized correctly. Compare against the other restart-chain diagnostics and keep the template behavior as the canonical reference for Della/Tiger TF restart/finalization.
 
 Do not remove this ONGOING note without explicit user confirmation.

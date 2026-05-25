@@ -7,7 +7,7 @@
 - Slurm partition/QOS: `gputest`
 - Last job ID: `8702890`
 - Run directory: `/scratch/gpfs/BURROWS/akashgpt/qmd_data/NH3_H2/sim_data_ML_v3__plumed_test__v2/v7_i34/train__test/tf_hvd_apptainer300cuda126_bench_20260422/global_batch_experiments_20260517/runs/interrupt_restart_chain_20260524/tf4g_100k_none_10min_chain_healthgate_second_latest_ckpt`
-- Status: completed target at step `100000` in final slice `8702890`. Slurm allocation state is `TIMEOUT`, but batch/extern completed and the run log shows `CHAIN_DONE step=100000 target=100000 reason=exit_code_0` after `CHAIN_SIGNAL_USR1`; no `tf4g_hgate_2nd_10m` job remains in `squeue`. Final lcurve row: train total `0.898`, train E `0.0148`, train F `0.489`, train V `0.0281`, LR `1.0e-08`. Keep this note until user confirms cleanup.
+- Status: completed target at step `100000` in final slice `8702890`. Slurm allocation state is `TIMEOUT`, but batch/extern completed and the run log shows `CHAIN_DONE step=100000 target=100000 reason=exit_code_0` after `CHAIN_SIGNAL_USR1`; no `tf4g_hgate_2nd_10m` job remains in `squeue`. Final lcurve row: train total `0.898`, train E `0.0148`, train F `0.489`, train V `0.0281`, LR `1.0e-08`; last-10%-of-rows median values were total `0.9165`, E `0.01515`, F `0.519`, V `0.0233`. This diagnostic reached target but did not run freeze/compress; use the later final-template test if checking production-style finalization. Keep this note until user confirms cleanup.
 
 ## Purpose
 
