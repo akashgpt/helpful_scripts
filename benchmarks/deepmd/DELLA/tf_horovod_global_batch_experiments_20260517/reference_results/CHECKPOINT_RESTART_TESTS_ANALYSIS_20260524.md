@@ -42,6 +42,15 @@ Generator:
   one: the clean v2 input used `save_freq = 100`, `save_ckpt =
   model-compression/model.ckpt`, and produced checkpoints from
   `model.ckpt-100.pt` through `model.ckpt-100000.pt`.
+- Follow-up inspection on 2026-05-25 found a specific PT restart learning-rate
+  scheduler problem. Raw `lcurve.out` and checkpoint optimizer states show that
+  later PT restarts resume with an inflated LR. The active DeePMD PT trainer
+  appears to double-count the restart step when rebuilding the PyTorch
+  `LambdaLR` scheduler. See:
+
+```text
+PT_RESTART_LR_SCHEDULER_DIAGNOSTIC_20260525.md
+```
 
 ## Practical Guidance
 
@@ -49,7 +58,8 @@ Generator:
   selection, second-latest restart selection, rollback guard, and health gate is
   a reasonable production reference.
 - For PT, do not trust chained restart/continuation yet for production. Prefer
-  uninterrupted PT runs until the total-loss restart drift is understood.
+  uninterrupted PT runs until the scheduler restart behavior is patched and
+  validated.
 - Keep multiple PT checkpoints if experimenting with PT restart logic. The
   second-latest strategy and rollback guard require more than one saved
   checkpoint to provide any protection beyond "restart from the only checkpoint

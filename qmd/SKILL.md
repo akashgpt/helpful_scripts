@@ -30,6 +30,11 @@ This skill is the entry point for work under `qmd/` in this repository. Start he
   - Read `setup_INPUT/SKILL.md`
   - Use for structure generation, joining slabs or phases, and VASP-LAMMPS conversions.
 
+- `lammps/`
+  - No dedicated `SKILL.md` (lightweight folder with two scripts).
+  - `make_lammps_snapshot_gif.py` and `plot_lammps_current_snapshot.py` for quick LAMMPS-side visualization.
+  - For LAMMPS run/launch scripts and full pipeline integration, look in `ALCHEMY__dev/reference_input_files/submission_scripts/<cluster>/` instead.
+
 ## Multi-Folder Tasks
 
 Some tasks naturally span more than one subfolder. Common combinations are:
@@ -52,7 +57,7 @@ For any `qmd/` task:
 1. Read this file.
 2. Read the specific subfolder `SKILL.md`.
 3. Read that sub-skill's `references/` file only if the task depends on external software semantics.
-4. For ALCHEMY or DPAL tasks, follow the repository lookup policy in `AGENTS.md` and check `ALCHEMY__dev` first.
+4. For ALCHEMY or DPAL tasks, follow the repository lookup policy in `CLAUDE.md` (or the equivalent `AGENTS.md`) and check `ALCHEMY__dev` first.
 
 ## Practical Guidance
 

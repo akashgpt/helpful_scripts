@@ -20,14 +20,16 @@ Read these first:
 - `generate_selected_composition_structures.py`
 - `organize_selected_compositions.py`
 
-Then inspect any chemistry-specific initializer that matches the user request, such as:
+Then inspect any chemistry-specific initializer or generator that matches the user request, such as:
 
 - `initialize_structure_ASE_H2.py`
 - `initialize_structure_ASE_H2O.py`
 - `initialize_structure_ASE_H2S.py`
 - `initialize_structure_ASE_NH3.py`
+- `initialize_structure_ASE_NH3_III.py` (NH3 ice III variant)
 - `initialize_structure_ASE_Ice_X.py`
 - `initialize_structure_ASE_MgSiO3_bridgmanite.py`
+- `generate_selected_composition_structures__He_MgSiO3.py` (He-MgSiO3 specialization of the generic generator)
 
 ## What This Folder Actually Does
 
@@ -49,7 +51,10 @@ Then inspect any chemistry-specific initializer that matches the user request, s
 
 - `vasp_to_lammps_input.py` reads a `POSCAR`, wraps atoms into the unit cell, and writes a LAMMPS data file plus a wrapped `POSCAR_ase`.
 - `lammps_to_vasp_input.py` does the reverse for a `conf.lmp`.
-- These are simple and useful, but check the hardcoded species order before using them on a new chemistry.
+- `vasp_xdatcar_to_lammps_dump.py` converts a VASP `XDATCAR` trajectory into a LAMMPS dump file for cross-tool MD analysis.
+- `vasp_xdatcar_to_xyz.py` converts the same `XDATCAR` into an XYZ trajectory (handy for visualizers expecting XYZ).
+- `remove_negative_values_in_POSCAR.py` is a small repair utility that clamps stray sub-zero fractional coordinates back into `[0, 1)` after sloppy hand-edits.
+- These are simple and useful, but check the hardcoded species order in the per-frame converters before using them on a new chemistry.
 
 ### Join two structures along z
 
