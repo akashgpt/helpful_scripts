@@ -73,6 +73,8 @@ The setup directory is expected to contain files such as:
 - `source_all_SCALEE.sh` reruns `data_4_analysis.sh` across matching `SCALEE_*` directories.
 - It then checks `analysis/peavg.out`, counts completed timesteps, and drops marker files like `to_RUN__failed` or `to_RUN__1000_to_5000`.
 - It can also be used as a restart-extension triage tool for under-run trajectories.
+- `master_continue_SCALEE_7.sh` is a focused continuation helper for `SCALEE_7` runs that need extension; walks matching `SCALEE_7` directories (skipping `misc/` and `isobar_calc/`) and re-launches via the standard restart machinery.
+- `correct_SCALEE_value_inconsistencies.sh` is a repair pass for campaigns where the per-folder `SCALEE` quadrature value drifted from the canonical grid; use it before TI post-processing if `Ghp_analysis.py` complains about the quadrature.
 
 ### Stage 5: thermodynamic integration over SCALEE
 
@@ -88,9 +90,17 @@ The setup directory is expected to contain files such as:
 
 ### Stage 7: KD estimation and fitting
 
-- `estimate_KD_generic_v8.py` is the most readable current KD estimator and should be the default unless a legacy version is required.
+- `estimate_KD_generic_v8.py` is the most readable current KD estimator and should be the default unless a legacy version is required (`estimate_KD_generic_v1..v7.py` and `estimate_KD.py` / `old_estimate_KD.py` are kept for reproducing earlier campaigns).
 - It expects sibling trees like `Fe_<species>/` and `MgSiO3_<species>/`, parses `log.Ghp_analysis`, combines TI and GH results, and outputs KD and D_wt tables plus plots.
-- `fit_KD_PTX*.py` scripts are the next layer for smooth P-T-X fitting once the per-configuration free-energy data exist.
+- `fit_KD_PTX.py` is the workhorse P-T-X fitter; `fit_KD_PTX__long.py` is the extended-range variant and `fit_KD_PTX__paper.py` is the publication-figure variant. Pick by purpose.
+- `calc_KD_from_2phase_data.py` is the alternative path when KD is extracted from two-phase coexistence data rather than from TI free energies.
+
+### Stage 8: archive a completed campaign
+
+- `tar_KP1.sh` / `tar_KP1_LEVEL0.sh` / `tar_KP1_cleanup.sh` package every `KP1/` subtree into compressed tarballs (auto-detects `zstd` / `pigz` / `gzip`).
+- `tar_hp_calc.sh` / `tar_hp_calc_LEVEL0.sh` / `tar_hp_calc_cleanup.sh` do the same for the `hp_calculations/` trees.
+- `un_tar_all.sh` is the inverse — expands every `.tar.*` it finds and removes the source archive.
+- Use these after a campaign is fully analyzed and you only need the raw runs preserved for reproducibility.
 
 ## Practical Guidance
 

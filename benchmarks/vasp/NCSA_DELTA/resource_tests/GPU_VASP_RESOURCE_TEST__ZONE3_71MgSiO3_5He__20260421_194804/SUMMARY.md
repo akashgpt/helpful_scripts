@@ -128,7 +128,7 @@ This benchmark mirror intentionally keeps the files that explain or reproduce th
 - `submit_all.sh`
 - `summarize_results.sh`
 - `benchmark_results.tsv`
-- per-run `INCAR`, `KPOINTS`, `POSCAR`, `sub_vasp_gpu.sh`
+- per-run `INCAR`, `KPOINTS`, `POSCAR`, `RUN_VASP_gpu.sh`
 - per-run `log.run_sim`, `gpu_memory_trace.csv`, `slurm-*.out`, `slurm-*.err`
 - per-run `OUTCAR`
 

@@ -68,7 +68,7 @@
 
 ## Ongoing Job Tracking (crash resilience)
 
-- Whenever you submit work that will not finish near-instantly — any `sbatch`/Slurm job, background process, or remote job we will wait on for more than ~1 minute — immediately create or update a tracking note under `$HELP_SCRIPTS/ONGOING/<CLUSTER>/`. `<CLUSTER>` is the cluster subfolder (`NCSA_DELTA` | `DELLA` | `STELLAR` | `TIGER` | `POLARIS`); create it if missing.
+- Whenever you submit work that will not finish near-instantly — any `sbatch`/Slurm job, background process, or remote job we will wait on for more than ~1 minute — immediately create or update a tracking note under `$HELP_SCRIPTS/ONGOING/<CLUSTER>/`. `<CLUSTER>` is the cluster subfolder (`NCSA_DELTA` | `DELLA` | `STELLAR` | `TIGER` | `ALCF_POLARIS`); create it if missing.
 - Purpose: session-crash / context-loss resilience. If a session is lost, this note is the single source of truth for what was running and how to resume — never rely on conversation memory for in-flight jobs.
 - Capture concisely but completely enough to resume cold: working directory; what was submitted and why; job IDs (and old→new across resubmits); key config/parameters; partition/binary; how to check status and how to resume; a dated status snapshot; relevant tooling/scripts; and the next step once done. Name it `<system>__<purpose>__<partition>__YYYYMMDD.md`.
 - Keep it updated as state materially changes (resubmits, partition/binary changes, completions).

@@ -2,7 +2,7 @@
 set -euo pipefail
 printf '%-34s %-8s %-12s %-12s %-12s %-12s\n' test status jobid oom eddiag max_mem_mib
 for d in */; do
-	[ -f "$d/sub_vasp_gpu.sh" ] || continue
+	[ -f "$d/RUN_VASP_gpu.sh" ] || continue
 	status=pending
 	[ -f "$d/done_RUN_VASP" ] && status=done
 	[ -f "$d/failed_RUN_VASP" ] && status=failed

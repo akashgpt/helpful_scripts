@@ -1,1 +1,10 @@
-plot_plmd_COLVAR.py in ALCHEMY or mldp folder
+# qmd/plmd
+
+PLUMED post-processing helpers — used after VASP recalculation to summarize PLUMED output and choose CV ranges for follow-up ALCHEMY setup.
+
+Main scripts (all in this folder):
+- `plot_plmd_COLVAR.py` — plot PLUMED `COLVAR` time-series.
+- `plot_plmd__XRD_V_E_vs_t.py` — plot XRD / volume / energy versus time.
+- `recal_plumed_info.sh`, `ZONE_recal_plumed_info.sh` — summarize energy/T/P/V ranges from VASP recalculation outputs into `plumed.info`.
+
+See `SKILL.md` for reading order and the bridge to ALCHEMY's PLUMED setup (`qmd/ALCHEMY/collect_plumed_cv_parameters.py` and `ALCHEMY__dev/reference_input_files/PLUMED_inputs`).

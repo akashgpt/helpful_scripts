@@ -1,3 +1,10 @@
-Some of the files created for the ALCHEMY code (@akashgpt)
+# qmd/ALCHEMY
 
-# TODO: Merge with mldp repo
+Local helper-script utility belt around the main ALCHEMY pipeline. The canonical pipeline definition lives elsewhere — start there for any real workflow question.
+
+Start here for orientation:
+- `SKILL.md` — this folder's reading order and workflow map.
+- `/projects/BURROWS/akashgpt/run_scripts/ALCHEMY__dev` — active development copy (`$ALCHEMY__dev`).
+- `/projects/BURROWS/akashgpt/run_scripts/ALCHEMY__in_use` — stable copy (`$ALCHEMY__main`).
+
+Note: `mldp` is no longer a standalone repo. It lives under `ALCHEMY__dev/TRAIN_MLMD_scripts/ANALYSIS/mldp` (and the parallel path under `ALCHEMY__in_use`, available as `$ALCHEMY__main__MLDP` / `$ALCHEMY__dev__MLDP`; see `sys/myshortcuts.sh`). The `mldp_ALCHEMY` symlink in this folder points to the dev copy for convenience.

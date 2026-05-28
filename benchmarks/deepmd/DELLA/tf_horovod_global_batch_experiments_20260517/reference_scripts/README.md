@@ -10,6 +10,12 @@ They are included here to make the benchmark record reproducible. Do not run
 submission scripts directly from this benchmark folder. Copy/adapt them into a
 scratch working directory first, then submit from the intended run root.
 
+For normal ALCHEMY production runs, prefer the non-`restart` `Ngpu` scripts and
+let `TRAIN_MLMD_LEVEL_2.sh` own any chained resubmission. The
+`*.Ngpu.restart.{TF,PT}.sh` scripts are archived self-resubmitting references
+only; do not set them as `DPMD_TRAIN_SCRIPT` inside the Level 2 workflow, or
+the script-level chain and Level 2 chain can nest.
+
 Pseudo-validation summarizers parse DeePMD `dp test` logs. Their metric units
 are `Energy RMSE/Natoms` in eV/atom, `Force RMSE` in eV/A, and
 `Virial RMSE/Natoms` in eV per atom. They do not convert virial to stress in

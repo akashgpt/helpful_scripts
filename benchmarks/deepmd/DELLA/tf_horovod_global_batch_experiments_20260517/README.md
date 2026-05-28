@@ -103,7 +103,14 @@ reference_results/CHECKPOINT_RESTART_TESTS_TRAINING_EVOLUTION_ROLLING_MEAN_FIRST
 reference_results/CHECKPOINT_RESTART_TESTS_PLOTTED_20260524.tsv
 ```
 
-Those tests support the TF 4GPU `none` restart path: the final-template run reached 100000 steps after repeated 15-minute slices, printed DeePMD `finished training`, and produced `pv.pb`/`pv_comp.pb`. The PT restart chains did not reproduce the clean 4GPU PT baseline: even the fixed v2 healthgate/second-latest run reached 100000 steps and finalized but ended with a high total training loss (`7.51`). Treat PT chained restart as unresolved and prefer uninterrupted PT runs until this drift is understood. In these PT tests, `save_freq = 100` produced 1000 checkpoints (`model.ckpt-100.pt` through `model.ckpt-100000.pt`); the ALCHEMY scripts rely on the input JSON for checkpoint frequency, so production inputs with only one checkpoint will not benefit from the second-latest checkpoint safeguard.
+A follow-up scheduler diagnostic is archived in:
+
+```text
+reference_results/PT_RESTART_LR_SCHEDULER_DIAGNOSTIC_20260525.md
+```
+
+
+Those tests support the TF 4GPU `none` restart path: the final-template run reached 100000 steps after repeated 15-minute slices, printed DeePMD `finished training`, and produced `pv.pb`/`pv_comp.pb`. The PT restart chains did not reproduce the clean 4GPU PT baseline: even the fixed v2 healthgate/second-latest run reached 100000 steps and finalized but ended with a high total training loss (`7.51`). Treat PT chained restart as unresolved and prefer uninterrupted PT runs until this drift is understood. Follow-up inspection found a specific PT LR scheduler restart problem: later PT restarts resume with inflated LR because the active DeePMD PT trainer appears to double-count the restart step while rebuilding `LambdaLR`. Do not use PT chained restart as production-safe until that scheduler behavior is patched and revalidated. In these PT tests, `save_freq = 100` produced 1000 checkpoints (`model.ckpt-100.pt` through `model.ckpt-100000.pt`); the ALCHEMY scripts rely on the input JSON for checkpoint frequency, so production inputs with only one checkpoint will not benefit from the second-latest checkpoint safeguard.
 
 ## Usage
 
