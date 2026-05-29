@@ -14,7 +14,7 @@
 
 
 # ======================================================================
-# MULTI_sub_vasp_GPU.sh
+# MULTI_RUN_VASP__GPU__reference.sh
 # ======================================================================
 # Runs many independent VASP calculations, with a configurable number
 # of GPUs per VASP calculation, across one or more nodes.

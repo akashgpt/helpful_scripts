@@ -1562,7 +1562,8 @@ export HELP_SCRIPTS_BENCHMARKS="$HELP_SCRIPTS/benchmarks"
 alias ALCHEMY_status='$ALCHEMY__main__HEALTH/ALCHEMY_status.sh'
 alias ALCHEMY_timing='$ALCHEMY__main__HEALTH/ALCHEMY_timing.sh'
 alias ALCHEMY_performance='python $ALCHEMY__main__HEALTH/ALCHEMY_performance.py'
-
+alias ALCHEMY_check_plumed_coverage="python3 /projects/BURROWS/akashgpt/run_scripts/ALCHEMY__dev/TRAIN_MLMD_scripts/ANALYSIS/HEALTH_CHECK_UP/check_plumed_cv_coverage.py"
+alias ALCHEMY_check_lmp_coverage="python3 /projects/BURROWS/akashgpt/run_scripts/ALCHEMY__dev/TRAIN_MLMD_scripts/ANALYSIS/HEALTH_CHECK_UP/collect_plumed_cv_parameters.py . --iteration"
 
 
 
