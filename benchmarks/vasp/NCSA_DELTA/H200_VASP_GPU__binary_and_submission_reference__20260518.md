@@ -98,4 +98,4 @@ Notes:
 - Compilation of the portable build: [`compilation/makefile.include__NCSA_DELTA_GPU_portable`](compilation/makefile.include__NCSA_DELTA_GPU_portable) and [`compilation/README__compilation.md`](compilation/README__compilation.md).
 - A100 multi-GPU scaling caveats: [`README__VASP_GPU_SCALING_BENCHMARK.md`](README__VASP_GPU_SCALING_BENCHMARK.md) (KPAR multi-GPU is broken on Delta A100; single-GPU is healthy — same single-GPU guidance applies on H200).
 - Project submission scripts that use this binary on `gpuH200x8`:
-  `He_MgSiO3/sim_data_ML/setup_MLMD/submission_scripts/{sub_vasp_gpu.sh,sub_vasp_gpu_xtra.sh,MULTI_sub_vasp_gpu.sh}`.
+  `He_MgSiO3/sim_data_ML/setup_MLMD/submission_scripts/{RUN_VASP_gpu.sh,RUN_VASP_gpu_xtra.sh,MULTI_RUN_VASP_gpu.sh}`.

@@ -28,13 +28,13 @@ The top-level `OG/` and `misc/` directories appear to be archival/reference mate
 
 - No hard runtime failures were found in the numbered cases.
 - All numbered cases except `1_PBEsol__OG` contain `done_RUN_VASP`.
-- `1_PBEsol__OG` still looks numerically complete: it has `OSZICAR`, `OUTCAR`, timing information, and final energies, but it lacks the wrapper artifacts (`done_RUN_VASP`, `sub_vasp.sh`) used by the newer runs. I would treat it as a legacy/reference result, not a failed run.
+- `1_PBEsol__OG` still looks numerically complete: it has `OSZICAR`, `OUTCAR`, timing information, and final energies, but it lacks the wrapper artifacts (`done_RUN_VASP`, `RUN_VASP.sh`) used by the newer runs. I would treat it as a legacy/reference result, not a failed run.
 - Multiple `slurm-*.out` files are present in many cases, which indicates reruns or copied job histories, but I did not find obvious scheduler/runtime errors in those logs.
 - The `OUTCAR` phrase `kinetic energy error for atom=...` appears in many cases. In this context it is a standard VASP message and should not be interpreted as a benchmark failure.
 
 ## Execution environment
 
-From `sub_vasp.sh` in the active cases:
+From `RUN_VASP.sh` in the active cases:
 
 - Scheduler: Slurm
 - Allocation: `--account=burrows`
@@ -123,7 +123,7 @@ Key comparisons against `1_R2SCAN__ALGO_N`:
 
 For each active case, the most useful files are:
 
-- Inputs: `INCAR`, `POSCAR`, `KPOINTS`, `POTCAR`, `sub_vasp.sh`
+- Inputs: `INCAR`, `POSCAR`, `KPOINTS`, `POTCAR`, `RUN_VASP.sh`
 - Quick status check: `done_RUN_VASP`, `log.run_sim`, `slurm-*.out`
 - Numerical verification: `OSZICAR`, `OUTCAR`
 - Post-processing/archive: `vasprun.xml`, `vaspout.h5`, `CONTCAR`, `XDATCAR`, `CHGCAR`, `WAVECAR`

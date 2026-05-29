@@ -14,7 +14,7 @@
 
 
 # ======================================================================
-# MULTI_sub_vasp_GPU.sh
+# MULTI_RUN_VASP_gpu__reference_v2.sh
 # ======================================================================
 # Runs many independent VASP calculations, one per GPU, across one or
 # more nodes. Each VASP instance is 1 MPI rank + OMP threads + 1 GPU.

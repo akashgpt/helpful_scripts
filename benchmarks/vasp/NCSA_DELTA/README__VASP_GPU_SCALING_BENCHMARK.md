@@ -87,14 +87,14 @@ System: 160 atoms, 768 bands, 4 k-points, 1 GPU.
 | 16           | 16          | 1405        |
 
 **CPU count has negligible impact on single-GPU performance.** 1 CPU performs
-identically to 16 CPUs. This means multi-GPU packing (MULTI_sub_vasp_GPU.sh)
+identically to 16 CPUs. This means multi-GPU packing (MULTI_RUN_VASP_gpu.sh)
 can use `--cpus-per-task=1`, minimizing resource requests and improving
 scheduling priority.
 
 ### 3.5 Multi-GPU Packing (Independent VASP Runs, 1 GPU Each)
 
 Tested packing multiple independent VASP calculations onto GPUs using
-`MULTI_sub_vasp_GPU.sh` with GNU parallel + per-GPU CUDA_VISIBLE_DEVICES binding.
+`MULTI_RUN_VASP_gpu.sh` with GNU parallel + per-GPU CUDA_VISIBLE_DEVICES binding.
 Each run: 1 MPI rank, 1 OMP thread, 1 GPU, KPAR=1.
 
 **Test 1: 1 node x 4 GPUs, 8 runs (4 concurrent + 4 queued)**
