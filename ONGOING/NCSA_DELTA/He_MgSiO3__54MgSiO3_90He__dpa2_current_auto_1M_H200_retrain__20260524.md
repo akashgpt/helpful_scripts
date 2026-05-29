@@ -87,4 +87,98 @@ A run is done when `log.train` shows `Trained model has been saved to:` after st
 2. Compare against the original 200k results: does OOD F RMSE drop from `47.7` (all-61) and `1634` (n0226)? If yes — under-training was the issue. If no — DPA-2 architecture lacks the OOD capacity, and the only path forward is training-distribution expansion (add high-pressure MgSiO3 frames to TRAIN).
 3. **For a fully-blind comparison** generate independent test data (not the same `MgSiO3/sim_data` collection used as validation here).
 
+## Status snapshot — 2026-05-27
+
+Job `18452299` completed normally:
+
+```text
+18452299|dpa2_cur_auto_1M_H200|COMPLETED|0:0|20:56:02|2026-05-25T20:50:21|2026-05-26T17:46:23|gpue05|gpuH200x8
+```
+
+The run reached the intended checkpoint:
+
+- `model.ckpt-1000000.pt` exists and `model.ckpt.pt -> model.ckpt-1000000.pt`.
+- `log.train` ends with `Trained model has been saved to: model.ckpt`.
+- DeePMD reported average training time `0.0753 s/batch` after the first 100 batches.
+
+Training-curve analysis:
+
+| Run | final step | final train E/F/V | last-100k median train E/F/V | final val E/F/V | last-100k median val E/F/V |
+| --- | ---: | --- | --- | --- | --- |
+| `dpa2_current_auto_200k` | 200000 | `0.00589 / 0.224 / 0.00852` | `0.00543 / 0.260 / 0.0162` | n/a | n/a |
+| `dpa2_current_auto_1M_H200` | 1000000 | `0.167 / 5.12 / 3.70` | `0.319 / 3.73 / 2.545` | `0.352 / 2.56 / 0.259` | `0.624 / 3.46 / 2.11` |
+
+Interpretation: the 1M H200 extension did **not** improve the `current_auto` architecture in the training curve. Its late training force/virial errors are much worse than the 200k run. The run completed cleanly, and the only DeePMD warning is the same neighbor-selection warning seen in the 200k baseline (`sel of type 0 ... expected >=107, set to 40`), so this is not explained by a new runtime failure.
+
+Existing 61-system MgSiO3 validation for the 200k DPA-2 suite remains:
+
+| Case | all-61 E/F/V |
+| --- | --- |
+| `dpa2_current_auto` | `1.810 / 47.736 / 3.656` |
+| `dpa2_doc_medium_currentloss` | `1.052 / 1.260 / 1.986` |
+| `dpa2_doc_medium_no3body` | `1.166 / 1.278 / 2.162` |
+| `dpa2_doc_medium_novirial` | `1.237 / 1.409 / 2.230` |
+
+The 1M checkpoint has not yet been run through the full 61-system `run_dp_test_all.py` harness, so the OOD conclusion should stay provisional until that direct validation row is generated. Based on the lcurve, under-training alone is unlikely to explain the `current_auto` failure.
+
+## Validation sweep — submitted 2026-05-27
+
+Full 61-system MgSiO3 validation for `model.ckpt-1000000.pt` is now submitted.
+
+```text
+Job: 18537583
+Validation dir: /work/nvme/bguf/akashgpt/softwares/installing_MLMD_related_stuff/deepmd-kit__w_plumed/testing__LAMMPS__kokkos_bench/He_MgSiO3__54MgSiO3_90He/training_bench/validation_MgSiO3_sim_data_dpa2_current_auto_1M_H200__20260527
+Model: /work/nvme/bguf/akashgpt/softwares/installing_MLMD_related_stuff/deepmd-kit__w_plumed/testing__LAMMPS__kokkos_bench/He_MgSiO3__54MgSiO3_90He/training_bench/variant_train_dpa2_PT_current_auto_1M_H200/model.ckpt-1000000.pt
+Script: run_validation.sbatch
+Array: 0-0
+```
+
+Check status:
+
+```bash
+squeue -j 18537583 -o "%i %T %P %M %l %R"
+sacct -j 18537583 --format=JobID,State,Elapsed,ExitCode -P -n
+```
+
+Once complete, summarize or inspect:
+
+```bash
+cd /work/nvme/bguf/akashgpt/softwares/installing_MLMD_related_stuff/deepmd-kit__w_plumed/testing__LAMMPS__kokkos_bench/He_MgSiO3__54MgSiO3_90He/training_bench/validation_MgSiO3_sim_data_dpa2_current_auto_1M_H200__20260527
+python summarize_validation.py
+grep '^aggregate' VALIDATION_SUMMARY.tsv
+```
+
+Learning-curve plot generated:
+
+```text
+/work/nvme/bguf/akashgpt/softwares/installing_MLMD_related_stuff/deepmd-kit__w_plumed/testing__LAMMPS__kokkos_bench/He_MgSiO3__54MgSiO3_90He/training_bench/variant_train_dpa2_PT_current_auto_1M_H200/dpa2_current_auto_1M_H200__train_val_rmse.png
+```
+
 Per policy this `ONGOING/` note stays until user explicitly confirms removal.
+
+## Validation sweep — completed 2026-05-27
+
+Job `18537583_0` completed cleanly on `gpue02`:
+
+```text
+18537583_0|val_dpa2_1M_H200|COMPLETED|0:0|00:04:41|2026-05-27T15:47:03|2026-05-27T15:51:44|gpue02|gpuH200x8
+```
+
+Full 61-system aggregate from `VALIDATION_SUMMARY.tsv`:
+
+| case | frames | val E RMSE/atom | val F RMSE | val V RMSE/atom |
+| --- | ---: | ---: | ---: | ---: |
+| `dpa2_current_auto_1M_H200` | 6100 | 2.53832 | 4.01468 | 4.03399 |
+
+Worst systems by energy/force/virial are the same high-error middle block:
+
+| system | E RMSE/atom | F RMSE | V RMSE/atom |
+| --- | ---: | ---: | ---: |
+| `n0226` | 40.92477 | 17.41309 | 45.08185 |
+| `n0217` | 40.51059 | 15.32028 | 44.89741 |
+| `n0221` | 17.31966 | 12.32141 | 24.66431 |
+| `n0211` | 17.11817 | 10.72095 | 24.51017 |
+| `n0222` | 7.18072 | 8.86597 | 13.18194 |
+| `n0212` | 6.93093 | 7.59251 | 12.97933 |
+
+Conclusion: 1M continued training did not rescue `current_auto`. It reduced the old 200k force aggregate (`47.736`) but remains scientifically poor (`F=4.015 eV/A`, `V=4.034 eV/atom`) and has catastrophic OOD systems. The lcurve also shows validation staying noisy and above train, so this is architecture/setup/data-coverage failure rather than a simple walltime-shortfall issue.
